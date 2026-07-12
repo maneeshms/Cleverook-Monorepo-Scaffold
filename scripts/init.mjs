@@ -37,7 +37,14 @@ const OLD_SCOPE = '@clevscaffold';
 const COMPONENTS = {
   typeorm: {
     dirs: ['apps/api', 'libs/database', 'libs/messaging'],
-    deps: ['@nestjs/typeorm', '@nestjs/schedule', 'typeorm', 'bullmq', 'resend'],
+    deps: [
+      '@nestjs/typeorm',
+      '@nestjs/schedule',
+      '@openfeature/server-sdk',
+      'typeorm',
+      'bullmq',
+      'resend',
+    ],
     scripts: [
       'dev:api',
       'migration:generate',

@@ -50,6 +50,7 @@
     "@nestjs/terminus": "10.3.0",
     "@nestjs/throttler": "6.5.0",
     "@nestjs/typeorm": "10.0.2",
+    "@openfeature/server-sdk": "1.22.0",
     "@prisma/client": "6.19.1",
     "bcryptjs": "2.4.3",
     "bullmq": "5.79.2",

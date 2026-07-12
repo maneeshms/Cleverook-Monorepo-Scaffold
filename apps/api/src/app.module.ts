@@ -9,6 +9,7 @@ import {
   appConfig,
   createEnvValidator,
   databaseConfig,
+  featureFlagsConfig,
   jwtConfig,
   messagingConfig,
   metricsConfig,
@@ -30,6 +31,7 @@ import {
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { TasksModule } from './modules/tasks/tasks.module';
+import { FeatureFlagsModule } from './modules/feature-flags/feature-flags.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { InAppSinkModule } from './modules/notifications/in-app-sink.module';
 import { HealthModule } from './health/health.module';
@@ -42,7 +44,15 @@ import { HealthModule } from './health/health.module';
       // The layered loader owns .env + config/*.json resolution — see
       // libs/config/src/layered-config.ts and docs/CONFIGURATION.md.
       ignoreEnvFile: true,
-      load: [appConfig, databaseConfig, jwtConfig, throttleConfig, messagingConfig, metricsConfig],
+      load: [
+        appConfig,
+        databaseConfig,
+        jwtConfig,
+        throttleConfig,
+        messagingConfig,
+        metricsConfig,
+        featureFlagsConfig,
+      ],
       validate: createEnvValidator({
         configDir: process.env.CONFIG_DIR ?? join(process.cwd(), 'apps/api/config'),
         require: ['DATABASE_URL'],
@@ -96,6 +106,7 @@ import { HealthModule } from './health/health.module';
     AuthModule,
     UsersModule,
     TasksModule,
+    FeatureFlagsModule,
     NotificationsModule,
     HealthModule,
   ],
