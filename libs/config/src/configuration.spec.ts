@@ -1,6 +1,7 @@
 import {
   appConfig,
   databaseConfig,
+  featureFlagsConfig,
   jwtConfig,
   messagingConfig,
   metricsConfig,
@@ -33,10 +34,7 @@ describe('configuration namespaces', () => {
 
     it('splits and trims the CORS allowlist', () => {
       process.env.CORS_ORIGINS = ' https://a.example.com , https://b.example.com ,';
-      expect(appConfig().corsOrigins).toEqual([
-        'https://a.example.com',
-        'https://b.example.com',
-      ]);
+      expect(appConfig().corsOrigins).toEqual(['https://a.example.com', 'https://b.example.com']);
     });
   });
 
@@ -153,6 +151,28 @@ describe('configuration namespaces', () => {
     it('reads the optional bearer token', () => {
       process.env.METRICS_TOKEN = 'metrics-secret';
       expect(metricsConfig().token).toBe('metrics-secret');
+    });
+  });
+
+  describe('featureFlagsConfig', () => {
+    it('defaults to the env provider and a 30s cache TTL', () => {
+      delete process.env.FEATURE_FLAG_PROVIDER;
+      delete process.env.FEATURE_FLAG_CACHE_TTL_MS;
+      const cfg = featureFlagsConfig();
+      expect(cfg.provider).toBe('env');
+      expect(cfg.cacheTtlMs).toBe(30000);
+    });
+
+    it('lowercases the provider name', () => {
+      process.env.FEATURE_FLAG_PROVIDER = 'Database';
+      expect(featureFlagsConfig().provider).toBe('database');
+    });
+
+    it('parses a custom cache TTL and falls back on garbage', () => {
+      process.env.FEATURE_FLAG_CACHE_TTL_MS = '5000';
+      expect(featureFlagsConfig().cacheTtlMs).toBe(5000);
+      process.env.FEATURE_FLAG_CACHE_TTL_MS = 'not-a-number';
+      expect(featureFlagsConfig().cacheTtlMs).toBe(30000);
     });
   });
 });

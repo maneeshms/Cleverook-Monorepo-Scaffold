@@ -9,12 +9,14 @@ import {
   appConfig,
   createEnvValidator,
   databaseConfig,
+  featureFlagsConfig,
   jwtConfig,
   messagingConfig,
   metricsConfig,
   throttleConfig,
 } from '@clevscaffold/config';
 import { DatabaseModule } from '@clevscaffold/database';
+import { FeatureFlagsModule } from '@clevscaffold/feature-flags';
 import { LoggerModule } from '@clevscaffold/logger';
 import { MessagingModule } from '@clevscaffold/messaging';
 import {
@@ -42,7 +44,15 @@ import { HealthModule } from './health/health.module';
       // The layered loader owns .env + config/*.json resolution — see
       // libs/config/src/layered-config.ts and docs/CONFIGURATION.md.
       ignoreEnvFile: true,
-      load: [appConfig, databaseConfig, jwtConfig, throttleConfig, messagingConfig, metricsConfig],
+      load: [
+        appConfig,
+        databaseConfig,
+        jwtConfig,
+        throttleConfig,
+        messagingConfig,
+        metricsConfig,
+        featureFlagsConfig,
+      ],
       validate: createEnvValidator({
         configDir: process.env.CONFIG_DIR ?? join(process.cwd(), 'apps/api/config'),
         require: ['DATABASE_URL'],
@@ -91,6 +101,18 @@ import { HealthModule } from './health/health.module';
           fromName: config.get<string>('messaging.resend.fromName'),
         },
         emailProviderOverride: config.get<string>('messaging.emailProviderOverride') ?? null,
+      }),
+    }),
+    // OpenFeature-backed feature flags — config injected from this app's
+    // ConfigService so the lib stays env-agnostic. Swap FEATURE_FLAG_PROVIDER
+    // (env | database) or plug a hosted provider without touching call sites.
+    FeatureFlagsModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        provider: config.get<string>('featureFlags.provider') ?? 'env',
+        cacheTtlMs: config.get<number>('featureFlags.cacheTtlMs'),
+        // Route env reads through the layered config loader, not raw process.env.
+        envGetter: (key) => config.get<string>(key),
       }),
     }),
     AuthModule,

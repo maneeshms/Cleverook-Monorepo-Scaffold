@@ -9,22 +9,58 @@ libs/common   (ORM-free)  ──imported by everything
 libs/config   (loader + validation + typed namespaces)
 libs/logger   (Winston: log + audit + alert)
 libs/database (TypeORM only: DatabaseModule, data-source, BaseEntity, migrations)
+libs/feature-flags(depends on common+database+logger; TypeORM-coupled; source-only lib)
 libs/messaging(depends on database; TypeORM-coupled; source-only lib)
-apps/api           → common, config, logger, database, messaging   (TypeORM)
+apps/api           → common, config, logger, database, feature-flags, messaging (TypeORM)
 apps/api-prisma    → common, config, logger                        (Prisma)
 apps/web, web-next → standalone frontends (own package.json/lockfile)
 ```
 
 **Rules:**
+
 - `libs/common` is **ORM-free** — no TypeORM/Prisma imports — so the Prisma app can
   use it. `BaseEntity` lives in `libs/database` (not common) for the same reason.
-- `libs/database` and `libs/messaging` are **TypeORM-coupled**; the Prisma app does
-  not import them. `init.mjs --orm prisma` prunes them.
-- `libs/messaging` has **no Nx build target** — it's a source-only lib; consuming
-  apps compile it. Adding a build target reintroduces the `rootDir` errors we
-  removed. Keep it source-only.
+- `libs/database`, `libs/feature-flags`, and `libs/messaging` are **TypeORM-coupled**;
+  the Prisma app does not import them. `init.mjs --orm prisma` prunes them.
+- `libs/feature-flags` and `libs/messaging` have **no Nx build target** — they're
+  source-only libs; consuming apps compile them. Adding a build target reintroduces
+  the `rootDir` errors we removed. Keep them source-only.
+- **Config-injected libs:** `feature-flags` and `messaging` read no env/app-config
+  themselves — the host passes runtime options via `forRootAsync({ useFactory })`
+  built from its ConfigService. That's what keeps them portable across projects.
 - **Apps never import other apps.** Shared code goes in a lib.
-- Path aliases: `@clevscaffold/{common,config,logger,database,messaging}`.
+- Path aliases: `@clevscaffold/{common,config,logger,database,feature-flags,messaging}`.
+
+## Package layout (npm workspaces)
+
+**Every project owns its own `package.json`** — there is no giant root dependency
+list. The root is a thin workspace root (`"workspaces": ["libs/*", "apps/api",
+"apps/api-prisma"]`) holding only shared build/test tooling (nx, typescript,
+eslint, prettier, jest, husky) and orchestration scripts.
+
+- **Each lib** (`libs/*/package.json`) declares exactly the npm deps its source
+  imports, plus its `@clevscaffold/*` workspace deps.
+- **Each backend app** declares its own deps + the workspace libs it uses. So
+  `apps/api` lists TypeORM/messaging deps; `apps/api-prisma` lists Prisma — neither
+  carries the other's.
+- **One root lockfile** (`package-lock.json`) — npm workspaces hoists a single,
+  deduplicated `node_modules`. That's deliberate: deterministic installs + one
+  security-audit surface. Per-project _manifests_, single lockfile.
+- **Frontends** (`apps/web`, `apps/web-next`) are **not** workspaces — they keep
+  their own `package.json` **and** lockfile and build/deploy fully standalone.
+- Add a dep to the package that uses it (`libs/<x>/package.json` or
+  `apps/<x>/package.json`), exact-pinned, then `npm install` at the root.
+
+## Lean Docker images
+
+Apps compile their libs into `dist` (tsc + tsc-alias), so at runtime only external
+npm deps are needed. `scripts/docker-manifest.mjs` walks an app's package.json,
+follows `@clevscaffold/*` into each lib, and flattens the external dependency
+closure into a self-contained `package.json` in the app's `dist`. The Docker
+runtime stage `npm install --omit=dev` from that — so `apps/api` images ship
+TypeORM/BullMQ/OpenFeature (no Prisma) and `apps/api-prisma` images ship Prisma
+(no TypeORM/messaging/OpenFeature). Keep app/lib deps accurate and this stays
+correct automatically.
 
 ## Layered configuration (`libs/config`)
 
@@ -55,7 +91,7 @@ Per key, first hit wins:
   DB + Redis), `/health/info`. `enableShutdownHooks()` for clean rolling deploys.
 - **Metrics:** `libs/common` metrics module (prom-client default metrics + HTTP
   duration histogram interceptor) at `/api/v1/metrics`, gated by `METRICS_ENABLED`
-  + optional `METRICS_TOKEN` bearer.
+  - optional `METRICS_TOKEN` bearer.
 - **Redis (optional, `REDIS_URL`):** distributed throttler storage + BullMQ
   delivery queue. Unset → in-memory throttling + inline message delivery (both
   single-instance correct). No mock Redis. `RedisService` is null-safe.

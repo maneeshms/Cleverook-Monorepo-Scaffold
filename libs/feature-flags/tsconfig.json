@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../dist/libs/feature-flags"
+  },
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "./tsconfig.lib.json" }]
+}

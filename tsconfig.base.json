@@ -28,6 +28,8 @@
       "@clevscaffold/logger/*": ["libs/logger/src/*"],
       "@clevscaffold/database": ["libs/database/src/index.ts"],
       "@clevscaffold/database/*": ["libs/database/src/*"],
+      "@clevscaffold/feature-flags": ["libs/feature-flags/src/index.ts"],
+      "@clevscaffold/feature-flags/*": ["libs/feature-flags/src/*"],
       "@clevscaffold/messaging": ["libs/messaging/src/index.ts"],
       "@clevscaffold/messaging/*": ["libs/messaging/src/*"]
     }

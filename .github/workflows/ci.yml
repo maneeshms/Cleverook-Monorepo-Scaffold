@@ -30,16 +30,16 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
+      # clevscaffold:prisma:start
+      - name: Prisma client (needed before api-prisma typecheck/unit tests)
+        run: npm run prisma:generate
+      # clevscaffold:prisma:end
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
       # jest.preset.js enforces coverageThreshold 90% (branches/functions/lines/statements);
       # this step fails the build if any project drops below the floor.
       - run: npm run test
-      # clevscaffold:prisma:start
-      - name: Prisma client (needed before api-prisma unit tests run standalone)
-        run: npm run prisma:generate
-      # clevscaffold:prisma:end
 
   # ── e2e against a real Postgres service container ────────────────────────────
   e2e:
@@ -89,6 +89,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read # required by upload-sarif to read workflow run metadata
       security-events: write # upload Trivy SARIF to code scanning
     strategy:
       fail-fast: false
@@ -109,7 +110,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
       # Fail the build on CRITICAL image vulnerabilities; report HIGH informationally.
       - name: Trivy image scan (${{ matrix.app }})
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: clevscaffold-${{ matrix.app }}:ci
           format: sarif
@@ -117,7 +118,7 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: '0'
       - name: Trivy gate — fail on CRITICAL
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: clevscaffold-${{ matrix.app }}:ci
           format: table

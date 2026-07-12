@@ -81,3 +81,12 @@ export const metricsConfig = registerAs('metrics', () => ({
   // (keep the endpoint internal-only at the network layer in that case).
   token: process.env.METRICS_TOKEN ?? '',
 }));
+
+export const featureFlagsConfig = registerAs('featureFlags', () => ({
+  // Which OpenFeature provider backs flag evaluation. 'env' reads FF_<KEY> vars;
+  // 'database' reads the feature_flags table. Swap for a hosted provider
+  // (LaunchDarkly, Flagsmith, ...) later without touching call sites.
+  provider: (process.env.FEATURE_FLAG_PROVIDER ?? 'env').toLowerCase(),
+  // How long the database provider caches flags in memory before re-reading.
+  cacheTtlMs: parseInt(process.env.FEATURE_FLAG_CACHE_TTL_MS ?? '30000', 10) || 30000,
+}));

@@ -31,7 +31,7 @@ adapters that point back here.
    unconfigured they either fall back explicitly (e.g. console email) or return
    `503` — never fabricated values. `libs/messaging` is the reference.
 8. **Run the gates before declaring done:** `npm run lint && npm run typecheck &&
-   npm run build && npm run test`, plus the relevant `npm run e2e` for backend
+npm run build && npm run test`, plus the relevant `npm run e2e` for backend
    changes.
 
 ---
@@ -50,11 +50,19 @@ libs/
   config/       LAYERED config loader + class-validator validation + namespaces
   logger/       Winston LoggerService (log + audit + alert streams)
   database/     TypeORM DatabaseModule, data-source, BaseEntity, migrations
+  feature-flags/ OpenFeature engine (env|database providers, forRootAsync) —
+                source-only lib; swap providers without touching call sites
   messaging/    Omnichannel engine (channels/providers/routing/templates/queue)
                 — source-only lib (no build target; apps compile it)
-scripts/        init.mjs · e2e-setup.mjs · security_scan.py
+scripts/        init.mjs · e2e-setup.mjs · security_scan.py · docker-manifest.mjs
 docs/           human docs + docs/agents/ (agent topic docs)
 ```
+
+**npm workspaces:** every lib and backend app owns its **own `package.json`** with
+its own dependencies. The root is a thin workspace root — shared build/test tooling
+and scripts only, no runtime deps. One root lockfile (deliberate: deterministic
+installs, one audit surface). Frontends stay standalone (own package.json +
+lockfile). Add a dep to the package that uses it, exact-pinned, then `npm install`.
 
 **Dependency direction:** `common` is ORM-free and imported everywhere;
 `database` is TypeORM-only; `messaging` depends on `database` (TypeORM-coupled);
@@ -106,14 +114,14 @@ workflow: `docs/agents/testing.md`.
 
 ## Topic docs — read the one that fits your task
 
-| Doc | Read when |
-|-----|-----------|
-| `docs/agents/architecture.md` | adding a module/lib/app; layered config; lib boundaries |
+| Doc                           | Read when                                                           |
+| ----------------------------- | ------------------------------------------------------------------- |
+| `docs/agents/architecture.md` | adding a module/lib/app; layered config; lib boundaries             |
 | `docs/agents/security.md`     | **any** auth, validation, crypto, data-exposure, or endpoint change |
-| `docs/agents/conventions.md`  | naming, types, Swagger, commits, code style |
-| `docs/agents/testing.md`      | writing tests, coverage floor, e2e, the scanner |
-| `docs/agents/workflows.md`    | branching, PRs, CI gates, migrations, deploys |
-| `docs/agents/frontend.md`     | anything under `apps/web` or `apps/web-next` |
+| `docs/agents/conventions.md`  | naming, types, Swagger, commits, code style                         |
+| `docs/agents/testing.md`      | writing tests, coverage floor, e2e, the scanner                     |
+| `docs/agents/workflows.md`    | branching, PRs, CI gates, migrations, deploys                       |
+| `docs/agents/frontend.md`     | anything under `apps/web` or `apps/web-next`                        |
 
 ## Init & pruning (do not break)
 
