@@ -89,6 +89,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read # required by upload-sarif to read workflow run metadata
       security-events: write # upload Trivy SARIF to code scanning
     strategy:
       fail-fast: false
