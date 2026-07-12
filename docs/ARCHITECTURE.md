@@ -36,13 +36,23 @@ messaging┘  (depends on database)
 
 api        → common, config, logger, database, messaging
 api-prisma → common, config, logger              (no TypeORM libs)
-web / web-next → standalone (own package.json)
+web / web-next → standalone (own package.json + lockfile, not workspaces)
 ```
 
 - `common` never imports an ORM, so both API apps can share it. `BaseEntity` lives
   in `database`, not `common`.
 - `messaging` is a **source-only lib** (no Nx build target) — apps compile it.
 - Apps never import other apps.
+
+## Packages (npm workspaces)
+
+Every lib and backend app has its **own `package.json`** declaring its own
+dependencies; the root is a thin workspace root with shared build/test tooling
+only. One root lockfile (deterministic installs, one audit surface). Frontends are
+standalone (own package.json + lockfile). Docker images stay lean — each app's
+runtime installs only its own dependency closure via `scripts/docker-manifest.mjs`
+(so the api image has no Prisma, and the api-prisma image has no TypeORM). See
+[docs/agents/architecture.md](agents/architecture.md).
 
 ## Request lifecycle (api)
 
@@ -59,7 +69,7 @@ HTTP ─► helmet ─► correlationId ─► CORS ─► body-limit(1MB)
 ## Cross-cutting subsystems
 
 - **Config (layered):** `process.env → config/{NODE_ENV}.json → config/default.json
-  → code default`, validated at boot. [CONFIGURATION.md](CONFIGURATION.md).
+→ code default`, validated at boot. [CONFIGURATION.md](CONFIGURATION.md).
 - **Auth:** 15-min access JWT + rotating opaque hashed refresh with reuse
   detection; progressive lockout. [SECURITY.md](SECURITY.md).
 - **Logging:** Winston with `log`/`audit`/`alert` streams; correlation IDs.

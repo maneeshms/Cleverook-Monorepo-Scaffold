@@ -16,6 +16,7 @@ apps/web, web-next → standalone frontends (own package.json/lockfile)
 ```
 
 **Rules:**
+
 - `libs/common` is **ORM-free** — no TypeORM/Prisma imports — so the Prisma app can
   use it. `BaseEntity` lives in `libs/database` (not common) for the same reason.
 - `libs/database` and `libs/messaging` are **TypeORM-coupled**; the Prisma app does
@@ -25,6 +26,36 @@ apps/web, web-next → standalone frontends (own package.json/lockfile)
   removed. Keep it source-only.
 - **Apps never import other apps.** Shared code goes in a lib.
 - Path aliases: `@clevscaffold/{common,config,logger,database,messaging}`.
+
+## Package layout (npm workspaces)
+
+**Every project owns its own `package.json`** — there is no giant root dependency
+list. The root is a thin workspace root (`"workspaces": ["libs/*", "apps/api",
+"apps/api-prisma"]`) holding only shared build/test tooling (nx, typescript,
+eslint, prettier, jest, husky) and orchestration scripts.
+
+- **Each lib** (`libs/*/package.json`) declares exactly the npm deps its source
+  imports, plus its `@clevscaffold/*` workspace deps.
+- **Each backend app** declares its own deps + the workspace libs it uses. So
+  `apps/api` lists TypeORM/messaging deps; `apps/api-prisma` lists Prisma — neither
+  carries the other's.
+- **One root lockfile** (`package-lock.json`) — npm workspaces hoists a single,
+  deduplicated `node_modules`. That's deliberate: deterministic installs + one
+  security-audit surface. Per-project _manifests_, single lockfile.
+- **Frontends** (`apps/web`, `apps/web-next`) are **not** workspaces — they keep
+  their own `package.json` **and** lockfile and build/deploy fully standalone.
+- Add a dep to the package that uses it (`libs/<x>/package.json` or
+  `apps/<x>/package.json`), exact-pinned, then `npm install` at the root.
+
+## Lean Docker images
+
+Apps compile their libs into `dist` (tsc + tsc-alias), so at runtime only external
+npm deps are needed. `scripts/docker-manifest.mjs` walks an app's package.json,
+follows `@clevscaffold/*` into each lib, and flattens the external dependency
+closure into a self-contained `package.json` in the app's `dist`. The Docker
+runtime stage `npm install --omit=dev` from that — so `apps/api` images ship
+TypeORM/BullMQ (no Prisma) and `apps/api-prisma` images ship Prisma (no
+TypeORM/messaging). Keep app/lib deps accurate and this stays correct automatically.
 
 ## Layered configuration (`libs/config`)
 
@@ -55,7 +86,7 @@ Per key, first hit wins:
   DB + Redis), `/health/info`. `enableShutdownHooks()` for clean rolling deploys.
 - **Metrics:** `libs/common` metrics module (prom-client default metrics + HTTP
   duration histogram interceptor) at `/api/v1/metrics`, gated by `METRICS_ENABLED`
-  + optional `METRICS_TOKEN` bearer.
+  - optional `METRICS_TOKEN` bearer.
 - **Redis (optional, `REDIS_URL`):** distributed throttler storage + BullMQ
   delivery queue. Unset → in-memory throttling + inline message delivery (both
   single-instance correct). No mock Redis. `RedisService` is null-safe.

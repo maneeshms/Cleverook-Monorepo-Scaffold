@@ -33,18 +33,12 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OLD_SCOPE = '@clevscaffold';
 
 // ── Component manifest ──────────────────────────────────────────────────────
-// Each removable component lists what to delete when it is NOT selected.
+// Each removable component lists what to delete when it is NOT selected. Runtime
+// deps live in each package's own package.json (npm workspaces), so removing a
+// component's directory removes its dependencies with it — no root-dep pruning.
 const COMPONENTS = {
   typeorm: {
     dirs: ['apps/api', 'libs/database', 'libs/messaging'],
-    deps: [
-      '@nestjs/typeorm',
-      '@nestjs/schedule',
-      '@openfeature/server-sdk',
-      'typeorm',
-      'bullmq',
-      'resend',
-    ],
     scripts: [
       'dev:api',
       'migration:generate',
@@ -58,7 +52,6 @@ const COMPONENTS = {
   },
   prisma: {
     dirs: ['apps/api-prisma'],
-    deps: ['@prisma/client', 'prisma'],
     scripts: ['dev:api-prisma', 'prisma:generate', 'prisma:migrate', 'prisma:deploy', 'prisma:seed', 'prisma:studio'],
     tsPaths: [],
     sentinel: 'prisma',
@@ -66,7 +59,6 @@ const COMPONENTS = {
   },
   vite: {
     dirs: ['apps/web'],
-    deps: [],
     scripts: ['dev:web'],
     tsPaths: [],
     excludes: ['apps/web'],
@@ -75,7 +67,6 @@ const COMPONENTS = {
   },
   next: {
     dirs: ['apps/web-next'],
-    deps: [],
     scripts: ['dev:web-next'],
     tsPaths: [],
     excludes: ['apps/web-next'],
@@ -225,15 +216,18 @@ async function main() {
   // 1. Delete component directories.
   for (const c of remove) for (const d of COMPONENTS[c].dirs) rmrf(d);
 
-  // 2. package.json — drop deps + scripts, rename.
+  // 2. Root package.json — rename, drop scripts, and prune workspace entries whose
+  //    directory was removed. Runtime deps live in each package's own package.json
+  //    (npm workspaces), so there are no root runtime deps to prune here.
   const pkg = readJson('package.json');
   pkg.name = name;
   for (const c of remove) {
-    for (const dep of COMPONENTS[c].deps) {
-      delete pkg.dependencies?.[dep];
-      delete pkg.devDependencies?.[dep];
-    }
     for (const s of COMPONENTS[c].scripts) delete pkg.scripts?.[s];
+  }
+  if (Array.isArray(pkg.workspaces)) {
+    pkg.workspaces = pkg.workspaces.filter(
+      (w) => w.includes('*') || existsSync(path.join(ROOT, w)),
+    );
   }
   writeJson('package.json', pkg);
   console.log('  updated package.json');
