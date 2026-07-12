@@ -30,16 +30,16 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
+      # clevscaffold:prisma:start
+      - name: Prisma client (needed before api-prisma typecheck/unit tests)
+        run: npm run prisma:generate
+      # clevscaffold:prisma:end
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
       # jest.preset.js enforces coverageThreshold 90% (branches/functions/lines/statements);
       # this step fails the build if any project drops below the floor.
       - run: npm run test
-      # clevscaffold:prisma:start
-      - name: Prisma client (needed before api-prisma unit tests run standalone)
-        run: npm run prisma:generate
-      # clevscaffold:prisma:end
 
   # ── e2e against a real Postgres service container ────────────────────────────
   e2e:

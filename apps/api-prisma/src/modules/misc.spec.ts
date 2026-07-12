@@ -12,7 +12,9 @@ describe('HealthController (prisma)', () => {
   });
 
   it('readiness reports database up/down', async () => {
-    const up = new HealthController({ $queryRaw: jest.fn().mockResolvedValue([{ 1: 1 }]) } as never);
+    const up = new HealthController({
+      $queryRaw: jest.fn().mockResolvedValue([{ 1: 1 }]),
+    } as never);
     await expect(up.readiness()).resolves.toMatchObject({
       details: { database: { status: 'up' } },
     });
@@ -34,8 +36,8 @@ describe('PrismaService', () => {
     const service = new PrismaService({
       get: () => 'postgresql://postgres:postgres@localhost:5432/x',
     } as never);
-    const connect = jest.spyOn(service, '$connect').mockResolvedValue();
-    const disconnect = jest.spyOn(service, '$disconnect').mockResolvedValue();
+    const connect = jest.spyOn(service, '$connect').mockResolvedValue(undefined);
+    const disconnect = jest.spyOn(service, '$disconnect').mockResolvedValue(undefined);
     await service.onModuleInit();
     await service.onModuleDestroy();
     expect(connect).toHaveBeenCalled();
@@ -65,29 +67,41 @@ describe('AuthController (prisma)', () => {
   const current = { sub: 'u1', email: 'a@b.co', role: 'USER', sessionId: 's1' };
 
   it('extracts the request context and scopes session ops', async () => {
-    await controller.register({ email: 'a@b.co', password: 'x' } as never, {
-      headers: { 'user-agent': 'ua', 'x-forwarded-for': '203.0.113.7' },
-      ip: '10.0.0.1',
-    } as never);
+    await controller.register(
+      { email: 'a@b.co', password: 'x' } as never,
+      {
+        headers: { 'user-agent': 'ua', 'x-forwarded-for': '203.0.113.7' },
+        ip: '10.0.0.1',
+      } as never,
+    );
     expect(auth.register).toHaveBeenCalledWith(expect.anything(), {
       userAgent: 'ua',
       ipAddress: '203.0.113.7',
     });
 
-    await controller.login({ email: 'a@b.co', password: 'x' } as never, {
-      headers: {},
-      ip: undefined,
-    } as never);
+    await controller.login(
+      { email: 'a@b.co', password: 'x' } as never,
+      {
+        headers: {},
+        ip: undefined,
+      } as never,
+    );
     expect(auth.login).toHaveBeenCalledWith(expect.anything(), {
       userAgent: null,
       ipAddress: null,
     });
 
-    await controller.refresh({ refreshToken: 'r' } as never, {
-      headers: { 'cf-connecting-ip': '198.51.100.9' },
-      ip: '10.0.0.1',
-    } as never);
-    expect(auth.refresh).toHaveBeenCalledWith('r', expect.objectContaining({ ipAddress: '198.51.100.9' }));
+    await controller.refresh(
+      { refreshToken: 'r' } as never,
+      {
+        headers: { 'cf-connecting-ip': '198.51.100.9' },
+        ip: '10.0.0.1',
+      } as never,
+    );
+    expect(auth.refresh).toHaveBeenCalledWith(
+      'r',
+      expect.objectContaining({ ipAddress: '198.51.100.9' }),
+    );
 
     await controller.logout(current);
     expect(auth.logout).toHaveBeenCalledWith('s1', 'u1');
