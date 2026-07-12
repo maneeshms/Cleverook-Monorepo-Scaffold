@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../dist/libs/messaging"
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "./tsconfig.lib.json" }
+  ]
+}

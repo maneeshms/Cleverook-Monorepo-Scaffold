@@ -1,0 +1,19 @@
+---
+description: ClevScaffold core rules — always applied
+alwaysApply: true
+---
+
+Canonical guide: [AGENTS.md](../../AGENTS.md). Topic docs in `docs/agents/`.
+
+Non-negotiables:
+- Ship tests with every code change; keep coverage ≥ 90% (jest enforces it).
+  Run `npm run lint && npm run typecheck && npm run build && npm run test` before done.
+- No secrets in code/JSON/logs. No direct `process.env` — use `ConfigService`.
+- No `any` (use `unknown` + narrowing). Explicit return types on exports. One class per file.
+- Exact-pinned dependencies; commit the lockfile.
+- Guards by default; opt out only with `@Public()`. Derive identity from the JWT, never the body.
+- No mock/fake data — real providers, explicit fallback or 503 when unconfigured.
+- Keep `clevscaffold:*:start/end` sentinel comment pairs intact (init.mjs prunes on them).
+
+Stack: NestJS 10 · Nx · Node 22 · Postgres · TypeORM (apps/api) + Prisma (apps/api-prisma) · Vite + Next frontends.
+Config is layered: process.env → config/{NODE_ENV}.json → config/default.json → code default.

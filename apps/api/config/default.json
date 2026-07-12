@@ -1,0 +1,7 @@
+{
+  "PORT": 3000,
+  "LOG_LEVEL": "info",
+  "THROTTLE_TTL": 60,
+  "THROTTLE_LIMIT": 120,
+  "METRICS_ENABLED": "true"
+}

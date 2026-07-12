@@ -1,0 +1,50 @@
+version: 2
+# Keeps dependencies and GitHub Actions current + lets you pin actions to SHAs
+# and have Dependabot bump them safely. Grouped PRs keep the noise down.
+updates:
+  # Root workspace (NestJS backends + libs)
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      nest:
+        patterns: ['@nestjs/*']
+      types:
+        patterns: ['@types/*']
+      dev-tooling:
+        patterns: ['eslint*', 'prettier', 'jest', 'ts-*', 'typescript*', '@nx/*', 'nx']
+
+  # Vite frontend (own lockfile)
+  - package-ecosystem: npm
+    directory: '/apps/web'
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  # Next.js frontend (own lockfile)
+  - package-ecosystem: npm
+    directory: '/apps/web-next'
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  # GitHub Actions — bump (and, once SHA-pinned, re-pin) third-party actions.
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
+
+  # Dockerfiles — base image updates.
+  - package-ecosystem: docker
+    directories:
+      - '/apps/api'
+      - '/apps/api-prisma'
+      - '/apps/web'
+      - '/apps/web-next'
+    schedule:
+      interval: weekly

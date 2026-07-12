@@ -1,0 +1,37 @@
+server {
+    listen       ${PORT};
+    server_name  _;
+
+    root   /usr/share/nginx/html;
+    index  index.html;
+
+    resolver 8.8.8.8 valid=30s ipv6=off;
+
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+
+    # Proxy the backend same-origin — no CORS, no exposed hostnames in JS.
+    # API_URL = full URL with scheme, e.g. https://api-xxx.up.railway.app
+    location ^~ /api/ {
+        set $api_backend "${API_URL}";
+        proxy_pass $api_backend;
+        proxy_http_version 1.1;
+        proxy_ssl_server_name on;
+        proxy_set_header Host              $proxy_host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Static assets.
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # SPA fallback.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

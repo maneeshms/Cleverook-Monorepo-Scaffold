@@ -1,0 +1,36 @@
+{
+  "name": "web-next",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/web-next/src",
+  "projectType": "application",
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "[ -d node_modules ] || npm ci --no-audit --no-fund; npm run dev",
+        "cwd": "apps/web-next"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{projectRoot}/.next"
+      ],
+      "options": {
+        "command": "[ -d node_modules ] || npm ci --no-audit --no-fund; NODE_ENV=production npm run build",
+        "cwd": "apps/web-next"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "[ -d node_modules ] || npm ci --no-audit --no-fund; npm run lint",
+        "cwd": "apps/web-next"
+      }
+    }
+  },
+  "tags": [
+    "scope:web-next",
+    "type:app"
+  ]
+}

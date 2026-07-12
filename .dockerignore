@@ -1,0 +1,28 @@
+# Keep the build context small and NEVER copy secrets / VCS / host artifacts into
+# an image layer. The builder stage uses `COPY . .`, so this file is the guard
+# that stops .env, .git and node_modules from leaking into intermediate layers.
+.git
+.gitignore
+node_modules
+**/node_modules
+dist
+**/dist
+.next
+**/.next
+tmp
+coverage
+**/coverage
+.nx
+
+# Secrets — must never enter an image
+.env
+.env.*
+
+# Local / editor / CI noise not needed to build
+.github
+.husky
+.vscode
+.idea
+*.log
+.DS_Store
+Thumbs.db

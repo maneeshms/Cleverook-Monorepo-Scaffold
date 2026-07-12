@@ -1,0 +1,31 @@
+# Local development dependencies only — the apps run via `nx serve`.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: clevscaffold
+    ports:
+      # Override with POSTGRES_PORT if 5432 is taken by another local stack.
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  # Optional: enables distributed rate limiting + the async messaging queue.
+  # Point the apps at it with REDIS_URL=redis://localhost:6379.
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+volumes:
+  pgdata:

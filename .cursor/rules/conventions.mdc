@@ -1,0 +1,16 @@
+---
+description: Naming, types, NestJS conventions
+globs: apps/**/*.ts,libs/**/*.ts
+---
+
+Full detail: [docs/agents/conventions.md](../../docs/agents/conventions.md).
+
+- Naming: types `PascalCase`; functions/vars `camelCase`; consts `SCREAMING_SNAKE_CASE`;
+  files `kebab-case.ts`; DTOs `<action>-<resource>.dto.ts`; booleans `is/has/can`.
+- No `any`; explicit return types on exported functions/methods; one class per file.
+- No `console.*` in app code — use `LoggerService`. No direct `process.env`.
+- Controllers stay thin: DTO in → service → DTO out. Logic + authorization live in services.
+  Controllers never inject a repository/PrismaService.
+- Every endpoint: `@ApiTags`/`@ApiOperation`/`@ApiResponse`, under `/api/v1`.
+  Throw NestJS `HttpException` subclasses. Pagination via the shared `paginate()` helper.
+- Conventional Commits. Exact-pinned deps + lockfile in the same change.

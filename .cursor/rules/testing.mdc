@@ -1,0 +1,14 @@
+---
+description: Testing + coverage floor
+globs: apps/**/*.ts,libs/**/*.ts
+---
+
+Full detail: [docs/agents/testing.md](../../docs/agents/testing.md).
+
+- Every behavioural change ships with tests. Coverage must stay ≥ 90% (jest enforces it).
+- Unit specs are co-located `*.spec.ts`, mock all I/O (no real network/DB), cover branches
+  and error paths, and have descriptive names.
+- e2e (`apps/*/test/**/*.e2e-spec.ts`) boot the real app against a disposable Postgres DB:
+  `npm run db:up && npm run e2e:setup && npm run e2e`. Throttling toggled by `THROTTLE_DISABLED`.
+- Sensitive routes: extend `apps/api/test/security-owasp.e2e-spec.ts` and run `npm run scan:security`.
+- Definition of done: `npm run lint && npm run typecheck && npm run build && npm run test` (+ e2e for logic).

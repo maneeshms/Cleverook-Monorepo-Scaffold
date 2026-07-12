@@ -1,0 +1,59 @@
+// Prisma reference schema — mirrors the TypeORM entities (users/user_sessions)
+// so both sample backends share one mental model.
+//
+// Supabase / pgbouncer note (docs/DATABASE.md):
+//   transaction pooling → append ?pgbouncer=true to PRISMA_DATABASE_URL and
+//   point migrations at the direct (5432) host via directUrl:
+//     directUrl = env("PRISMA_DIRECT_DATABASE_URL")
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PRISMA_DATABASE_URL")
+}
+
+enum Role {
+  USER
+  AGENT
+  ADMIN
+  SUPER_ADMIN
+}
+
+model User {
+  id                  String        @id @default(uuid()) @db.Uuid
+  createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt           DateTime?     @map("deleted_at") @db.Timestamptz
+  email               String        @unique @db.VarChar(320)
+  passwordHash        String?       @map("password_hash")
+  displayName         String?       @map("display_name") @db.VarChar(120)
+  role                Role          @default(USER)
+  failedLoginAttempts Int           @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime?     @map("locked_until") @db.Timestamptz
+  lastLoginAt         DateTime?     @map("last_login_at") @db.Timestamptz
+  sessions            UserSession[]
+
+  @@map("users")
+}
+
+model UserSession {
+  id               String    @id @default(uuid()) @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz
+  userId           String    @map("user_id") @db.Uuid
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String    @map("refresh_token_hash") @db.VarChar(64)
+  userAgent        String?   @map("user_agent") @db.VarChar(512)
+  ipAddress        String?   @map("ip_address") @db.VarChar(64)
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz
+  lastUsedAt       DateTime? @map("last_used_at") @db.Timestamptz
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz
+
+  @@index([userId])
+  @@index([refreshTokenHash])
+  @@map("user_sessions")
+}

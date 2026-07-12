@@ -1,0 +1,43 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2021",
+    "sourceMap": true,
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@clevscaffold/common": ["libs/common/src/index.ts"],
+      "@clevscaffold/common/*": ["libs/common/src/*"],
+      "@clevscaffold/config": ["libs/config/src/index.ts"],
+      "@clevscaffold/config/*": ["libs/config/src/*"],
+      "@clevscaffold/logger": ["libs/logger/src/index.ts"],
+      "@clevscaffold/logger/*": ["libs/logger/src/*"],
+      "@clevscaffold/database": ["libs/database/src/index.ts"],
+      "@clevscaffold/database/*": ["libs/database/src/*"],
+      "@clevscaffold/messaging": ["libs/messaging/src/index.ts"],
+      "@clevscaffold/messaging/*": ["libs/messaging/src/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "tmp", "apps/web", "apps/web-next"],
+  "ts-node": {
+    "transpileOnly": true,
+    "require": ["tsconfig-paths/register"],
+    "compilerOptions": {
+      "module": "commonjs"
+    }
+  }
+}

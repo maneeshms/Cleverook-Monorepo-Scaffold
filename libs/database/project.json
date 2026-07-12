@@ -1,0 +1,32 @@
+{
+  "name": "database",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/database/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/database",
+        "main": "libs/database/src/index.ts",
+        "tsConfig": "libs/database/tsconfig.lib.json",
+        "assets": []
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{projectRoot}/coverage"],
+      "options": {
+        "jestConfig": "libs/database/jest.config.ts"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "eslint libs/database"
+      }
+    }
+  },
+  "tags": ["scope:shared", "type:lib"]
+}

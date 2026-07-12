@@ -1,0 +1,18 @@
+---
+description: Security ruleset — enforce on any auth/validation/data change
+globs: apps/**/*.ts,libs/**/*.ts
+---
+
+Security is the top priority. Full ruleset: [docs/agents/security.md](../../docs/agents/security.md).
+
+- No hardcoded secrets (source/tests/comments/JSON/YAML). Secrets from env only; never logged.
+- JWT: 15-min access + opaque SHA-256-hashed rotating refresh; reuse → revoke family + CRITICAL alert.
+  Progressive lockout; bcrypt rounds ≥ 12; constant-time compare.
+- Guards by default (`@Public()` to opt out). Derive identity from the JWT, not the request body.
+  Ownership checked in the service layer (404 for "missing" and "not yours" alike).
+- Global `ValidationPipe` whitelist + forbidNonWhitelisted. Every body/query is a validated DTO.
+  Reject privileged fields (role/ownerId) — mass-assignment defense.
+- Parameterized queries only; migrations-only schema (no `synchronize`). `ParseUUIDPipe` on id params.
+- helmet on; CORS never reflects an arbitrary origin with credentials; 1 MB body cap.
+- Error responses: normalized shape, no stack traces/internals. DTOs never expose entities.
+- Keep the OWASP e2e suite green; `npm run scan:security` must pass (49-check baseline).

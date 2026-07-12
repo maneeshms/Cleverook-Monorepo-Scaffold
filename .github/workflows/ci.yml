@@ -1,0 +1,144 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least privilege by default; jobs opt into more only where needed.
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  # ── Lint · typecheck · build · unit tests (with the 90% coverage gate) ──────
+  verify:
+    name: Lint + build + unit (coverage ≥90%)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      # jest.preset.js enforces coverageThreshold 90% (branches/functions/lines/statements);
+      # this step fails the build if any project drops below the floor.
+      - run: npm run test
+      # clevscaffold:prisma:start
+      - name: Prisma client (needed before api-prisma unit tests run standalone)
+        run: npm run prisma:generate
+      # clevscaffold:prisma:end
+
+  # ── e2e against a real Postgres service container ────────────────────────────
+  e2e:
+    name: e2e (Postgres service)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Secrets are provided inline for CI only — never commit real secrets.
+      JWT_ACCESS_SECRET: ci_access_secret_ci_access_secret_1234567890
+      JWT_REFRESH_SECRET: ci_refresh_secret_ci_refresh_secret_123456789
+      E2E_PG_BASE_URL: postgresql://postgres:postgres@localhost:5432
+      E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/clevscaffold_test
+      # clevscaffold:prisma:start
+      E2E_PRISMA_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/clevscaffold_prisma_test
+      # clevscaffold:prisma:end
+      E2E_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      # clevscaffold:prisma:start
+      - run: npm run prisma:generate
+      # clevscaffold:prisma:end
+      # Creates + migrates the disposable test databases (per configured ORM).
+      - run: npm run e2e:setup
+      - run: npm run e2e
+
+  # ── Docker build + vulnerability scan + SBOM for every deployable app ────────
+  docker:
+    name: Docker build + scan (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # upload Trivy SARIF to code scanning
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [api, api-prisma, web, web-next]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build ${{ matrix.app }} image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          push: false
+          load: true
+          tags: clevscaffold-${{ matrix.app }}:ci
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+      # Fail the build on CRITICAL image vulnerabilities; report HIGH informationally.
+      - name: Trivy image scan (${{ matrix.app }})
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: clevscaffold-${{ matrix.app }}:ci
+          format: sarif
+          output: trivy-${{ matrix.app }}.sarif
+          severity: CRITICAL,HIGH
+          exit-code: '0'
+      - name: Trivy gate — fail on CRITICAL
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: clevscaffold-${{ matrix.app }}:ci
+          format: table
+          severity: CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true
+      - name: Upload Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-${{ matrix.app }}.sarif
+          category: trivy-${{ matrix.app }}
+      # Generate an SPDX SBOM for supply-chain provenance.
+      - name: Generate SBOM (${{ matrix.app }})
+        uses: anchore/sbom-action@v0
+        with:
+          image: clevscaffold-${{ matrix.app }}:ci
+          format: spdx-json
+          output-file: sbom-${{ matrix.app }}.spdx.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sbom-${{ matrix.app }}
+          path: sbom-${{ matrix.app }}.spdx.json

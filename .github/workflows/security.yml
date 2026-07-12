@@ -1,0 +1,70 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Every Monday 08:00 UTC — catches newly disclosed CVEs in existing deps.
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # ── npm audit (workspace + each self-contained frontend) ────────────────────
+  audit:
+    name: npm audit (${{ matrix.dir }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Root workspace + the two frontends that carry their own lockfile.
+        dir: ['.', 'apps/web', 'apps/web-next']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install (${{ matrix.dir }})
+        working-directory: ${{ matrix.dir }}
+        run: npm ci --no-audit --no-fund
+      # Block on CRITICAL. HIGH advisories without an available patch are reported
+      # as an artifact rather than failing the pipeline (upgrade tracked separately).
+      - name: Audit — block on CRITICAL
+        working-directory: ${{ matrix.dir }}
+        run: npm audit --audit-level=critical --omit=dev
+      - name: Audit — full report (informational)
+        if: always()
+        working-directory: ${{ matrix.dir }}
+        run: npm audit --json --omit=dev > audit.json || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audit-${{ strategy.job-index }}
+          path: ${{ matrix.dir }}/audit.json
+
+  # ── Secret scanning ─────────────────────────────────────────────────────────
+  gitleaks:
+    name: gitleaks (secret scan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── GitHub dependency review (PRs only) ─────────────────────────────────────
+  dependency-review:
+    name: Dependency review (PRs only)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
