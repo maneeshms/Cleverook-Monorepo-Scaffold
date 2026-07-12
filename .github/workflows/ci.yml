@@ -109,7 +109,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
       # Fail the build on CRITICAL image vulnerabilities; report HIGH informationally.
       - name: Trivy image scan (${{ matrix.app }})
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: clevscaffold-${{ matrix.app }}:ci
           format: sarif
@@ -117,7 +117,7 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: '0'
       - name: Trivy gate — fail on CRITICAL
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: clevscaffold-${{ matrix.app }}:ci
           format: table
