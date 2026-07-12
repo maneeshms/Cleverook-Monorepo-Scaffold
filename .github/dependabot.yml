@@ -1,6 +1,21 @@
 version: 2
-# Keeps dependencies and GitHub Actions current + lets you pin actions to SHAs
-# and have Dependabot bump them safely. Grouped PRs keep the noise down.
+# Keeps dependencies + GitHub Actions current, and lets you pin actions to SHAs
+# and have Dependabot bump them safely.
+#
+# Noise control: related packages are grouped into one PR, and — importantly —
+# EVERY major bump is funnelled into a single, isolated "major-updates" PR per
+# ecosystem. Routine minor/patch updates stay safe to merge; the risky majors
+# are batched into one PR you review (or hold) deliberately. To stop seeing
+# majors entirely, replace the `major-updates` group with an `ignore` entry:
+#   ignore:
+#     - dependency-name: '*'
+#       update-types: ['version-update:semver-major']
+# clevscaffold:scaffold:start
+#
+# The `clevscaffold:<orm|frontend>:start/end` sentinels below are pruned by
+# scripts/init.mjs so a generated project never references an app it doesn't
+# have (e.g. a Prisma-only, no-frontend project drops the api/web/web-next blocks).
+# clevscaffold:scaffold:end
 updates:
   # Root workspace (NestJS backends + libs)
   - package-ecosystem: npm
@@ -11,24 +26,49 @@ updates:
     groups:
       nest:
         patterns: ['@nestjs/*']
+        update-types: ['minor', 'patch']
       types:
         patterns: ['@types/*']
+        update-types: ['minor', 'patch']
       dev-tooling:
         patterns: ['eslint*', 'prettier', 'jest', 'ts-*', 'typescript*', '@nx/*', 'nx']
+        update-types: ['minor', 'patch']
+      # Every major bump (any package) lands here — one isolated PR to review.
+      major-updates:
+        patterns: ['*']
+        update-types: ['major']
 
+  # clevscaffold:vite:start
   # Vite frontend (own lockfile)
   - package-ecosystem: npm
     directory: '/apps/web'
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      minor-patch:
+        patterns: ['*']
+        update-types: ['minor', 'patch']
+      major-updates:
+        patterns: ['*']
+        update-types: ['major']
+  # clevscaffold:vite:end
 
+  # clevscaffold:next:start
   # Next.js frontend (own lockfile)
   - package-ecosystem: npm
     directory: '/apps/web-next'
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      minor-patch:
+        patterns: ['*']
+        update-types: ['minor', 'patch']
+      major-updates:
+        patterns: ['*']
+        update-types: ['major']
+  # clevscaffold:next:end
 
   # GitHub Actions — bump (and, once SHA-pinned, re-pin) third-party actions.
   - package-ecosystem: github-actions
@@ -39,12 +79,20 @@ updates:
       actions:
         patterns: ['*']
 
-  # Dockerfiles — base image updates.
+  # Dockerfiles — base image updates (one entry per deployable app).
   - package-ecosystem: docker
     directories:
+      # clevscaffold:typeorm:start
       - '/apps/api'
+      # clevscaffold:typeorm:end
+      # clevscaffold:prisma:start
       - '/apps/api-prisma'
+      # clevscaffold:prisma:end
+      # clevscaffold:vite:start
       - '/apps/web'
+      # clevscaffold:vite:end
+      # clevscaffold:next:start
       - '/apps/web-next'
+      # clevscaffold:next:end
     schedule:
       interval: weekly

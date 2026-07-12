@@ -1,8 +1,9 @@
 # GitHub Copilot Instructions
 
-You are assisting on **ClevScaffold** — an enterprise NestJS (10) + Nx monorepo,
-Node 22, PostgreSQL, with **two ORMs** (TypeORM in `apps/api`, Prisma in
-`apps/api-prisma`) and two frontends (Vite, Next.js). Deployed on Railway.
+You are assisting on a **ClevScaffold**-based enterprise NestJS (10) + Nx monorepo,
+Node 22, PostgreSQL. The ORM (TypeORM and/or Prisma) and frontend (Vite and/or
+Next.js) are chosen per project at generation time — check the actual `apps/*`
+directories and [`AGENTS.md`](../AGENTS.md) for this project's stack. Deployed on Railway.
 
 The canonical guide is [`AGENTS.md`](../AGENTS.md); deep topic docs live in
 [`docs/agents/`](../docs/agents). Follow them. The top 12 rules:

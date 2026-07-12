@@ -266,6 +266,15 @@ async function main() {
   rewriteArrayLiteral('.github/workflows/security.yml', 'dir', keptAuditDirs, true);
   console.log('  updated CI workflow matrices');
 
+  // 5b. Prune dependabot.yml app/frontend blocks to the kept stack. Each ORM /
+  //     frontend block is gated by a `clevscaffold:<component>:start/end` sentinel
+  //     keyed on the component name, so a generated project never asks Dependabot
+  //     to watch an app directory it doesn't have.
+  for (const c of remove) stripSentinelBlocks('.github/dependabot.yml', c);
+  stripSentinelBlocks('.github/dependabot.yml', 'scaffold'); // drop the scaffold-only note
+  stripSentinelMarkers('.github/dependabot.yml');
+  console.log('  pruned dependabot.yml to the kept apps');
+
   // 6. Rename the @clevscaffold scope across all text files.
   let renamed = 0;
   for (const file of walkTextFiles(ROOT)) {

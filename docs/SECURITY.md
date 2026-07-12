@@ -7,20 +7,20 @@ humans) must follow when writing code are in
 
 ## Threat → control traceability
 
-| Threat (OWASP) | Control in this repo |
-|----------------|----------------------|
-| A01 Broken Access Control / API1 BOLA | Global `JwtAuthGuard` + `@Roles`; identity from JWT only; ownership checked in services (404 for missing *and* not-yours) |
-| A02 Cryptographic / Data Failures | bcrypt ≥12; opaque SHA-256-hashed refresh tokens; DB-stored provider creds encrypted (`secret-cipher`); DTOs never expose entities |
-| A03 Injection | Global `ValidationPipe` (whitelist + forbidNonWhitelisted); parameterized queries; `ParseUUIDPipe`; migrations-only schema |
-| A05 Security Misconfiguration | helmet; `X-Powered-By` off; strict CORS (wildcard ⇒ credentials off); Swagger prod-gated; fail-fast config validation |
-| A07 Auth Failures | 15-min access JWT; rotating refresh + reuse detection → family revoke + CRITICAL alert; progressive lockout; constant-time compare; no user enumeration |
-| API4 Resource Exhaustion | Throttler (Redis-backed, global across instances); 1 MB body cap; bounded pagination |
-| API5 BFLA | Role guards; admin routes reject normal users |
-| API6 Mass Assignment | DTO whitelisting rejects privileged fields (role, ownerId) |
-| API7 Improper Inventory | Versioned `/api/v1`; normalized error shape without internals |
-| API9 Business Logic | Ownership + tier checks in services; huge/negative pagination bounded |
-| Secrets exposure | No secrets in code/JSON/logs; loader rejects secret keys in JSON; gitleaks in CI |
-| Supply chain | Exact-pinned deps; `npm audit` gate (Docker + CI); CodeQL; dependency-review |
+| Threat (OWASP)                        | Control in this repo                                                                                                                                    |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A01 Broken Access Control / API1 BOLA | Global `JwtAuthGuard` + `@Roles`; identity from JWT only; ownership checked in services (404 for missing _and_ not-yours)                               |
+| A02 Cryptographic / Data Failures     | bcrypt ≥12; opaque SHA-256-hashed refresh tokens; DB-stored provider creds encrypted (`secret-cipher`); DTOs never expose entities                      |
+| A03 Injection                         | Global `ValidationPipe` (whitelist + forbidNonWhitelisted); parameterized queries; `ParseUUIDPipe`; migrations-only schema                              |
+| A05 Security Misconfiguration         | helmet; `X-Powered-By` off; strict CORS (wildcard ⇒ credentials off); Swagger prod-gated; fail-fast config validation                                   |
+| A07 Auth Failures                     | 15-min access JWT; rotating refresh + reuse detection → family revoke + CRITICAL alert; progressive lockout; constant-time compare; no user enumeration |
+| API4 Resource Exhaustion              | Throttler (Redis-backed, global across instances); 1 MB body cap; bounded pagination                                                                    |
+| API5 BFLA                             | Role guards; admin routes reject normal users                                                                                                           |
+| API6 Mass Assignment                  | DTO whitelisting rejects privileged fields (role, ownerId)                                                                                              |
+| API7 Improper Inventory               | Versioned `/api/v1`; normalized error shape without internals                                                                                           |
+| API9 Business Logic                   | Ownership + tier checks in services; huge/negative pagination bounded                                                                                   |
+| Secrets exposure                      | No secrets in code/JSON/logs; loader rejects secret keys in JSON; gitleaks in CI                                                                        |
+| Supply chain                          | Exact-pinned deps; `npm audit` gate (Docker + CI); CodeQL; dependency-review                                                                            |
 
 ## Layered defenses
 
@@ -46,10 +46,17 @@ npm run scan:security
 
 ## CI security jobs
 
-- `security.yml` — npm audit (root + both frontends, block on CRITICAL), gitleaks,
-  dependency-review (PRs).
-- `codeql.yml` — CodeQL `security-and-quality` on push/PR + weekly.
-- `ci.yml` — the OWASP e2e suite runs as part of the e2e job.
+- `security.yml` — npm audit (root + each frontend, block on CRITICAL), gitleaks
+  (license-free binary), dependency-review (PRs, opt-in).
+- `codeql.yml` — CodeQL `security-and-quality` on push/PR + weekly (opt-in).
+- `ci.yml` — the OWASP e2e suite runs as part of the e2e job; Trivy CRITICAL gate +
+  SBOM per image.
+
+**Code scanning is opt-in.** CodeQL, PR dependency-review, and Trivy SARIF upload
+require GitHub Advanced Security (free on public repos, paid on private). They run
+only when the repo variable **`ENABLE_CODE_SCANNING`** is `true`, so CI is green
+out of the box and these light up once you enable code scanning. gitleaks, npm
+audit, the Trivy CRITICAL gate, and SBOM generation run everywhere unconditionally.
 
 ## Audit findings & backlog
 

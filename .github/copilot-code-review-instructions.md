@@ -1,8 +1,9 @@
 # Copilot Code Review Instructions
 
-You are reviewing code for **ClevScaffold** — an enterprise NestJS + Nx monorepo
-(Node 22, PostgreSQL) with two ORMs (TypeORM `apps/api`, Prisma `apps/api-prisma`)
-and two frontends (Vite, Next.js), deployed on Railway. Full standards:
+You are reviewing code for a **ClevScaffold**-based enterprise NestJS + Nx monorepo
+(Node 22, PostgreSQL). The ORM (TypeORM and/or Prisma) and frontend (Vite and/or
+Next.js) are selected per project — check the actual `apps/*` directories for this
+project's stack. Deployed on Railway. Full standards:
 [`AGENTS.md`](../AGENTS.md) and [`docs/agents/`](../docs/agents). Enforce the rules
 below on every PR.
 
@@ -73,4 +74,4 @@ below on every PR.
 - Formatting/whitespace (Prettier owns it).
 - Style preferences where the code matches its surroundings.
 - Issues already caught by ESLint / the TypeScript compiler.
-- Absence of tests in `apps/web` / `apps/web-next` (frontends are wiring-only, no tests).
+- Absence of tests in the frontend app(s) (`apps/web*` — wiring-only, no tests).
