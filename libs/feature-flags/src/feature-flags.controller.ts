@@ -4,6 +4,12 @@ import { AuthenticatedUser, CurrentUser, Role, Roles } from '@clevscaffold/commo
 import { FeatureFlagsService } from './feature-flags.service';
 import { FlagKeyParam, UpsertFlagDto } from './dto/upsert-flag.dto';
 
+/**
+ * Built-in admin CRUD + evaluation surface for feature flags. Registered by
+ * default; opt out with `FeatureFlagsModule.forRootAsync({ controller: false })`
+ * to expose your own routes. Assumes the host wires the standard auth guard chain
+ * (JWT + Roles) globally — the same assumption every scaffold app makes.
+ */
 @ApiTags('feature-flags')
 @Controller('feature-flags')
 export class FeatureFlagsController {

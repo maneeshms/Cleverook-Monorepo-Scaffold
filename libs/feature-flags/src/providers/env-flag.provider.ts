@@ -1,16 +1,14 @@
 import { JsonValue } from '@openfeature/server-sdk';
+import type { EnvGetter } from '../feature-flags.options';
 import { BaseFlagProvider, FlagRecord } from './base-flag.provider';
-
-/** Reads a config/env value by key. Backed by ConfigService (never raw process.env). */
-export type EnvGetter = (key: string) => string | undefined;
 
 /**
  * Reads flags from environment variables: flag key `new-checkout` maps to
  * `FF_NEW_CHECKOUT`. `true/1/on/yes` → enabled; the raw string (JSON-parsed when
  * possible) is the variant value for string/number/object evaluations.
  *
- * Values are read through the injected getter (ConfigService), so they still flow
- * through the layered config loader — no direct process.env access.
+ * Values are read through the injected getter (the host's ConfigService), so they
+ * still flow through the layered config loader — no direct process.env access.
  */
 export class EnvFlagProvider extends BaseFlagProvider {
   readonly metadata = { name: 'clevscaffold-env' };

@@ -1,5 +1,4 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   Client,
@@ -11,13 +10,17 @@ import {
 import { Repository } from 'typeorm';
 import { LoggerService } from '@clevscaffold/logger';
 import { FeatureFlag } from './entities/feature-flag.entity';
+import { FEATURE_FLAGS_OPTIONS, FeatureFlagsModuleOptions } from './feature-flags.options';
 import { DatabaseFlagProvider } from './providers/database-flag.provider';
 import { EnvFlagProvider } from './providers/env-flag.provider';
 
 /**
  * Thin, provider-agnostic facade over OpenFeature. Call sites use `isEnabled()`
- * etc. and never know which backend is configured — swap `FEATURE_FLAG_PROVIDER`
+ * etc. and never know which backend is configured — swap the `provider` option
  * (env | database) or plug a hosted provider without changing a single call site.
+ *
+ * The library reads no env/app-config itself: everything comes from the injected
+ * {@link FeatureFlagsModuleOptions}, which is what keeps it portable across projects.
  */
 @Injectable()
 export class FeatureFlagsService implements OnModuleInit, OnModuleDestroy {
@@ -25,7 +28,7 @@ export class FeatureFlagsService implements OnModuleInit, OnModuleDestroy {
   private provider!: Provider;
 
   constructor(
-    private readonly config: ConfigService,
+    @Inject(FEATURE_FLAGS_OPTIONS) private readonly options: FeatureFlagsModuleOptions,
     private readonly logger: LoggerService,
     @InjectRepository(FeatureFlag)
     private readonly repo: Repository<FeatureFlag>,
@@ -43,15 +46,13 @@ export class FeatureFlagsService implements OnModuleInit, OnModuleDestroy {
   }
 
   private buildProvider(): Provider {
-    const name = this.config.get<string>('featureFlags.provider');
+    const name = (this.options.provider ?? 'env').toLowerCase();
     if (name === 'database') {
-      return new DatabaseFlagProvider(
-        this.repo,
-        this.config.get<number>('featureFlags.cacheTtlMs') ?? 30_000,
-      );
+      return new DatabaseFlagProvider(this.repo, this.options.cacheTtlMs ?? 30_000);
     }
-    // Route env reads through ConfigService (layered loader), not raw process.env.
-    return new EnvFlagProvider((key) => this.config.get<string>(key));
+    // Route env reads through the host getter (layered config), not raw process.env.
+    const get = this.options.envGetter ?? (() => undefined);
+    return new EnvFlagProvider(get);
   }
 
   /** Drop the database provider's cache so an admin write is visible immediately. */

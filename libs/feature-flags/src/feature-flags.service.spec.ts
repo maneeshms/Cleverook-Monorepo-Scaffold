@@ -1,5 +1,6 @@
 import { OpenFeature } from '@openfeature/server-sdk';
 import { FeatureFlagsService } from './feature-flags.service';
+import type { FeatureFlagsModuleOptions } from './feature-flags.options';
 import { DatabaseFlagProvider } from './providers/database-flag.provider';
 
 describe('FeatureFlagsService', () => {
@@ -12,18 +13,10 @@ describe('FeatureFlagsService', () => {
     save: jest.fn((x) => Promise.resolve({ id: 'ff1', ...x })),
     delete: jest.fn().mockResolvedValue({ affected: 1 }),
   };
-  // provider key drives selection; cacheTtlMs undefined exercises the `?? 30_000`
-  // fallback; FF_* keys resolve from process.env (as ConfigService would).
-  const configFor = (provider: string) => ({
-    get: (k: string) => {
-      if (k === 'featureFlags.provider') return provider;
-      if (k === 'featureFlags.cacheTtlMs') return undefined;
-      return process.env[k];
-    },
-  });
-
-  const build = (provider: string) =>
-    new FeatureFlagsService(configFor(provider) as never, logger as never, repo as never);
+  // envGetter reads FF_* from process.env exactly as the host's ConfigService
+  // would; cacheTtlMs omitted exercises the `?? 30_000` fallback in the service.
+  const build = (options: FeatureFlagsModuleOptions) =>
+    new FeatureFlagsService(options, logger as never, repo as never);
 
   afterEach(async () => {
     jest.clearAllMocks();
@@ -34,7 +27,8 @@ describe('FeatureFlagsService', () => {
     let service: FeatureFlagsService;
     beforeEach(async () => {
       process.env.FF_UNIT_TEST_FLAG = 'true';
-      service = build('env');
+      // provider omitted → defaults to 'env' (covers the `?? 'env'` branch).
+      service = build({ envGetter: (k) => process.env[k] });
       await service.onModuleInit();
     });
     afterEach(() => delete process.env.FF_UNIT_TEST_FLAG);
@@ -64,10 +58,17 @@ describe('FeatureFlagsService', () => {
     });
   });
 
+  it('falls back to a no-op getter when none is supplied (env flags resolve to default)', async () => {
+    const service = build({ provider: 'env' });
+    await service.onModuleInit();
+    await expect(service.isEnabled('anything', true)).resolves.toBe(true);
+  });
+
   describe('database provider', () => {
     let service: FeatureFlagsService;
     beforeEach(async () => {
-      service = build('database');
+      // Mixed-case provider name exercises the toLowerCase() normalization.
+      service = build({ provider: 'Database' });
       await service.onModuleInit();
     });
 
@@ -99,7 +100,7 @@ describe('FeatureFlagsService', () => {
   });
 
   it('closes OpenFeature on destroy', async () => {
-    const service = build('env');
+    const service = build({ envGetter: () => undefined });
     await service.onModuleInit();
     await expect(service.onModuleDestroy()).resolves.toBeUndefined();
   });

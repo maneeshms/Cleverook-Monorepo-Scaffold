@@ -16,6 +16,7 @@ import {
   throttleConfig,
 } from '@clevscaffold/config';
 import { DatabaseModule } from '@clevscaffold/database';
+import { FeatureFlagsModule } from '@clevscaffold/feature-flags';
 import { LoggerModule } from '@clevscaffold/logger';
 import { MessagingModule } from '@clevscaffold/messaging';
 import {
@@ -31,7 +32,6 @@ import {
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { TasksModule } from './modules/tasks/tasks.module';
-import { FeatureFlagsModule } from './modules/feature-flags/feature-flags.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { InAppSinkModule } from './modules/notifications/in-app-sink.module';
 import { HealthModule } from './health/health.module';
@@ -103,10 +103,21 @@ import { HealthModule } from './health/health.module';
         emailProviderOverride: config.get<string>('messaging.emailProviderOverride') ?? null,
       }),
     }),
+    // OpenFeature-backed feature flags — config injected from this app's
+    // ConfigService so the lib stays env-agnostic. Swap FEATURE_FLAG_PROVIDER
+    // (env | database) or plug a hosted provider without touching call sites.
+    FeatureFlagsModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        provider: config.get<string>('featureFlags.provider') ?? 'env',
+        cacheTtlMs: config.get<number>('featureFlags.cacheTtlMs'),
+        // Route env reads through the layered config loader, not raw process.env.
+        envGetter: (key) => config.get<string>(key),
+      }),
+    }),
     AuthModule,
     UsersModule,
     TasksModule,
-    FeatureFlagsModule,
     NotificationsModule,
     HealthModule,
   ],

@@ -9,8 +9,9 @@ libs/common   (ORM-free)  ──imported by everything
 libs/config   (loader + validation + typed namespaces)
 libs/logger   (Winston: log + audit + alert)
 libs/database (TypeORM only: DatabaseModule, data-source, BaseEntity, migrations)
+libs/feature-flags(depends on common+database+logger; TypeORM-coupled; source-only lib)
 libs/messaging(depends on database; TypeORM-coupled; source-only lib)
-apps/api           → common, config, logger, database, messaging   (TypeORM)
+apps/api           → common, config, logger, database, feature-flags, messaging (TypeORM)
 apps/api-prisma    → common, config, logger                        (Prisma)
 apps/web, web-next → standalone frontends (own package.json/lockfile)
 ```
@@ -19,13 +20,16 @@ apps/web, web-next → standalone frontends (own package.json/lockfile)
 
 - `libs/common` is **ORM-free** — no TypeORM/Prisma imports — so the Prisma app can
   use it. `BaseEntity` lives in `libs/database` (not common) for the same reason.
-- `libs/database` and `libs/messaging` are **TypeORM-coupled**; the Prisma app does
-  not import them. `init.mjs --orm prisma` prunes them.
-- `libs/messaging` has **no Nx build target** — it's a source-only lib; consuming
-  apps compile it. Adding a build target reintroduces the `rootDir` errors we
-  removed. Keep it source-only.
+- `libs/database`, `libs/feature-flags`, and `libs/messaging` are **TypeORM-coupled**;
+  the Prisma app does not import them. `init.mjs --orm prisma` prunes them.
+- `libs/feature-flags` and `libs/messaging` have **no Nx build target** — they're
+  source-only libs; consuming apps compile them. Adding a build target reintroduces
+  the `rootDir` errors we removed. Keep them source-only.
+- **Config-injected libs:** `feature-flags` and `messaging` read no env/app-config
+  themselves — the host passes runtime options via `forRootAsync({ useFactory })`
+  built from its ConfigService. That's what keeps them portable across projects.
 - **Apps never import other apps.** Shared code goes in a lib.
-- Path aliases: `@clevscaffold/{common,config,logger,database,messaging}`.
+- Path aliases: `@clevscaffold/{common,config,logger,database,feature-flags,messaging}`.
 
 ## Package layout (npm workspaces)
 
@@ -54,8 +58,9 @@ npm deps are needed. `scripts/docker-manifest.mjs` walks an app's package.json,
 follows `@clevscaffold/*` into each lib, and flattens the external dependency
 closure into a self-contained `package.json` in the app's `dist`. The Docker
 runtime stage `npm install --omit=dev` from that — so `apps/api` images ship
-TypeORM/BullMQ (no Prisma) and `apps/api-prisma` images ship Prisma (no
-TypeORM/messaging). Keep app/lib deps accurate and this stays correct automatically.
+TypeORM/BullMQ/OpenFeature (no Prisma) and `apps/api-prisma` images ship Prisma
+(no TypeORM/messaging/OpenFeature). Keep app/lib deps accurate and this stays
+correct automatically.
 
 ## Layered configuration (`libs/config`)
 

@@ -50,6 +50,8 @@ libs/
   config/       LAYERED config loader + class-validator validation + namespaces
   logger/       Winston LoggerService (log + audit + alert streams)
   database/     TypeORM DatabaseModule, data-source, BaseEntity, migrations
+  feature-flags/ OpenFeature engine (env|database providers, forRootAsync) —
+                source-only lib; swap providers without touching call sites
   messaging/    Omnichannel engine (channels/providers/routing/templates/queue)
                 — source-only lib (no build target; apps compile it)
 scripts/        init.mjs · e2e-setup.mjs · security_scan.py · docker-manifest.mjs
