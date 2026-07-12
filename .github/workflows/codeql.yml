@@ -13,6 +13,10 @@ jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
+    # CodeQL uploads results to code scanning (GitHub Advanced Security; free on
+    # public repos). Set repo variable ENABLE_CODE_SCANNING=true once it's enabled
+    # — until then this job is skipped so CI stays green on repos without it.
+    if: vars.ENABLE_CODE_SCANNING == 'true'
     permissions:
       security-events: write
       actions: read
@@ -29,7 +33,7 @@ jobs:
           queries: security-and-quality
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - uses: github/codeql-action/analyze@v3

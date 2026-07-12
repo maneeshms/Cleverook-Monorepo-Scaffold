@@ -15,9 +15,6 @@ concurrency:
 permissions:
   contents: read
 
-env:
-  NODE_VERSION: 22
-
 jobs:
   # ── Lint · typecheck · build · unit tests (with the 90% coverage gate) ──────
   verify:
@@ -27,11 +24,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: .nvmrc # single source of truth for the Node version
           cache: npm
       - run: npm ci
       # clevscaffold:prisma:start
-      - name: Prisma client (needed before api-prisma typecheck/unit tests)
+      # Generate the Prisma client before typecheck/build/test — the api-prisma
+      # sources import types from @prisma/client that only exist post-generate.
+      - name: Generate Prisma client
         run: npm run prisma:generate
       # clevscaffold:prisma:end
       - run: npm run lint
@@ -60,9 +59,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      # Secrets are provided inline for CI only — never commit real secrets.
-      JWT_ACCESS_SECRET: ci_access_secret_ci_access_secret_1234567890
-      JWT_REFRESH_SECRET: ci_refresh_secret_ci_refresh_secret_123456789
+      # Coordinates of the throwaway Postgres service above (not secrets).
       E2E_PG_BASE_URL: postgresql://postgres:postgres@localhost:5432
       E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/clevscaffold_test
       # clevscaffold:prisma:start
@@ -73,8 +70,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: .nvmrc
           cache: npm
+      # Generate throwaway JWT secrets per run — never hardcode secrets in the workflow.
+      - name: Generate ephemeral CI secrets
+        run: |
+          echo "JWT_ACCESS_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "JWT_REFRESH_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
       - run: npm ci
       # clevscaffold:prisma:start
       - run: npm run prisma:generate
@@ -90,7 +92,7 @@ jobs:
     permissions:
       contents: read
       actions: read # required by upload-sarif to read workflow run metadata
-      security-events: write # upload Trivy SARIF to code scanning
+      security-events: write # upload Trivy SARIF to code scanning (when enabled)
     strategy:
       fail-fast: false
       matrix:
@@ -98,6 +100,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
+      # Local CI image tag derived from the repo name (no hardcoded project name),
+      # lowercased because Docker repository names must be lowercase.
+      - name: Compute image tag
+        run: echo "IMAGE=$(echo '${{ github.event.repository.name }}' | tr '[:upper:]' '[:lower:]')-${{ matrix.app }}:ci" >> "$GITHUB_ENV"
       - name: Build ${{ matrix.app }} image
         uses: docker/build-push-action@v6
         with:
@@ -105,14 +111,14 @@ jobs:
           file: apps/${{ matrix.app }}/Dockerfile
           push: false
           load: true
-          tags: clevscaffold-${{ matrix.app }}:ci
+          tags: ${{ env.IMAGE }}
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
       # Fail the build on CRITICAL image vulnerabilities; report HIGH informationally.
       - name: Trivy image scan (${{ matrix.app }})
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: clevscaffold-${{ matrix.app }}:ci
+          image-ref: ${{ env.IMAGE }}
           format: sarif
           output: trivy-${{ matrix.app }}.sarif
           severity: CRITICAL,HIGH
@@ -120,13 +126,16 @@ jobs:
       - name: Trivy gate — fail on CRITICAL
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: clevscaffold-${{ matrix.app }}:ci
+          image-ref: ${{ env.IMAGE }}
           format: table
           severity: CRITICAL
           exit-code: '1'
           ignore-unfixed: true
+      # SARIF upload needs code scanning (GitHub Advanced Security; free on public
+      # repos). Opt in by setting the repo variable ENABLE_CODE_SCANNING=true once
+      # it's available — the CRITICAL gate above already runs everywhere.
       - name: Upload Trivy SARIF
-        if: always()
+        if: always() && vars.ENABLE_CODE_SCANNING == 'true'
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-${{ matrix.app }}.sarif
@@ -135,7 +144,7 @@ jobs:
       - name: Generate SBOM (${{ matrix.app }})
         uses: anchore/sbom-action@v0
         with:
-          image: clevscaffold-${{ matrix.app }}:ci
+          image: ${{ env.IMAGE }}
           format: spdx-json
           output-file: sbom-${{ matrix.app }}.spdx.json
       - uses: actions/upload-artifact@v4

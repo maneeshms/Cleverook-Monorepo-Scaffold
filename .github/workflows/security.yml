@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
       - name: Install (${{ matrix.dir }})
         working-directory: ${{ matrix.dir }}
         run: npm ci --no-audit --no-fund
@@ -47,22 +47,31 @@ jobs:
           path: ${{ matrix.dir }}/audit.json
 
   # ── Secret scanning ─────────────────────────────────────────────────────────
+  # Uses the gitleaks binary directly — the gitleaks GitHub Action requires a paid
+  # license for organization repos, the binary does not. Version pinned via env.
   gitleaks:
     name: gitleaks (secret scan)
     runs-on: ubuntu-latest
+    env:
+      GITLEAKS_VERSION: 8.21.2
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0 # full history so the scan covers every commit
+      - name: Run gitleaks
+        run: |
+          set -euo pipefail
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C /tmp gitleaks
+          /tmp/gitleaks detect --source . --redact --no-banner --exit-code 1
 
   # ── GitHub dependency review (PRs only) ─────────────────────────────────────
+  # Needs the dependency graph + code scanning (GitHub Advanced Security; free on
+  # public repos). Opt in with repo variable ENABLE_CODE_SCANNING=true once enabled.
   dependency-review:
     name: Dependency review (PRs only)
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && vars.ENABLE_CODE_SCANNING == 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/dependency-review-action@v4
