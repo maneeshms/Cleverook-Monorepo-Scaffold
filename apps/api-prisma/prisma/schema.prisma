@@ -1,10 +1,14 @@
 // Prisma reference schema — mirrors the TypeORM entities (users/user_sessions)
 // so both sample backends share one mental model.
 //
+// Prisma 7 removed the datasource `url`/`directUrl` — the connection is opened via
+// the @prisma/adapter-pg driver adapter (src/prisma/prisma.service.ts) and the
+// migration URL lives in prisma.config.ts.
+//
 // Supabase / pgbouncer note (docs/DATABASE.md):
-//   transaction pooling → append ?pgbouncer=true to PRISMA_DATABASE_URL and
-//   point migrations at the direct (5432) host via directUrl:
-//     directUrl = env("PRISMA_DIRECT_DATABASE_URL")
+//   transaction pooling → append ?pgbouncer=true to PRISMA_DATABASE_URL (runtime),
+//   and point migrations at the direct (5432) host by setting PRISMA_DATABASE_URL
+//   to the direct URL when running prisma migrate (prisma.config.ts reads it).
 
 generator client {
   provider = "prisma-client-js"
@@ -12,7 +16,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("PRISMA_DATABASE_URL")
 }
 
 enum Role {

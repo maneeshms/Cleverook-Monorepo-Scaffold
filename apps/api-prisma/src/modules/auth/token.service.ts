@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { createHash, randomBytes } from 'crypto';
 import { User } from '@prisma/client';
 import { parseDurationMs } from '@clevscaffold/common';
@@ -56,7 +56,9 @@ export class TokenService {
     };
     return this.jwt.sign(payload, {
       secret: this.config.get<string>('jwt.accessSecret'),
-      expiresIn: this.config.get<string>('jwt.accessTtl') ?? '15m',
+      // jsonwebtoken's types (via @nestjs/jwt 11) narrow expiresIn to
+      // `number | ms.StringValue`; our TTL comes from config as a plain string.
+      expiresIn: (this.config.get<string>('jwt.accessTtl') ?? '15m') as JwtSignOptions['expiresIn'],
     });
   }
 

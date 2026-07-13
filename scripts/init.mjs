@@ -51,7 +51,7 @@ const COMPONENTS = {
     dockerApps: ['api'],
   },
   prisma: {
-    dirs: ['apps/api-prisma'],
+    dirs: ['apps/api-prisma', 'prisma.config.ts'],
     scripts: ['dev:api-prisma', 'prisma:generate', 'prisma:migrate', 'prisma:deploy', 'prisma:seed', 'prisma:studio'],
     tsPaths: [],
     sentinel: 'prisma',

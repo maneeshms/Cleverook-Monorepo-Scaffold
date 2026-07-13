@@ -8,10 +8,14 @@ import { AccessTokenPayload } from './token.service';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(config: ConfigService) {
+    // passport-jwt's types now require secretOrKey to be defined; env validation
+    // guarantees it at boot, so assert here for the type + safety.
+    const secretOrKey = config.get<string>('jwt.accessSecret');
+    if (!secretOrKey) throw new Error('jwt.accessSecret is not configured');
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: config.get<string>('jwt.accessSecret'),
+      secretOrKey,
       // Pin the algorithm explicitly (algorithm-confusion defense-in-depth).
       algorithms: ['HS256'],
     });

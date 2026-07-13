@@ -3,9 +3,13 @@
  * Run: npm run prisma:seed   (override credentials via SEED_ADMIN_EMAIL/_PASSWORD)
  */
 import { PrismaClient, Role } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+// Prisma 7 opens connections through a driver adapter (schema `url` is gone).
+const url = process.env.PRISMA_DATABASE_URL;
+if (!url) throw new Error('PRISMA_DATABASE_URL is not configured');
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
 
 async function main() {
   const email = process.env.SEED_ADMIN_EMAIL ?? 'admin@example.com';

@@ -8,10 +8,10 @@
     "@clevscaffold/common": "*",
     "@clevscaffold/database": "*",
     "@clevscaffold/logger": "*",
-    "@nestjs/common": "10.4.22",
-    "@nestjs/typeorm": "10.0.2",
+    "@nestjs/common": "11.1.28",
+    "@nestjs/typeorm": "11.0.3",
     "bullmq": "5.80.2",
     "resend": "6.17.1",
-    "typeorm": "0.3.30"
+    "typeorm": "1.0.0"
   }
 }

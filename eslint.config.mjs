@@ -54,6 +54,7 @@ export default tseslint.config(
       'apps/*/src/main.ts',
       'apps/*/src/app.module.ts',
       'apps/api-prisma/prisma/seed.ts',
+      'prisma.config.ts', // Prisma 7 CLI config — migration URL from env (pre-config)
     ],
     rules: {
       'no-restricted-syntax': 'off',
