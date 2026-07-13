@@ -5,12 +5,12 @@ Postgres, or managed hosts (Supabase, Neon, RDS) — direct or pooled.
 
 ## Connection matrix
 
-| Host | TypeORM (`DATABASE_URL`) | SSL | Notes |
-|------|--------------------------|-----|-------|
-| Local Docker | `postgresql://postgres:postgres@localhost:5432/clevscaffold` | `disable` | `npm run db:up` |
-| Self-hosted | `postgresql://user:pw@host:5432/db` | `require` or `no-verify` | `no-verify` for self-signed certs |
-| Supabase direct | `postgresql://postgres:pw@db.<ref>.supabase.co:5432/postgres` | `require` | migrations + normal use |
-| Supabase pooled | `postgresql://postgres.<ref>:pw@aws-0-<region>.pooler.supabase.com:6543/postgres` | `require` | transaction pooler (pgbouncer) |
+| Host            | TypeORM (`DATABASE_URL`)                                                          | SSL                      | Notes                             |
+| --------------- | --------------------------------------------------------------------------------- | ------------------------ | --------------------------------- |
+| Local Docker    | `postgresql://postgres:postgres@localhost:5432/clevscaffold`                      | `disable`                | `npm run db:up`                   |
+| Self-hosted     | `postgresql://user:pw@host:5432/db`                                               | `require` or `no-verify` | `no-verify` for self-signed certs |
+| Supabase direct | `postgresql://postgres:pw@db.<ref>.supabase.co:5432/postgres`                     | `require`                | migrations + normal use           |
+| Supabase pooled | `postgresql://postgres.<ref>:pw@aws-0-<region>.pooler.supabase.com:6543/postgres` | `require`                | transaction pooler (pgbouncer)    |
 
 `DATABASE_SSL` accepts `disable | require | no-verify`. Managed hosts usually need
 `require` (verified) or `no-verify` (self-signed). Tune the pool with
@@ -24,6 +24,7 @@ never enabled.
 
 ```bash
 npm run migration:run     # apply pending migrations
+npm run seed:api          # idempotent admin seed (SEED_ADMIN_EMAIL/_PASSWORD to override)
 # author a migration by hand under libs/database/src/migrations/ (timestamp prefix)
 ```
 
@@ -47,15 +48,25 @@ npm run prisma:seed       # seed script
 npm run prisma:studio     # browse data
 ```
 
+### Prisma 7 connection model
+
+Prisma 7 removed the schema's `datasource.url` — the app opens its connection
+through the **`@prisma/adapter-pg` driver adapter** (`src/prisma/prisma.service.ts`),
+and migration/introspection commands read `PRISMA_DATABASE_URL` via the root
+`prisma.config.ts`.
+
 ### Pooled connections (Supabase / pgbouncer)
 
-For transaction-mode pooling, append `?pgbouncer=true` to the **runtime** URL and
-point **migrations** at the direct (5432) URL — pgbouncer can't run Prisma's
-migration statements over the transaction pooler:
+The runtime goes through node-postgres (the pg adapter), so transaction-mode
+pooling works without the old `?pgbouncer=true` engine flag — just point
+`PRISMA_DATABASE_URL` at the pooler. **Migrations still need the direct (5432)
+host** — pgbouncer's transaction mode can't run Prisma's migration statements:
 
 ```
-PRISMA_DATABASE_URL="postgresql://…pooler…:6543/postgres?pgbouncer=true"
-# run prisma:deploy against the direct 5432 host
+# runtime (app):        pooled URL is fine
+PRISMA_DATABASE_URL="postgresql://…pooler…:6543/postgres"
+# migrations (deploy):  set PRISMA_DATABASE_URL to the direct 5432 URL for the
+#                       prisma:deploy step (prisma.config.ts reads it)
 ```
 
 ## e2e databases

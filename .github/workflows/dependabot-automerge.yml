@@ -1,0 +1,70 @@
+name: Dependabot auto-merge
+
+# Merges Dependabot PRs automatically — but ONLY when every bump in the PR is
+# minor/patch and the full CI run on that SHA is green. Majors (including the
+# isolated "major-updates" group PRs) are always left for human review.
+#
+# Runs on CI completion rather than `gh pr merge --auto` because auto-merge
+# needs required-checks branch protection, which isn't available on private
+# repos without a paid plan. This way the merge gate is the workflow itself.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  actions: read
+
+jobs:
+  automerge:
+    name: Auto-merge safe Dependabot PRs
+    runs-on: ubuntu-latest
+    # Only same-repo Dependabot PR runs that finished green.
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]'
+    steps:
+      - name: Merge if every bump is minor/patch and all checks are green
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -euo pipefail
+
+          # Resolve the PR for this head branch (same-repo, so this is unambiguous).
+          PR=$(gh pr list --repo "$REPO" --head "$HEAD_BRANCH" --state open \
+               --json number,author,title,body \
+               -q '.[] | select(.author.login=="app/dependabot" or .author.login=="dependabot") | .number' | head -1)
+          if [ -z "$PR" ]; then echo "no open Dependabot PR for $HEAD_BRANCH — nothing to do"; exit 0; fi
+
+          # Never touch the isolated major PRs.
+          case "$HEAD_BRANCH" in *major-updates*) echo "major-updates group — manual review"; exit 0;; esac
+
+          # Parse every "from X to Y" pair in title+body; bail if ANY bump is a major.
+          TEXT=$(gh pr view "$PR" --repo "$REPO" --json title,body -q '.title + "\n" + .body')
+          if echo "$TEXT" | grep -oE 'from [0-9]+[0-9a-zA-Z.-]* to [0-9]+[0-9a-zA-Z.-]*' \
+             | awk '{ split($2,a,"."); split($4,b,"."); if (a[1]+0 != b[1]+0) exit 1 }'; then
+            echo "all bumps are minor/patch"
+          else
+            echo "contains a major bump — manual review"; exit 0
+          fi
+
+          # Require EVERY completed check on the SHA to be green (CI succeeded to
+          # get here; this also catches the Security workflow). Pending checks
+          # other than this job block the merge — a later CI completion re-fires us.
+          BAD=$(gh api "repos/$REPO/commits/$HEAD_SHA/check-runs" --paginate \
+                -q '[.check_runs[]
+                     | select(.name != "Auto-merge safe Dependabot PRs")
+                     | select((.status != "completed") or ((((.conclusion // "") | IN("success","skipped","neutral")) | not)))
+                    ] | length')
+          if [ "$BAD" != "0" ]; then echo "$BAD check(s) not green yet — waiting for a later run"; exit 0; fi
+
+          gh pr merge "$PR" --repo "$REPO" --squash --delete-branch
+          echo "merged #$PR"

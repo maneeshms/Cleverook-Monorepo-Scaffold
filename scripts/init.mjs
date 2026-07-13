@@ -38,13 +38,14 @@ const OLD_SCOPE = '@clevscaffold';
 // component's directory removes its dependencies with it — no root-dep pruning.
 const COMPONENTS = {
   typeorm: {
-    dirs: ['apps/api', 'libs/database', 'libs/feature-flags', 'libs/messaging'],
+    dirs: ['apps/api', 'libs/database', 'libs/feature-flags', 'libs/messaging', 'scripts/seed-api.mjs'],
     scripts: [
       'dev:api',
       'migration:generate',
       'migration:create',
       'migration:run',
       'migration:revert',
+      'seed:api',
     ],
     tsPaths: [`${OLD_SCOPE}/database`, `${OLD_SCOPE}/feature-flags`, `${OLD_SCOPE}/messaging`],
     sentinel: 'typeorm',

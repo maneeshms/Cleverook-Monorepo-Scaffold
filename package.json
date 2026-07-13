@@ -40,7 +40,10 @@
     "prisma:deploy": "prisma migrate deploy --schema apps/api-prisma/prisma/schema.prisma",
     "prisma:seed": "ts-node apps/api-prisma/prisma/seed.ts",
     "prisma:studio": "prisma studio --schema apps/api-prisma/prisma/schema.prisma",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "verify": "npm run lint && npm run typecheck && npm run build && npm run test",
+    "doctor": "node scripts/doctor.mjs",
+    "seed:api": "node scripts/seed-api.mjs"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

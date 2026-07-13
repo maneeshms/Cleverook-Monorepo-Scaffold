@@ -5,7 +5,7 @@ monorepo distilled from production repos, hardened for high-traffic products, wi
 first-class support for AI coding agents. Clone it, run `init`, and start shipping.
 
 ```
-NestJS 10 · Nx · TypeScript · Node 22 · PostgreSQL 16
+NestJS 11 · Nx · TypeScript · Node 22 · PostgreSQL 16
 TypeORM ⟷ Prisma  ·  Vite ⟷ Next.js  ·  Redis (optional)  ·  Railway
 ```
 
@@ -17,17 +17,17 @@ once — and `scripts/init.mjs` strips it down to just what your project needs.
 
 ## What's inside
 
-| Area | What you get |
-|------|--------------|
-| **Two ORMs** | `apps/api` (TypeORM, full reference) + `apps/api-prisma` (Prisma, compact). Pick per project at init. |
-| **Two frontends** | `apps/web` (Vite) + `apps/web-next` (Next.js) — Docker + Railway wiring references. |
-| **Auth** | 15-min access JWT + rotating opaque hashed refresh with reuse detection; progressive lockout; RBAC. |
-| **Layered config** | `process.env → config/{NODE_ENV}.json → config/default.json → code default`, validated at boot. Secrets never in JSON. |
-| **Security** | helmet, strict CORS, validated DTOs, parameterized queries, audit/alert logging, OWASP e2e + a 49-check runtime scanner (baseline 49/49). |
-| **Scale** | Stateless apps, Redis-backed throttling + BullMQ queue, health/readiness probes, graceful shutdown, Prometheus metrics. |
-| **Quality gates** | Unit coverage floor **≥ 90%** (enforced), full e2e, ESLint 9 flat config, CI for build/test/e2e/docker/security/CodeQL. |
-| **Messaging** | Omnichannel `libs/messaging` (channels/providers/routing/templates/queue), Resend email + console fallback, in-app sink. |
-| **Agent-ready** | `AGENTS.md` canonical + `docs/agents/*` topic docs + adapters for Claude, Cursor, and Copilot. |
+| Area               | What you get                                                                                                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Two ORMs**       | `apps/api` (TypeORM, full reference) + `apps/api-prisma` (Prisma, compact). Pick per project at init.                                                                           |
+| **Two frontends**  | `apps/web` (Vite) + `apps/web-next` (Next.js) — Docker + Railway wiring references.                                                                                             |
+| **Auth**           | 15-min access JWT + rotating opaque hashed refresh with reuse detection; progressive lockout; RBAC.                                                                             |
+| **Layered config** | `process.env → config/{NODE_ENV}.json → config/default.json → code default`, validated at boot. Secrets never in JSON.                                                          |
+| **Security**       | helmet, strict CORS, validated DTOs, parameterized queries, audit/alert logging, OWASP e2e + a 49-check runtime scanner (baseline 49/49).                                       |
+| **Scale**          | Stateless apps, Redis-backed throttling + BullMQ queue, health/readiness probes, graceful shutdown, Prometheus metrics.                                                         |
+| **Quality gates**  | Unit coverage floor **≥ 90%** (enforced), full e2e, ESLint 9 flat config, CI for build/test/e2e/docker/security (CodeQL + dependency-review opt-in via `ENABLE_CODE_SCANNING`). |
+| **Messaging**      | Omnichannel `libs/messaging` (channels/providers/routing/templates/queue), Resend email + console fallback, in-app sink.                                                        |
+| **Agent-ready**    | `AGENTS.md` canonical + `docs/agents/*` topic docs + adapters for Claude, Cursor, and Copilot.                                                                                  |
 
 ## Quick start
 
@@ -57,11 +57,12 @@ Full walkthrough: **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**.
 ## Commands
 
 ```bash
+npm run doctor               # preflight checks (node, .env, docker, ports)
 npm run dev:api | dev:api-prisma | dev:web | dev:web-next
 npm run db:up | db:down
-npm run build | test | lint | typecheck
+npm run verify               # lint + typecheck + build + test in one go
 npm run e2e:setup && npm run e2e
-npm run migration:run | prisma:migrate | prisma:seed
+npm run migration:run | seed:api | prisma:migrate | prisma:seed
 npm run scan:security
 ```
 

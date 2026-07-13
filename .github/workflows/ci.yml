@@ -99,13 +99,13 @@ jobs:
         app: [api, api-prisma, web, web-next]
     steps:
       - uses: actions/checkout@v7
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
       # Local CI image tag derived from the repo name (no hardcoded project name),
       # lowercased because Docker repository names must be lowercase.
       - name: Compute image tag
         run: echo "IMAGE=$(echo '${{ github.event.repository.name }}' | tr '[:upper:]' '[:lower:]')-${{ matrix.app }}:ci" >> "$GITHUB_ENV"
       - name: Build ${{ matrix.app }} image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
           context: .
           file: apps/${{ matrix.app }}/Dockerfile
@@ -116,7 +116,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
       # Fail the build on CRITICAL image vulnerabilities; report HIGH informationally.
       - name: Trivy image scan (${{ matrix.app }})
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}
           format: sarif
@@ -124,7 +124,7 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: '0'
       - name: Trivy gate — fail on CRITICAL
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}
           format: table
@@ -142,7 +142,7 @@ jobs:
           category: trivy-${{ matrix.app }}
       # Generate an SPDX SBOM for supply-chain provenance.
       - name: Generate SBOM (${{ matrix.app }})
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
         with:
           image: ${{ env.IMAGE }}
           format: spdx-json

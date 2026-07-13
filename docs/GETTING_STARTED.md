@@ -43,11 +43,17 @@ app's `config/*.json`. See [CONFIGURATION.md](CONFIGURATION.md).
 
 ```bash
 npm ci
+npm run doctor         # preflight: node version, .env, docker, postgres ports
 npm run db:up          # Postgres 16 + Redis 7 via docker compose
 npm run migration:run  # TypeORM schema (apps/api)
+npm run seed:api       # optional: idempotent admin account (admin@example.com)
 # If you kept the Prisma app:
-npm run prisma:generate && npm run prisma:migrate
+npm run prisma:generate && npm run prisma:migrate && npm run prisma:seed
 ```
+
+> **Port 5432 taken?** (a host Postgres is common) — set `POSTGRES_PORT=5433`
+> before `db:up`; compose, the e2e setup, and `npm run doctor` all honor it.
+> `doctor` diagnoses the collision explicitly if you hit it.
 
 ## 4. Run
 
@@ -68,7 +74,7 @@ curl http://localhost:3000/api/v1/health
 ## 5. Verify everything
 
 ```bash
-npm run lint && npm run typecheck && npm run build && npm run test
+npm run verify             # lint + typecheck + build + unit tests, one command
 npm run e2e:setup && npm run e2e
 npm run scan:security      # with an api running locally
 ```

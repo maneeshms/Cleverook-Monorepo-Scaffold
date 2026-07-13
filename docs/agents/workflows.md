@@ -18,6 +18,10 @@
 - **codeql.yml** — CodeQL `security-and-quality` on push/PR + weekly.
 - **init-matrix.yml** — runs every `init.mjs` orm×frontend combo → install/build/
   test (dispatch + weekly). Removed from generated projects.
+- **dependabot-automerge.yml** — after a green CI run on a Dependabot PR, merges
+  it automatically **only if every bump is minor/patch** (parses the "from X to Y"
+  pairs; anything major — including the isolated `major-updates` group PRs — is
+  left for human review, and all other checks on the SHA must be green first).
 
 **Portability (private repos without GitHub Advanced Security).** CodeQL,
 dependency-review, and the Trivy **SARIF upload** all need code scanning, which is

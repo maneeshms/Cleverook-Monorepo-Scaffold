@@ -1,0 +1,8 @@
+# Default owner for everything — review requests are auto-assigned.
+* @maneeshms
+
+# Security-sensitive surfaces: changes here should always get a careful look.
+/libs/config/ @maneeshms
+/apps/*/src/modules/auth/ @maneeshms
+/.github/ @maneeshms
+/scripts/init.mjs @maneeshms

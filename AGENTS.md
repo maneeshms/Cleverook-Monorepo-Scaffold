@@ -1,6 +1,6 @@
 # ClevScaffold — Agent Guide
 
-Enterprise-grade, clone-and-go scaffold for Cleverook backends. NestJS 10 · Nx
+Enterprise-grade, clone-and-go scaffold for Cleverook backends. NestJS 11 · Nx
 monorepo · TypeScript · Node 22 · PostgreSQL · **two ORMs** (TypeORM + Prisma) ·
 two frontends (Vite + Next.js) · Railway. Built for high-traffic products.
 
@@ -30,8 +30,8 @@ adapters that point back here.
 7. **No mock/fake data.** External providers are real and configurable; when
    unconfigured they either fall back explicitly (e.g. console email) or return
    `503` — never fabricated values. `libs/messaging` is the reference.
-8. **Run the gates before declaring done:** `npm run lint && npm run typecheck &&
-npm run build && npm run test`, plus the relevant `npm run e2e` for backend
+8. **Run the gates before declaring done:** `npm run verify` (lint + typecheck +
+   build + unit in one command), plus the relevant `npm run e2e` for backend
    changes.
 
 ---
@@ -72,6 +72,8 @@ apps import libs, never other apps. Full rules: `docs/agents/architecture.md`.
 
 ```bash
 npm ci                       # install (exact, from lockfile)
+npm run doctor               # preflight: node/.env/docker/postgres-port checks
+npm run verify               # lint + typecheck + build + unit in one command
 npm run dev:api              # serve TypeORM api (watch)     :3000  /api/v1
 npm run dev:api-prisma       # serve Prisma api (watch)      :3010  /api/v1
 npm run dev:web              # Vite dev server               :5173
@@ -82,6 +84,7 @@ npm run test                 # nx unit tests (coverage ≥90% enforced)
 npm run lint / typecheck     # eslint / tsc --noEmit
 npm run e2e:setup && npm run e2e   # create+migrate test DBs, run e2e
 npm run migration:run        # TypeORM migrations
+npm run seed:api             # TypeORM admin seed (idempotent)
 npm run prisma:generate / prisma:migrate / prisma:seed
 npm run scan:security        # OWASP runtime scan against a live api
 ```

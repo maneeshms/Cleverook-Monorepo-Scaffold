@@ -13,7 +13,9 @@ import { existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import pg from 'pg';
 
-const DEFAULT_BASE = 'postgresql://postgres:postgres@localhost:5432';
+// Honor POSTGRES_PORT so a remapped compose container (docker-compose.yml maps
+// `${POSTGRES_PORT:-5432}:5432` when a host Postgres owns 5432) works untouched.
+const DEFAULT_BASE = `postgresql://postgres:postgres@localhost:${process.env.POSTGRES_PORT ?? 5432}`;
 const base = process.env.E2E_PG_BASE_URL ?? DEFAULT_BASE;
 
 /* clevscaffold:typeorm:start */
