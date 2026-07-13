@@ -10,7 +10,7 @@
     "@clevscaffold/logger": "*",
     "@nestjs/common": "10.4.22",
     "@nestjs/typeorm": "10.0.2",
-    "bullmq": "5.79.2",
+    "bullmq": "5.80.2",
     "resend": "6.17.1",
     "typeorm": "0.3.30"
   }
