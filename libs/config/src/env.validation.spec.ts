@@ -38,10 +38,10 @@ describe('validateEnv', () => {
     expect(result.DATABASE_POOL_MAX).toBe(5);
   });
 
-  it('rejects a missing JWT_ACCESS_SECRET', () => {
-    expect(() => validateEnv({ JWT_REFRESH_SECRET: 'b'.repeat(40) })).toThrow(
-      /JWT_ACCESS_SECRET/,
-    );
+  it('allows missing JWT secrets (a core/no-auth app has none)', () => {
+    // Presence for auth apps is enforced by createEnvValidator's `require` list,
+    // not the shared class — so validateEnv itself accepts their absence.
+    expect(() => validateEnv({})).not.toThrow();
   });
 
   it('rejects short JWT secrets', () => {

@@ -10,16 +10,27 @@
  *   node scripts/init.mjs                         # interactive
  *   node scripts/init.mjs --yes --name my-app --scope @myco \
  *        --orm typeorm|prisma|both --frontend vite|next|both|none
+ *   node scripts/init.mjs --yes --name my-app --minimal --with-auth   # bare kickstart
+ *
+ * The default output keeps the full reference apps (auth, users, tasks demo,
+ * notifications, messaging, feature-flags, metrics). `--minimal` instead emits a
+ * bare, bootable core (config + logger + database + health + throttler, Redis
+ * optional) and you opt capabilities back in with the --with-* flags below.
  *
  * Flags:
- *   --yes            non-interactive (use defaults / provided flags)
- *   --name <kebab>   workspace + package name
- *   --scope <@x>     npm scope replacing @clevscaffold (leading @ optional)
- *   --orm <v>        typeorm | prisma | both        (default both)
- *   --frontend <v>   vite | next | both | none       (default both)
- *   --reinit-git     wipe .git and start a fresh repo
- *   --no-install     skip npm install (lockfile not regenerated)
- *   --skip-verify    skip the build + test verification step
+ *   --yes                non-interactive (use defaults / provided flags)
+ *   --name <kebab>       workspace + package name
+ *   --scope <@x>         npm scope replacing @clevscaffold (leading @ optional)
+ *   --orm <v>            typeorm | prisma | both        (default both)
+ *   --frontend <v>       vite | next | both | none       (default both)
+ *   --minimal            core-only app; add capabilities with --with-* below
+ *   --with-auth          include JWT auth + users (needed by messaging)
+ *   --with-messaging     include the messaging engine + notifications (implies auth)
+ *   --with-feature-flags include the OpenFeature feature-flags module
+ *   --with-metrics       include the Prometheus /metrics endpoint
+ *   --reinit-git         wipe .git and start a fresh repo
+ *   --no-install         skip npm install (lockfile not regenerated)
+ *   --skip-verify        skip the build + test verification step
  */
 import { existsSync, rmSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { execSync } from 'node:child_process';
@@ -76,6 +87,60 @@ const COMPONENTS = {
   },
 };
 
+// ── Capability manifest (minimal-app generator) ─────────────────────────────
+// Capabilities layer on top of the core skeleton. `--minimal` starts core-only;
+// `--with-*` flags re-add them. Dropping a capability strips its <token> sentinel
+// blocks from the shared files below and deletes its module dirs / migrations /
+// lib path aliases / package deps. `tasks` is a reference-only demo — always
+// dropped in a minimal app, never re-addable via a flag. Tokens are single
+// lowercase words (the marker-cleanup regex is [a-z]+).
+const ALL_CAPS = ['auth', 'messaging', 'featureflags', 'metrics', 'tasks'];
+const MIGRATIONS_DIR = 'libs/database/src/migrations';
+const CAPABILITIES = {
+  auth: {
+    flag: 'with-auth',
+    dirs: [
+      'apps/api/src/modules/auth',
+      'apps/api/src/modules/users',
+      'apps/api-prisma/src/modules/auth',
+      'apps/api-prisma/src/modules/users',
+      'apps/api-prisma/prisma/migrations/20260711222513_init',
+    ],
+    files: ['apps/api-prisma/prisma/seed.ts'],
+    migrations: ['1750000000000-InitUsersAndSessions.ts'],
+    scripts: ['prisma:seed'],
+  },
+  messaging: {
+    flag: 'with-messaging',
+    requires: ['auth'], // notifications.user_id FK → users
+    dirs: ['apps/api/src/modules/notifications', 'libs/messaging'],
+    migrations: ['1750000000001-AddMessagingTables.ts', '1750000000002-AddNotifications.ts'],
+    tsPaths: [`${OLD_SCOPE}/messaging`],
+    pkgDeps: [{ file: 'apps/api/package.json', dep: `${OLD_SCOPE}/messaging` }],
+  },
+  featureflags: {
+    flag: 'with-feature-flags',
+    dirs: ['libs/feature-flags'],
+    migrations: ['1750000000003-AddFeatureFlags.ts'],
+    tsPaths: [`${OLD_SCOPE}/feature-flags`],
+    pkgDeps: [{ file: 'apps/api/package.json', dep: `${OLD_SCOPE}/feature-flags` }],
+  },
+  // MetricsModule lives in libs/common (kept); only app wiring + env are gated.
+  metrics: { flag: 'with-metrics' },
+  // Reference-only CRUD demo. Never user-selectable; always dropped in --minimal.
+  tasks: { dirs: ['apps/api/src/modules/tasks'], migrations: ['1750000000004-AddTasks.ts'] },
+};
+// Shared files that carry capability <token> sentinel blocks.
+const CAP_SENTINEL_FILES = [
+  'apps/api/src/app.module.ts',
+  'apps/api/src/main.ts',
+  'apps/api/src/modules/auth/auth.service.ts',
+  'apps/api/src/modules/auth/auth.service.spec.ts',
+  'apps/api-prisma/src/app.module.ts',
+  'apps/api-prisma/prisma/schema.prisma',
+  '.env.example',
+];
+
 const TEXT_EXT = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs', '.json', '.md', '.mdc', '.yml', '.yaml', '.prisma', '.conf', '.template', '.example']);
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'tmp', '.next', 'coverage', '.nx']);
 const RENAME_SKIP_FILES = new Set(['package-lock.json', 'init.mjs']);
@@ -87,7 +152,11 @@ function parseArgs(argv) {
     const a = argv[i];
     if (!a.startsWith('--')) continue;
     const key = a.slice(2);
-    if (['yes', 'reinit-git', 'no-install', 'skip-verify'].includes(key)) {
+    const boolFlags = [
+      'yes', 'reinit-git', 'no-install', 'skip-verify',
+      'minimal', 'with-auth', 'with-messaging', 'with-feature-flags', 'with-metrics',
+    ];
+    if (boolFlags.includes(key)) {
       out.flags.add(key);
     } else {
       out.opts[key] = argv[++i];
@@ -118,6 +187,76 @@ function rmrf(rel) {
   if (existsSync(full)) {
     rmSync(full, { recursive: true, force: true });
     console.log(`  removed ${rel}`);
+  }
+}
+
+/** Remove a dependency from a package.json (used when a capability's lib is dropped). */
+function removePkgDep(rel, dep) {
+  const full = path.join(ROOT, rel);
+  if (!existsSync(full)) return;
+  const pkg = JSON.parse(readFileSync(full, 'utf8'));
+  let changed = false;
+  for (const field of ['dependencies', 'devDependencies', 'peerDependencies']) {
+    if (pkg[field] && dep in pkg[field]) {
+      delete pkg[field][dep];
+      changed = true;
+    }
+  }
+  if (changed) writeFileSync(full, JSON.stringify(pkg, null, 2) + '\n');
+}
+
+/** Minimal frontend: replace the coupled auth+tasks Vite sample with a health page. */
+function writeMinimalVite(appName) {
+  const app = `import { useEffect, useState } from 'react';
+import { api } from './api';
+
+export default function App() {
+  const [apiUp, setApiUp] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    api
+      .health()
+      .then((h) => setApiUp(h.status === 'ok'))
+      .catch(() => setApiUp(false));
+  }, []);
+
+  return (
+    <main className="shell">
+      <header>
+        <h1>${appName}</h1>
+        <span className={\`badge \${apiUp ? 'up' : 'down'}\`}>
+          API {apiUp === null ? '…' : apiUp ? 'up' : 'down'}
+        </span>
+      </header>
+      <section className="card">
+        <h2>Your app shell is ready</h2>
+        <p>This page checks the backend health endpoint. Start building your UI here.</p>
+      </section>
+    </main>
+  );
+}
+`;
+  const client = `/**
+ * Minimal API client — just the health check. Add your own endpoints here.
+ * Requests are same-origin to /api/v1/* (see the Vite dev proxy).
+ */
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const res = await fetch(\`/api/v1\${path}\`, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...(init.headers as Record<string, string>) },
+  });
+  if (!res.ok) throw new Error(\`Request failed (\${res.status})\`);
+  return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
+}
+
+export const api = {
+  health: () => request<{ status: string }>('/health'),
+};
+`;
+  if (existsSync(path.join(ROOT, 'apps/web/src/App.tsx'))) {
+    writeFileSync(path.join(ROOT, 'apps/web/src/App.tsx'), app);
+    writeFileSync(path.join(ROOT, 'apps/web/src/api.ts'), client);
+    console.log('  wrote minimal apps/web (health landing page)');
   }
 }
 
@@ -181,6 +320,13 @@ async function main() {
   let scope = opts.scope;
   let orm = opts.orm;
   let frontend = opts.frontend;
+  let minimal = flags.has('minimal');
+  const withCap = {
+    auth: flags.has('with-auth'),
+    messaging: flags.has('with-messaging'),
+    featureflags: flags.has('with-feature-flags'),
+    metrics: flags.has('with-metrics'),
+  };
 
   if (!yes) {
     const rl = createInterface({ input: stdin, output: stdout });
@@ -189,7 +335,27 @@ async function main() {
     scope = scope ?? (await prompt(rl, 'npm scope', `@${name}`));
     orm = orm ?? (await prompt(rl, 'ORM [typeorm|prisma|both]', 'both'));
     frontend = frontend ?? (await prompt(rl, 'Frontend [vite|next|both|none]', 'both'));
+    if (!minimal) {
+      minimal = (await prompt(rl, 'Minimal app — core only, features à la carte? [y/N]', 'n'))
+        .toLowerCase()
+        .startsWith('y');
+    }
+    if (minimal) {
+      const picked = (
+        await prompt(rl, 'Capabilities [auth,messaging,feature-flags,metrics] (comma-sep, blank=none)', '')
+      ).toLowerCase();
+      const set = new Set(picked.split(',').map((s) => s.trim()).filter(Boolean));
+      if (set.has('auth')) withCap.auth = true;
+      if (set.has('messaging')) withCap.messaging = true;
+      if (set.has('feature-flags') || set.has('featureflags')) withCap.featureflags = true;
+      if (set.has('metrics')) withCap.metrics = true;
+    }
     await rl.close();
+  }
+
+  // --with-* only means anything under --minimal; the default keeps everything.
+  if (!minimal && Object.values(withCap).some(Boolean)) {
+    console.warn('  note: --with-* flags are ignored without --minimal (default keeps all features).');
   }
 
   name = name ?? 'my-app';
@@ -210,12 +376,46 @@ async function main() {
 
   const remove = Object.keys(COMPONENTS).filter((c) => !keep.has(c));
 
+  // Which capabilities to KEEP. The default (non-minimal) keeps them all — the
+  // full reference app. --minimal starts empty; --with-* opt back in.
+  const caps = new Set(minimal ? [] : ALL_CAPS);
+  if (minimal) {
+    if (withCap.auth) caps.add('auth');
+    if (withCap.messaging) {
+      caps.add('messaging');
+      caps.add('auth'); // notifications FK → users
+    }
+    if (withCap.featureflags) caps.add('featureflags');
+    if (withCap.metrics) caps.add('metrics');
+    // tasks is reference-only — never added to a minimal app.
+  }
+  // Capabilities that live only in the TypeORM app vanish when it is removed.
+  if (remove.includes('typeorm')) {
+    caps.delete('messaging');
+    caps.delete('featureflags');
+    caps.delete('tasks');
+  }
+  const dropCaps = ALL_CAPS.filter((c) => !caps.has(c));
+
   console.log(`\nConfiguring: name=${name} scope=${scope} orm=${orm} frontend=${frontend}`);
   console.log(`Keeping: ${[...keep].join(', ') || '(none)'}`);
-  console.log(`Removing: ${remove.join(', ') || '(none)'}\n`);
+  console.log(`Removing: ${remove.join(', ') || '(none)'}`);
+  if (minimal) {
+    console.log(`Minimal app — capabilities: ${[...caps].join(', ') || '(core only)'}`);
+    console.log(`Dropping capabilities: ${dropCaps.join(', ') || '(none)'}`);
+  }
+  console.log('');
 
   // 1. Delete component directories.
   for (const c of remove) for (const d of COMPONENTS[c].dirs) rmrf(d);
+
+  // 1b. Delete dropped-capability dirs, files, and migrations.
+  for (const c of dropCaps) {
+    const cap = CAPABILITIES[c];
+    for (const d of cap.dirs ?? []) rmrf(d);
+    for (const f of cap.files ?? []) rmrf(f);
+    for (const m of cap.migrations ?? []) rmrf(`${MIGRATIONS_DIR}/${m}`);
+  }
 
   // 2. Root package.json — rename, drop scripts, and prune workspace entries whose
   //    directory was removed. Runtime deps live in each package's own package.json
@@ -225,6 +425,9 @@ async function main() {
   for (const c of remove) {
     for (const s of COMPONENTS[c].scripts) delete pkg.scripts?.[s];
   }
+  for (const c of dropCaps) {
+    for (const s of CAPABILITIES[c].scripts ?? []) delete pkg.scripts?.[s];
+  }
   if (Array.isArray(pkg.workspaces)) {
     pkg.workspaces = pkg.workspaces.filter(
       (w) => w.includes('*') || existsSync(path.join(ROOT, w)),
@@ -233,32 +436,46 @@ async function main() {
   writeJson('package.json', pkg);
   console.log('  updated package.json');
 
+  // 2b. Drop workspace-lib deps for dropped capabilities from the app package.json.
+  for (const c of dropCaps) {
+    for (const pd of CAPABILITIES[c].pkgDeps ?? []) removePkgDep(pd.file, pd.dep);
+  }
+
   // 3. tsconfig.base.json — drop path aliases + excludes for removed parts.
   const tsconfig = readJson('tsconfig.base.json');
+  const dropPath = (p) => {
+    delete tsconfig.compilerOptions?.paths?.[p];
+    delete tsconfig.compilerOptions?.paths?.[`${p}/*`];
+  };
   for (const c of remove) {
-    for (const p of COMPONENTS[c].tsPaths) {
-      delete tsconfig.compilerOptions?.paths?.[p];
-      delete tsconfig.compilerOptions?.paths?.[`${p}/*`];
-    }
+    for (const p of COMPONENTS[c].tsPaths) dropPath(p);
     for (const ex of COMPONENTS[c].excludes ?? []) {
       tsconfig.exclude = (tsconfig.exclude ?? []).filter((e) => e !== ex);
     }
   }
+  for (const c of dropCaps) for (const p of CAPABILITIES[c].tsPaths ?? []) dropPath(p);
   writeJson('tsconfig.base.json', tsconfig);
   console.log('  updated tsconfig.base.json');
 
   // 4. Prune ORM sentinel blocks from shared files.
+  const ormSentinelFiles = ['.env.example', 'scripts/e2e-setup.mjs', '.github/workflows/ci.yml'];
   for (const c of remove) {
     if (!COMPONENTS[c].sentinel) continue;
-    for (const f of ['.env.example', 'scripts/e2e-setup.mjs', '.github/workflows/ci.yml']) {
-      stripSentinelBlocks(f, COMPONENTS[c].sentinel);
-    }
+    for (const f of ormSentinelFiles) stripSentinelBlocks(f, COMPONENTS[c].sentinel);
   }
 
-  // 4b. Strip any lingering sentinel markers for kept components (tidy output).
-  for (const f of ['.env.example', 'scripts/e2e-setup.mjs', '.github/workflows/ci.yml']) {
+  // 4b. Prune dropped-capability sentinel blocks from the app + shared files.
+  for (const c of dropCaps) {
+    for (const f of CAP_SENTINEL_FILES) stripSentinelBlocks(f, c);
+  }
+
+  // 4c. Strip any lingering sentinel markers for kept parts (tidy output).
+  for (const f of [...ormSentinelFiles, ...CAP_SENTINEL_FILES]) {
     stripSentinelMarkers(f);
   }
+
+  // 4d. Minimal frontend: swap the coupled auth+tasks Vite sample for a health page.
+  if (minimal && keep.has('vite')) writeMinimalVite(name);
 
   // 5. Fix workflow matrices to the kept apps / frontend dirs.
   const keptDockerApps = [...keep].flatMap((c) => COMPONENTS[c].dockerApps ?? []);
@@ -316,7 +533,8 @@ async function main() {
     console.log('  reinitialized git repository');
   }
 
-  console.log(`\n✅  ${name} is ready. See docs/GETTING_STARTED.md.`);
+  const summary = minimal ? `minimal (${[...caps].join(', ') || 'core only'})` : 'full reference';
+  console.log(`\n✅  ${name} is ready — ${summary}. See docs/GETTING_STARTED.md.`);
 }
 
 main().catch((err) => {

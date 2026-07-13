@@ -77,43 +77,66 @@ describe('loadLayeredConfig', () => {
     'rejects %s in JSON layers',
     (key) => {
       writeLayer('test.json', { [key]: 'x' });
-      expect(() => loadLayeredConfig({ configDir: dir, env: 'test', loadDotenv: false })).toThrow(/secret-looking/);
+      expect(() => loadLayeredConfig({ configDir: dir, env: 'test', loadDotenv: false })).toThrow(
+        /secret-looking/,
+      );
     },
   );
 
   it('rejects nested objects in JSON layers', () => {
     writeLayer('default.json', { NESTED: { a: 1 } });
-    expect(() => loadLayeredConfig({ configDir: dir, env: 'test', loadDotenv: false })).toThrow(/is nested/);
+    expect(() => loadLayeredConfig({ configDir: dir, env: 'test', loadDotenv: false })).toThrow(
+      /is nested/,
+    );
   });
 
   it('rejects a layer that is not a JSON object', () => {
     fs.writeFileSync(path.join(dir, 'default.json'), '["array"]');
-    expect(() => loadLayeredConfig({ configDir: dir, env: 'test', loadDotenv: false })).toThrow(/flat JSON object/);
+    expect(() => loadLayeredConfig({ configDir: dir, env: 'test', loadDotenv: false })).toThrow(
+      /flat JSON object/,
+    );
   });
 
   it('rejects malformed JSON with a helpful message', () => {
     fs.writeFileSync(path.join(dir, 'default.json'), '{ not json');
-    expect(() => loadLayeredConfig({ configDir: dir, env: 'test', loadDotenv: false })).toThrow(/Invalid JSON/);
+    expect(() => loadLayeredConfig({ configDir: dir, env: 'test', loadDotenv: false })).toThrow(
+      /Invalid JSON/,
+    );
   });
 
   it('throws when required keys are missing after layering', () => {
     delete process.env.NEEDED_KEY;
     expect(() =>
-      loadLayeredConfig({ configDir: dir, env: 'test', require: ['NEEDED_KEY'], loadDotenv: false }),
+      loadLayeredConfig({
+        configDir: dir,
+        env: 'test',
+        require: ['NEEDED_KEY'],
+        loadDotenv: false,
+      }),
     ).toThrow(/Missing required configuration: NEEDED_KEY/);
   });
 
   it('treats empty strings as missing for required keys', () => {
     process.env.NEEDED_KEY = '';
     expect(() =>
-      loadLayeredConfig({ configDir: dir, env: 'test', require: ['NEEDED_KEY'], loadDotenv: false }),
+      loadLayeredConfig({
+        configDir: dir,
+        env: 'test',
+        require: ['NEEDED_KEY'],
+        loadDotenv: false,
+      }),
     ).toThrow(/NEEDED_KEY/);
   });
 
   it('passes when required keys are satisfied by a file layer', () => {
     delete process.env.NEEDED_KEY;
     writeLayer('default.json', { NEEDED_KEY: 'present' });
-    const merged = loadLayeredConfig({ configDir: dir, env: 'test', require: ['NEEDED_KEY'], loadDotenv: false });
+    const merged = loadLayeredConfig({
+      configDir: dir,
+      env: 'test',
+      require: ['NEEDED_KEY'],
+      loadDotenv: false,
+    });
     expect(merged.NEEDED_KEY).toBe('present');
   });
 
@@ -170,14 +193,21 @@ describe('createEnvValidator', () => {
   });
 
   it('propagates validation failures (fail-fast boot)', () => {
-    delete process.env.JWT_ACCESS_SECRET;
+    // A provided-but-invalid value must still crash the boot (MinLength on JWT).
+    process.env.JWT_ACCESS_SECRET = 'too-short';
     const validate = createEnvValidator({ configDir: dir, env: 'test', loadDotenv: false });
-    expect(() => validate({})).toThrow(/JWT_ACCESS_SECRET/);
+    expect(() => validate({})).toThrow(/at least 32 characters/);
+    delete process.env.JWT_ACCESS_SECRET;
   });
 
   it('enforces per-app required keys', () => {
     delete process.env.DATABASE_URL;
-    const validate = createEnvValidator({ configDir: dir, env: 'test', require: ['DATABASE_URL'], loadDotenv: false });
+    const validate = createEnvValidator({
+      configDir: dir,
+      env: 'test',
+      require: ['DATABASE_URL'],
+      loadDotenv: false,
+    });
     expect(() => validate({})).toThrow(/Missing required configuration: DATABASE_URL/);
   });
 });

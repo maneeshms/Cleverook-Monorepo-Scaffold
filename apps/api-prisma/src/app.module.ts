@@ -7,24 +7,34 @@ import type { Redis } from 'ioredis';
 import {
   appConfig,
   createEnvValidator,
-  jwtConfig,
-  metricsConfig,
   throttleConfig,
+  // clevscaffold:auth:start
+  jwtConfig,
+  // clevscaffold:auth:end
+  // clevscaffold:metrics:start
+  metricsConfig,
+  // clevscaffold:metrics:end
 } from '@clevscaffold/config';
 import { LoggerModule } from '@clevscaffold/logger';
 import {
   AllExceptionsFilter,
-  JwtAuthGuard,
   LoggingInterceptor,
-  MetricsModule,
   RedisModule,
   REDIS_CLIENT,
   redisThrottlerStorage,
+  // clevscaffold:auth:start
+  JwtAuthGuard,
   RolesGuard,
+  // clevscaffold:auth:end
+  // clevscaffold:metrics:start
+  MetricsModule,
+  // clevscaffold:metrics:end
 } from '@clevscaffold/common';
 import { PrismaModule } from './prisma/prisma.module';
+// clevscaffold:auth:start
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+// clevscaffold:auth:end
 import { HealthModule } from './health/health.module';
 
 @Module({
@@ -33,10 +43,25 @@ import { HealthModule } from './health/health.module';
       isGlobal: true,
       cache: true,
       ignoreEnvFile: true, // the layered loader owns .env + config/*.json
-      load: [appConfig, jwtConfig, throttleConfig, metricsConfig],
+      load: [
+        appConfig,
+        throttleConfig,
+        // clevscaffold:auth:start
+        jwtConfig,
+        // clevscaffold:auth:end
+        // clevscaffold:metrics:start
+        metricsConfig,
+        // clevscaffold:metrics:end
+      ],
       validate: createEnvValidator({
         configDir: process.env.CONFIG_DIR ?? join(process.cwd(), 'apps/api-prisma/config'),
-        require: ['PRISMA_DATABASE_URL'],
+        require: [
+          'PRISMA_DATABASE_URL',
+          // clevscaffold:auth:start
+          'JWT_ACCESS_SECRET',
+          'JWT_REFRESH_SECRET',
+          // clevscaffold:auth:end
+        ],
       }),
     }),
     ThrottlerModule.forRootAsync({
@@ -55,16 +80,22 @@ import { HealthModule } from './health/health.module';
     }),
     LoggerModule,
     RedisModule,
+    // clevscaffold:metrics:start
     MetricsModule,
+    // clevscaffold:metrics:end
     PrismaModule,
+    // clevscaffold:auth:start
     AuthModule,
     UsersModule,
+    // clevscaffold:auth:end
     HealthModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // clevscaffold:auth:start
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    // clevscaffold:auth:end
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
   ],

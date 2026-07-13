@@ -194,3 +194,25 @@ It prunes by directory manifests **and sentinel-marked blocks** — comments lik
 `app.module.ts`, `scripts/e2e-setup.mjs`, and workflow/config files. **Keep
 sentinel pairs intact and balanced** when editing those files, or partial pruning
 breaks generated projects.
+
+**The apps are reference/sample apps.** By default init keeps them whole. `--minimal`
+emits a **bare, bootable core** (config + logger + database + health + throttler;
+Redis optional) and you opt capabilities back in à la carte:
+
+| Flag                   | Adds                                                                              |
+| ---------------------- | --------------------------------------------------------------------------------- |
+| `--with-auth`          | JWT auth + users (+ `InitUsersAndSessions` migration)                             |
+| `--with-messaging`     | messaging engine + notifications sink (**implies auth** — notifications FK→users) |
+| `--with-feature-flags` | `@clevscaffold/feature-flags` module                                              |
+| `--with-metrics`       | Prometheus `/metrics` endpoint                                                    |
+
+Capabilities are `clevscaffold:<token>:start/end` blocks (tokens `auth`, `messaging`,
+`featureflags`, `metrics`, `tasks` — single lowercase words; the marker regex is
+`[a-z]+`) across `app.module.ts`, `main.ts`, `auth.service.ts(+spec)`,
+`schema.prisma`, `.env.example`. The `tasks` demo is reference-only (always dropped
+in `--minimal`, never re-addable). Each capability also maps to module dirs +
+migrations + a lib path/dep in the `CAPABILITIES` manifest. **JWT secrets are
+optional in the shared env class** and enforced per-app via `createEnvValidator`'s
+`require` list (gated under `auth`) — so a core app boots without them. When adding
+an optional feature, wrap every symbol (imports included, one per line) in its
+sentinel block so stripping leaves valid, lint-clean code.

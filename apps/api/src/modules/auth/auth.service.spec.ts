@@ -1,7 +1,9 @@
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { AuditAction, AuditStatus } from '@clevscaffold/logger';
+// clevscaffold:messaging:start
 import { MessageType } from '@clevscaffold/messaging';
+// clevscaffold:messaging:end
 import { AuthService } from './auth.service';
 import { User } from '../users/entities/user.entity';
 
@@ -21,7 +23,9 @@ describe('AuthService', () => {
     revokeAllForUser: jest.Mock;
   };
   let logger: { auditAuth: jest.Mock; alertSecurity: jest.Mock; error: jest.Mock };
+  // clevscaffold:messaging:start
   let messaging: { dispatch: jest.Mock };
+  // clevscaffold:messaging:end
 
   const tokenPair = { accessToken: 'a', refreshToken: 'r', expiresIn: '15m' };
 
@@ -51,7 +55,9 @@ describe('AuthService', () => {
       revokeAllForUser: jest.fn(),
     };
     logger = { auditAuth: jest.fn(), alertSecurity: jest.fn(), error: jest.fn() };
+    // clevscaffold:messaging:start
     messaging = { dispatch: jest.fn().mockResolvedValue(undefined) };
+    // clevscaffold:messaging:end
     const config = {
       get: (key: string) => ({ 'app.bcryptRounds': 4 })[key],
     };
@@ -60,14 +66,16 @@ describe('AuthService', () => {
       tokens as never,
       config as never,
       logger as never,
+      // clevscaffold:messaging:start
       messaging as never,
+      // clevscaffold:messaging:end
     );
   });
 
   describe('register', () => {
     const dto = { email: 'a@b.co', password: 'Str0ng!Pass', displayName: 'Alex' };
 
-    it('hashes the password, audits, sends a welcome email, returns tokens', async () => {
+    it('hashes the password, audits, and returns tokens', async () => {
       const result = await service.register(dto, { ipAddress: '1.2.3.4' });
       expect(result).toBe(tokenPair);
       const created = users.create.mock.calls[0][0];
@@ -79,22 +87,11 @@ describe('AuthService', () => {
         'u1',
         expect.objectContaining({ ipAddress: '1.2.3.4' }),
       );
-      expect(messaging.dispatch).toHaveBeenCalledWith(
-        expect.objectContaining({
-          messageType: MessageType.WELCOME,
-          recipient: { email: 'a@b.co' },
-        }),
-      );
     });
 
-    it('registers without a display name (defaults + bare greeting)', async () => {
+    it('registers without a display name (defaults)', async () => {
       await service.register({ email: 'a@b.co', password: 'Str0ng!Pass' });
       expect(users.create).toHaveBeenCalledWith(expect.objectContaining({ displayName: null }));
-      expect(messaging.dispatch).toHaveBeenCalledWith(
-        expect.objectContaining({
-          variables: expect.objectContaining({ displayName: '', displayNameComma: '!' }),
-        }),
-      );
     });
 
     it('rejects duplicate emails with 409', async () => {
@@ -103,17 +100,42 @@ describe('AuthService', () => {
       expect(users.create).not.toHaveBeenCalled();
     });
 
-    it('never fails signup because the welcome email failed', async () => {
-      messaging.dispatch.mockRejectedValue(new Error('provider down'));
-      await expect(service.register(dto)).resolves.toBe(tokenPair);
-      // flush the microtask queue so the .catch handler runs
-      await new Promise(process.nextTick);
-      expect(logger.error).toHaveBeenCalledWith(
-        expect.stringContaining('Welcome email dispatch failed'),
-        undefined,
-        'Auth',
-      );
+    // clevscaffold:messaging:start
+    // Welcome-email behaviour lives in its own block so init.mjs can strip it
+    // wholesale when the messaging capability is not selected.
+    describe('welcome email (messaging)', () => {
+      it('dispatches a WELCOME message on register', async () => {
+        await service.register(dto);
+        expect(messaging.dispatch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            messageType: MessageType.WELCOME,
+            recipient: { email: 'a@b.co' },
+          }),
+        );
+      });
+
+      it('passes bare-greeting variables when there is no display name', async () => {
+        await service.register({ email: 'a@b.co', password: 'Str0ng!Pass' });
+        expect(messaging.dispatch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            variables: expect.objectContaining({ displayName: '', displayNameComma: '!' }),
+          }),
+        );
+      });
+
+      it('never fails signup because the welcome email failed', async () => {
+        messaging.dispatch.mockRejectedValue(new Error('provider down'));
+        await expect(service.register(dto)).resolves.toBe(tokenPair);
+        // flush the microtask queue so the .catch handler runs
+        await new Promise(process.nextTick);
+        expect(logger.error).toHaveBeenCalledWith(
+          expect.stringContaining('Welcome email dispatch failed'),
+          undefined,
+          'Auth',
+        );
+      });
     });
+    // clevscaffold:messaging:end
   });
 
   describe('login', () => {

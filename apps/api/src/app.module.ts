@@ -2,38 +2,62 @@ import { join } from 'path';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+// clevscaffold:auth:start
 import { ScheduleModule } from '@nestjs/schedule';
+// clevscaffold:auth:end
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import type { Redis } from 'ioredis';
 import {
   appConfig,
   createEnvValidator,
   databaseConfig,
-  featureFlagsConfig,
-  jwtConfig,
-  messagingConfig,
-  metricsConfig,
   throttleConfig,
+  // clevscaffold:auth:start
+  jwtConfig,
+  // clevscaffold:auth:end
+  // clevscaffold:messaging:start
+  messagingConfig,
+  // clevscaffold:messaging:end
+  // clevscaffold:metrics:start
+  metricsConfig,
+  // clevscaffold:metrics:end
+  // clevscaffold:featureflags:start
+  featureFlagsConfig,
+  // clevscaffold:featureflags:end
 } from '@clevscaffold/config';
 import { DatabaseModule } from '@clevscaffold/database';
+// clevscaffold:featureflags:start
 import { FeatureFlagsModule } from '@clevscaffold/feature-flags';
+// clevscaffold:featureflags:end
 import { LoggerModule } from '@clevscaffold/logger';
+// clevscaffold:messaging:start
 import { MessagingModule } from '@clevscaffold/messaging';
+// clevscaffold:messaging:end
 import {
   AllExceptionsFilter,
-  JwtAuthGuard,
   LoggingInterceptor,
-  MetricsModule,
   RedisModule,
   REDIS_CLIENT,
   redisThrottlerStorage,
+  // clevscaffold:auth:start
+  JwtAuthGuard,
   RolesGuard,
+  // clevscaffold:auth:end
+  // clevscaffold:metrics:start
+  MetricsModule,
+  // clevscaffold:metrics:end
 } from '@clevscaffold/common';
+// clevscaffold:auth:start
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+// clevscaffold:auth:end
+// clevscaffold:tasks:start
 import { TasksModule } from './modules/tasks/tasks.module';
+// clevscaffold:tasks:end
+// clevscaffold:messaging:start
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { InAppSinkModule } from './modules/notifications/in-app-sink.module';
+// clevscaffold:messaging:end
 import { HealthModule } from './health/health.module';
 
 @Module({
@@ -47,20 +71,36 @@ import { HealthModule } from './health/health.module';
       load: [
         appConfig,
         databaseConfig,
-        jwtConfig,
         throttleConfig,
+        // clevscaffold:auth:start
+        jwtConfig,
+        // clevscaffold:auth:end
+        // clevscaffold:messaging:start
         messagingConfig,
+        // clevscaffold:messaging:end
+        // clevscaffold:metrics:start
         metricsConfig,
+        // clevscaffold:metrics:end
+        // clevscaffold:featureflags:start
         featureFlagsConfig,
+        // clevscaffold:featureflags:end
       ],
       validate: createEnvValidator({
         configDir: process.env.CONFIG_DIR ?? join(process.cwd(), 'apps/api/config'),
-        require: ['DATABASE_URL'],
+        require: [
+          'DATABASE_URL',
+          // clevscaffold:auth:start
+          'JWT_ACCESS_SECRET',
+          'JWT_REFRESH_SECRET',
+          // clevscaffold:auth:end
+        ],
       }),
     }),
+    // clevscaffold:auth:start
     // Enables @Cron jobs (e.g. expired-session purge). See docs/ROADMAP.md for
     // scaling scheduled work across a fleet.
     ScheduleModule.forRoot(),
+    // clevscaffold:auth:end
     ThrottlerModule.forRootAsync({
       imports: [RedisModule],
       inject: [ConfigService, REDIS_CLIENT],
@@ -82,7 +122,10 @@ import { HealthModule } from './health/health.module';
     LoggerModule,
     RedisModule,
     DatabaseModule,
+    // clevscaffold:metrics:start
     MetricsModule,
+    // clevscaffold:metrics:end
+    // clevscaffold:messaging:start
     // Omnichannel messaging engine — config injected from this app's
     // ConfigService so the lib stays env-agnostic; the IN_APP channel is backed
     // by this app's notifications feed via InAppSinkModule (IN_APP_SINK token).
@@ -103,6 +146,9 @@ import { HealthModule } from './health/health.module';
         emailProviderOverride: config.get<string>('messaging.emailProviderOverride') ?? null,
       }),
     }),
+    NotificationsModule,
+    // clevscaffold:messaging:end
+    // clevscaffold:featureflags:start
     // OpenFeature-backed feature flags — config injected from this app's
     // ConfigService so the lib stays env-agnostic. Swap FEATURE_FLAG_PROVIDER
     // (env | database) or plug a hosted provider without touching call sites.
@@ -115,17 +161,23 @@ import { HealthModule } from './health/health.module';
         envGetter: (key) => config.get<string>(key),
       }),
     }),
+    // clevscaffold:featureflags:end
+    // clevscaffold:auth:start
     AuthModule,
     UsersModule,
+    // clevscaffold:auth:end
+    // clevscaffold:tasks:start
     TasksModule,
-    NotificationsModule,
+    // clevscaffold:tasks:end
     HealthModule,
   ],
   providers: [
     // Guard chain (order matters): Throttle → JwtAuth → Roles.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // clevscaffold:auth:start
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    // clevscaffold:auth:end
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
   ],

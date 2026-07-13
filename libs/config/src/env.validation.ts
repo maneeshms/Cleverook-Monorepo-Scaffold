@@ -46,13 +46,18 @@ export class EnvironmentVariables {
   PRISMA_DATABASE_URL?: string;
 
   // ── Secrets (environment only — the loader rejects them in JSON layers) ──
+  // Optional in the shared class so a core/no-auth app boots without them; apps
+  // that include auth enforce presence via createEnvValidator's `require` list.
+  // MinLength still applies whenever a value IS provided.
   @IsString()
   @MinLength(32, { message: 'JWT_ACCESS_SECRET must be at least 32 characters' })
-  JWT_ACCESS_SECRET: string;
+  @IsOptional()
+  JWT_ACCESS_SECRET?: string;
 
   @IsString()
   @MinLength(32, { message: 'JWT_REFRESH_SECRET must be at least 32 characters' })
-  JWT_REFRESH_SECRET: string;
+  @IsOptional()
+  JWT_REFRESH_SECRET?: string;
 
   @IsString()
   @IsOptional()
@@ -177,7 +182,9 @@ export function validateEnv(config: Record<string, unknown>): EnvironmentVariabl
   const errors = validateSync(validated, { skipMissingProperties: false });
 
   if (errors.length > 0) {
-    const messages = errors.map((e) => Object.values(e.constraints ?? {}).join(', ')).join('\n  - ');
+    const messages = errors
+      .map((e) => Object.values(e.constraints ?? {}).join(', '))
+      .join('\n  - ');
     throw new Error(`Invalid environment configuration:\n  - ${messages}`);
   }
 

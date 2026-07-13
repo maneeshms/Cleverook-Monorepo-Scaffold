@@ -84,10 +84,16 @@ async function bootstrap() {
       )
       .setVersion('1.0.0')
       .addBearerAuth()
+      // clevscaffold:auth:start
       .addTag('auth', 'Registration, login, token refresh, logout')
       .addTag('users', 'Profile, GDPR export, account deletion, admin listing')
+      // clevscaffold:auth:end
+      // clevscaffold:tasks:start
       .addTag('tasks', 'Demo CRUD: pagination, ownership, caching, messaging hooks')
+      // clevscaffold:tasks:end
+      // clevscaffold:messaging:start
       .addTag('notifications', 'In-app notification feed (messaging IN_APP sink)')
+      // clevscaffold:messaging:end
       .addTag('health', 'Liveness and readiness probes')
       .build();
     const document = SwaggerModule.createDocument(app, swaggerConfig);

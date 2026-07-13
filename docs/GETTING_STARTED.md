@@ -27,6 +27,33 @@ removes itself and the init-matrix workflow, regenerates the lockfile, and runs 
 build + test to prove the result is green. (Skip this step if you want to explore
 the full scaffold with both ORMs and both frontends.)
 
+### Minimal app (bare kickstart)
+
+The `apps/*` are **reference apps** — they ship auth, users, a tasks demo,
+notifications, messaging, feature-flags, and metrics so you can see every pattern.
+When you want to start from the smallest thing that boots, add `--minimal` and opt
+capabilities back in:
+
+```bash
+# core only — config + logger + database + health + throttler (Redis optional).
+node scripts/init.mjs --yes --name my-app --orm typeorm --frontend none --minimal
+
+# core + exactly the features you need:
+node scripts/init.mjs --yes --name my-app --orm typeorm --frontend none \
+  --minimal --with-auth --with-feature-flags
+```
+
+| Flag                   | Adds                                                     |
+| ---------------------- | -------------------------------------------------------- |
+| `--with-auth`          | JWT auth + users                                         |
+| `--with-messaging`     | messaging engine + notifications (implies `--with-auth`) |
+| `--with-feature-flags` | OpenFeature feature-flags module                         |
+| `--with-metrics`       | Prometheus `/metrics` endpoint                           |
+
+A core app needs no JWT secrets (only `DATABASE_URL`); add `--with-auth` and it
+requires them again. The tasks demo is reference-only and is never included in a
+minimal app. A minimal Vite frontend is reduced to a health/landing page.
+
 ## 2. Configure
 
 ```bash

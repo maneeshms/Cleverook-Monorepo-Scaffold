@@ -18,6 +18,7 @@ datasource db {
   provider = "postgresql"
 }
 
+// clevscaffold:auth:start
 enum Role {
   USER
   AGENT
@@ -60,3 +61,4 @@ model UserSession {
   @@index([refreshTokenHash])
   @@map("user_sessions")
 }
+// clevscaffold:auth:end

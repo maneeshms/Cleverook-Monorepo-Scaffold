@@ -2,7 +2,9 @@ import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/co
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { AlertSeverity, AuditAction, AuditStatus, LoggerService } from '@clevscaffold/logger';
+// clevscaffold:messaging:start
 import { MessagingService, MessageType } from '@clevscaffold/messaging';
+// clevscaffold:messaging:end
 import { UsersService } from '../users/users.service';
 import { TokenPair, TokenService } from './services/token.service';
 import { RegisterDto } from './dto/register.dto';
@@ -20,7 +22,12 @@ export class AuthService {
     private readonly tokens: TokenService,
     private readonly config: ConfigService,
     private readonly logger: LoggerService,
+    // clevscaffold:messaging:start
+    // Welcome email is best-effort. init.mjs strips these messaging lines when the
+    // messaging capability is not selected; when it is, MessagingModule is global
+    // so the provider always resolves (no @Optional needed).
     private readonly messaging: MessagingService,
+    // clevscaffold:messaging:end
   ) {}
 
   private async hashPassword(plain: string): Promise<string> {
@@ -45,6 +52,7 @@ export class AuthService {
       ipAddress: ctx.ipAddress,
     });
 
+    // clevscaffold:messaging:start
     // Welcome email through the messaging engine — best-effort, never blocks
     // signup. Without a Resend key this lands on the console-email provider.
     this.messaging
@@ -61,6 +69,7 @@ export class AuthService {
       .catch((err) =>
         this.logger.error(`Welcome email dispatch failed: ${err.message}`, undefined, 'Auth'),
       );
+    // clevscaffold:messaging:end
 
     return this.tokens.issueForNewSession(user, ctx);
   }
@@ -98,10 +107,14 @@ export class AuthService {
         ipAddress: ctx.ipAddress,
       });
       if (this.users.isLocked(user)) {
-        this.logger.alertSecurity('Account locked after repeated failed logins', AlertSeverity.WARNING, {
-          userId: user.id,
-          ipAddress: ctx.ipAddress,
-        });
+        this.logger.alertSecurity(
+          'Account locked after repeated failed logins',
+          AlertSeverity.WARNING,
+          {
+            userId: user.id,
+            ipAddress: ctx.ipAddress,
+          },
+        );
       }
       throw new UnauthorizedException('Invalid credentials');
     }
