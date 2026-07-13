@@ -21,8 +21,8 @@ jobs:
     name: Lint + build + unit (coverage ≥90%)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc # single source of truth for the Node version
           cache: npm
@@ -67,8 +67,8 @@ jobs:
       # clevscaffold:prisma:end
       E2E_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -98,14 +98,14 @@ jobs:
       matrix:
         app: [api, api-prisma, web, web-next]
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
       # Local CI image tag derived from the repo name (no hardcoded project name),
       # lowercased because Docker repository names must be lowercase.
       - name: Compute image tag
         run: echo "IMAGE=$(echo '${{ github.event.repository.name }}' | tr '[:upper:]' '[:lower:]')-${{ matrix.app }}:ci" >> "$GITHUB_ENV"
       - name: Build ${{ matrix.app }} image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: apps/${{ matrix.app }}/Dockerfile
@@ -136,7 +136,7 @@ jobs:
       # it's available — the CRITICAL gate above already runs everywhere.
       - name: Upload Trivy SARIF
         if: always() && vars.ENABLE_CODE_SCANNING == 'true'
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-${{ matrix.app }}.sarif
           category: trivy-${{ matrix.app }}
@@ -147,7 +147,7 @@ jobs:
           image: ${{ env.IMAGE }}
           format: spdx-json
           output-file: sbom-${{ matrix.app }}.spdx.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: sbom-${{ matrix.app }}

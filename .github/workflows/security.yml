@@ -24,8 +24,8 @@ jobs:
         # Root workspace + the two frontends that carry their own lockfile.
         dir: ['.', 'apps/web', 'apps/web-next']
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
       - name: Install (${{ matrix.dir }})
@@ -40,7 +40,7 @@ jobs:
         if: always()
         working-directory: ${{ matrix.dir }}
         run: npm audit --json --omit=dev > audit.json || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: audit-${{ strategy.job-index }}
@@ -55,7 +55,7 @@ jobs:
     env:
       GITLEAKS_VERSION: 8.21.2
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # full history so the scan covers every commit
       - name: Run gitleaks
@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' && vars.ENABLE_CODE_SCANNING == 'true'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/dependency-review-action@v4
+      - uses: actions/checkout@v7
+      - uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: high
