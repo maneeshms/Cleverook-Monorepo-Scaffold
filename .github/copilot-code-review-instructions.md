@@ -4,8 +4,8 @@ You are reviewing code for a **ClevScaffold**-based enterprise NestJS + Nx monor
 (Node 22, PostgreSQL). The ORM (TypeORM and/or Prisma) and frontend (Vite and/or
 Next.js) are selected per project — check the actual `apps/*` directories for this
 project's stack. Deployed on Railway. Full standards:
-[`AGENTS.md`](../AGENTS.md) and [`docs/agents/`](../docs/agents). Enforce the rules
-below on every PR.
+[`AGENTS.md`](../AGENTS.md) and [`docs/agents/`](../docs/agents) — backend shapes in
+`docs/agents/nestjs.md` (mirror `modules/tasks`). Enforce the rules below on every PR.
 
 ## Dependency management
 
@@ -60,6 +60,20 @@ below on every PR.
 - Flag changes that would drop coverage below the 90% floor.
 - Flag unit tests making real network/DB calls (must be mocked); vague names (`test('works')`);
   test files in `__tests__/` instead of co-located.
+
+## Gate integrity (highest scrutiny — these are how quality erodes)
+
+- Flag ANY edit to `jest.preset.js` coverage thresholds, coverage excludes,
+  `eslint.config.mjs` rule removals, `.npmrc`, or `tsconfig` loosening — unless the
+  PR is explicitly about tooling and justifies it.
+- Flag `.skip`/`.only` on tests, deleted failing tests, or assertions weakened to
+  make a change pass.
+- Flag new `eslint-disable`, `@ts-ignore`/`@ts-expect-error`, or `as any` without a
+  one-line justification comment on the same line/block.
+- Flag `--force`/`--legacy-peer-deps` in scripts/docs/CI, or a regenerated lockfile
+  with no corresponding `package.json` change.
+- Flag weakened ValidationPipe options, removed guards, loosened CORS/helmet, or
+  raised body-size/throttle limits without explicit justification.
 
 ## Git & infra
 

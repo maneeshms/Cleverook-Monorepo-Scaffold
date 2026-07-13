@@ -6,10 +6,10 @@ statements) and by CI — a drop below the floor fails the build. It is not opti
 
 ## Layers
 
-| Layer | Location | Boots what | I/O |
-|-------|----------|-----------|-----|
-| **Unit** | `*.spec.ts` co-located with source | one class, mocked deps | **none** — no real network or DB |
-| **e2e**  | `apps/*/test/**/*.e2e-spec.ts` | the real Nest app + `supertest` | disposable Postgres DB |
+| Layer    | Location                           | Boots what                      | I/O                              |
+| -------- | ---------------------------------- | ------------------------------- | -------------------------------- |
+| **Unit** | `*.spec.ts` co-located with source | one class, mocked deps          | **none** — no real network or DB |
+| **e2e**  | `apps/*/test/**/*.e2e-spec.ts`     | the real Nest app + `supertest` | disposable Postgres DB           |
 
 ## Unit tests
 
@@ -53,8 +53,11 @@ locally to see the per-file report. `nx test <project> --watch` while iterating.
 ## Definition of done (backend change)
 
 ```
-npm run lint && npm run typecheck && npm run build && npm run test   # unit + coverage
-npm run e2e                                                          # when logic/endpoints changed
+npm run verify   # lint + typecheck + build + unit (coverage ≥90%) in one command
+npm run e2e      # when logic/endpoints changed
 ```
+
 New endpoint touching auth/data? Also extend the OWASP e2e suite and run
-`npm run scan:security` against a local serve.
+`npm run scan:security` against a local serve. Then walk the AGENTS.md self-audit
+checklist — and remember: **when a gate fails, fix the code, never the gate** (no
+threshold edits, no `.skip`, no assertion-free coverage farming).

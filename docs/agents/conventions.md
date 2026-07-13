@@ -1,7 +1,8 @@
 # Conventions
 
 House style for all TypeScript in this repo. Match the surrounding code first;
-these rules resolve ambiguity.
+these rules resolve ambiguity. For the full NestJS shapes with code examples,
+see [`nestjs.md`](nestjs.md); for step-by-step task recipes, [`recipes.md`](recipes.md).
 
 ## Naming
 

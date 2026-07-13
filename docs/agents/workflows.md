@@ -45,7 +45,7 @@ a generated project only watches the apps it actually has.
 Reproduce locally before pushing:
 
 ```
-npm run lint && npm run typecheck && npm run build && npm run test
+npm run verify   # lint + typecheck + build + unit
 npm run db:up && npm run e2e:setup && npm run e2e
 ```
 

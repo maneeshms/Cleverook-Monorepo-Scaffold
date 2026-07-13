@@ -11,4 +11,5 @@ Full detail: [docs/agents/testing.md](../../docs/agents/testing.md).
 - e2e (`apps/*/test/**/*.e2e-spec.ts`) boot the real app against a disposable Postgres DB:
   `npm run db:up && npm run e2e:setup && npm run e2e`. Throttling toggled by `THROTTLE_DISABLED`.
 - Sensitive routes: extend `apps/api/test/security-owasp.e2e-spec.ts` and run `npm run scan:security`.
-- Definition of done: `npm run lint && npm run typecheck && npm run build && npm run test` (+ e2e for logic).
+- Definition of done: `npm run verify` (+ e2e for logic). When a gate fails, fix the
+  code — never lower thresholds, skip tests, or farm coverage with assertion-free tests.

@@ -3,17 +3,26 @@ description: ClevScaffold core rules — always applied
 alwaysApply: true
 ---
 
-Canonical guide: [AGENTS.md](../../AGENTS.md). Topic docs in `docs/agents/`.
+Canonical guide: [AGENTS.md](../../AGENTS.md). Topic docs in `docs/agents/` —
+`nestjs.md` for any backend code, `recipes.md` for any multi-step task.
 
 Non-negotiables:
 - Ship tests with every code change; keep coverage ≥ 90% (jest enforces it).
-  Run `npm run lint && npm run typecheck && npm run build && npm run test` before done.
+  Prove done with `npm run verify` (plus `npm run e2e` for backend behaviour).
 - No secrets in code/JSON/logs. No direct `process.env` — use `ConfigService`.
 - No `any` (use `unknown` + narrowing). Explicit return types on exports. One class per file.
-- Exact-pinned dependencies; commit the lockfile.
+- Exact-pinned dependencies, added to the package that imports them (never the root);
+  commit the lockfile in the same change.
 - Guards by default; opt out only with `@Public()`. Derive identity from the JWT, never the body.
 - No mock/fake data — real providers, explicit fallback or 503 when unconfigured.
 - Keep `clevscaffold:*:start/end` sentinel comment pairs intact (init.mjs prunes on them).
 
-Stack: NestJS 10 · Nx · Node 22 · Postgres · TypeORM (apps/api) + Prisma (apps/api-prisma) · Vite + Next frontends.
+When a gate fails, the code is wrong — not the gate. Never: lower coverage thresholds,
+skip/delete failing tests, add unexplained `eslint-disable`/`@ts-ignore`, loosen
+ValidationPipe/tsconfig/guards, or use `--force`/`--legacy-peer-deps`. If a rule truly
+blocks the task, stop and surface the conflict with a proposal — flagged deviations are
+fine, silent ones never.
+
+Stack: NestJS 11 · Nx · Node 22 · Postgres · TypeORM (apps/api) + Prisma 7 with the
+pg driver adapter (apps/api-prisma) · Vite + Next frontends.
 Config is layered: process.env → config/{NODE_ENV}.json → config/default.json → code default.

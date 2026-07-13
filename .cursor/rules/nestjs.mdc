@@ -1,0 +1,33 @@
+---
+description: NestJS backend shapes — controllers, services, DTOs, ORM
+globs: apps/api/**/*.ts,apps/api-prisma/**/*.ts,libs/**/*.ts
+---
+
+Full playbook with code: [docs/agents/nestjs.md](../../docs/agents/nestjs.md).
+Step-by-step task recipes: [docs/agents/recipes.md](../../docs/agents/recipes.md).
+Mirror `apps/api/src/modules/tasks` — the canonical module. Don't invent new
+patterns when an existing one fits; if none fits, flag it explicitly.
+
+- Controllers: bind validated DTO → delegate to service → return. Never inject a
+  repository/PrismaService; identity from `@CurrentUser()` (JWT), never the body;
+  id params via `ParseUUIDPipe`; Swagger (`@ApiTags`/`@ApiOperation`) on every endpoint.
+  Guards are global — don't re-add `@UseGuards(JwtAuthGuard)`.
+- Services own logic + authorization. Ownership re-checked on EVERY read/write with
+  the BOLA-safe 404: missing and not-yours both throw `NotFoundException` (a 403
+  confirms the id exists → enumeration). Throw `HttpException` subclasses, never bare Error.
+- DTOs are the contract: class-validator + Swagger on every field; bound all strings
+  (`@MaxLength`) and numbers; never accept privileged fields (`role`, `ownerId`, tenant ids).
+  Lists extend `PaginationQueryDto` and return the `paginate()` envelope.
+  Responses never expose entities with sensitive columns — map to response DTOs.
+- TypeORM: query builder with bound parameters only (no string interpolation);
+  migrations-only schema (never `synchronize`); enum guard `DO $$ … duplicate_object …$$`;
+  index columns your queries filter on; entities extend `BaseEntity`.
+- Prisma 7: no `url` in schema.prisma (connection via `@prisma/adapter-pg` in
+  PrismaService; migrations read `PRISMA_DATABASE_URL` from prisma.config.ts);
+  raw SQL only as tagged `$queryRaw` templates.
+- Config via typed namespaces (`config.get<T>('ns.key')`); log via `LoggerService`
+  (`audit()` for privileged actions, `alert()` for security events); RedisService is
+  null-safe — code must be correct with Redis absent.
+- Unit tests: `Test.createTestingModule` with all I/O mocked; cover every thrown
+  branch (missing AND not-owned are separate tests); descriptive `it(...)` names.
+  Sensitive routes also extend `apps/api/test/security-owasp.e2e-spec.ts`.
