@@ -37,6 +37,18 @@ updates:
       major-updates:
         patterns: ['*']
         update-types: ['major']
+    ignore:
+      # TypeScript 7 (the native port) and ESLint 10 are ahead of the lint
+      # toolchain: typescript-eslint@8 requires TypeScript <6.1.0 and ESLint 9,
+      # and Nx/NestJS don't support TS 7 yet — so a major bump of these can't even
+      # `npm install`. Pin the majors so Dependabot stops opening unmergeable PRs;
+      # remove these once typescript-eslint ships TS 7 / ESLint 10 support.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'eslint'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@eslint/js'
+        update-types: ['version-update:semver-major']
 
   # clevscaffold:vite:start
   # Vite frontend (own lockfile)
@@ -52,6 +64,14 @@ updates:
       major-updates:
         patterns: ['*']
         update-types: ['major']
+    ignore:
+      # See root note: typescript-eslint@8 blocks TypeScript 7 / ESLint 10.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'eslint'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@eslint/js'
+        update-types: ['version-update:semver-major']
   # clevscaffold:vite:end
 
   # clevscaffold:next:start
@@ -68,6 +88,14 @@ updates:
       major-updates:
         patterns: ['*']
         update-types: ['major']
+    ignore:
+      # See root note: typescript-eslint@8 blocks TypeScript 7 / ESLint 10.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'eslint'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@eslint/js'
+        update-types: ['version-update:semver-major']
   # clevscaffold:next:end
 
   # GitHub Actions — bump (and, once SHA-pinned, re-pin) third-party actions.
