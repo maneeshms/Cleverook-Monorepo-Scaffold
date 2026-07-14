@@ -1,4 +1,4 @@
-import { SecretCipher } from '@clevscaffold/common';
+import { SecretCipher } from '@clevrook/common';
 import { Channel } from '../enums/channel.enum';
 import { MessagingConfigService } from './messaging-config.service';
 

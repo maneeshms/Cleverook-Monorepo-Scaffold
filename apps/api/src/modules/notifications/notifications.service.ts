@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
-import { paginate, Paginated, PaginationQueryDto } from '@clevscaffold/common';
-import { InAppMessage, InAppSink } from '@clevscaffold/messaging';
+import { paginate, Paginated, PaginationQueryDto } from '@clevrook/common';
+import { InAppMessage, InAppSink } from '@clevrook/messaging';
 import { Notification } from './entities/notification.entity';
 
 /**

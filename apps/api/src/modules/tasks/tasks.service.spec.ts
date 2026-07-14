@@ -1,5 +1,5 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { MessageType } from '@clevscaffold/messaging';
+import { MessageType } from '@clevrook/messaging';
 import { TasksService } from './tasks.service';
 import { Task, TaskStatus } from './entities/task.entity';
 

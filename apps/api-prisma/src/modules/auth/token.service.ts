@@ -3,8 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { createHash, randomBytes } from 'crypto';
 import { User } from '@prisma/client';
-import { parseDurationMs } from '@clevscaffold/common';
-import { AlertSeverity, LoggerService } from '@clevscaffold/logger';
+import { parseDurationMs } from '@clevrook/common';
+import { AlertSeverity, LoggerService } from '@clevrook/logger';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export interface AccessTokenPayload {

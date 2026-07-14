@@ -15,5 +15,5 @@ export * from './providers/env-flag.provider';
 export * from './providers/database-flag.provider';
 
 // Entity — exported so the host can reference it if needed (forFeature registers
-// it; the feature_flags migration lives in @clevscaffold/database for now).
+// it; the feature_flags migration lives in @clevrook/database for now).
 export * from './entities/feature-flag.entity';

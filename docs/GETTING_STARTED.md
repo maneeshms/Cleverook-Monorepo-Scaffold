@@ -22,7 +22,7 @@ node scripts/init.mjs --yes --name my-app --scope @myco \
   --orm typeorm --frontend next
 ```
 
-`init.mjs` prunes the parts you didn't pick, renames the `@clevscaffold` scope,
+`init.mjs` prunes the parts you didn't pick, renames the `@clevrook` scope,
 removes itself and the init-matrix workflow, regenerates the lockfile, and runs a
 build + test to prove the result is green. (Skip this step if you want to explore
 the full scaffold with both ORMs and both frontends.)

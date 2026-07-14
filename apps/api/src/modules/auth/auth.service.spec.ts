@@ -1,8 +1,8 @@
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
-import { AuditAction, AuditStatus } from '@clevscaffold/logger';
+import { AuditAction, AuditStatus } from '@clevrook/logger';
 // clevscaffold:messaging:start
-import { MessageType } from '@clevscaffold/messaging';
+import { MessageType } from '@clevrook/messaging';
 // clevscaffold:messaging:end
 import { AuthService } from './auth.service';
 import { User } from '../users/entities/user.entity';

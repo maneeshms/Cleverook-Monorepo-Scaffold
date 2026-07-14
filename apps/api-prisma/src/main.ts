@@ -4,8 +4,8 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
-import { correlationId } from '@clevscaffold/common';
-import { LoggerService } from '@clevscaffold/logger';
+import { correlationId } from '@clevrook/common';
+import { LoggerService } from '@clevrook/logger';
 import { AppModule } from './app.module';
 
 process.on('unhandledRejection', (reason) => {

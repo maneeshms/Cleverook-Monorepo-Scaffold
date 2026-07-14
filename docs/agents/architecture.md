@@ -29,7 +29,7 @@ apps/web, web-next → standalone frontends (own package.json/lockfile)
   themselves — the host passes runtime options via `forRootAsync({ useFactory })`
   built from its ConfigService. That's what keeps them portable across projects.
 - **Apps never import other apps.** Shared code goes in a lib.
-- Path aliases: `@clevscaffold/{common,config,logger,database,feature-flags,messaging}`.
+- Path aliases: `@clevrook/{common,config,logger,database,feature-flags,messaging}`.
 
 ## Package layout (npm workspaces)
 
@@ -39,7 +39,7 @@ list. The root is a thin workspace root (`"workspaces": ["libs/*", "apps/api",
 eslint, prettier, jest, husky) and orchestration scripts.
 
 - **Each lib** (`libs/*/package.json`) declares exactly the npm deps its source
-  imports, plus its `@clevscaffold/*` workspace deps.
+  imports, plus its `@clevrook/*` workspace deps.
 - **Each backend app** declares its own deps + the workspace libs it uses. So
   `apps/api` lists TypeORM/messaging deps; `apps/api-prisma` lists Prisma — neither
   carries the other's.
@@ -55,7 +55,7 @@ eslint, prettier, jest, husky) and orchestration scripts.
 
 Apps compile their libs into `dist` (tsc + tsc-alias), so at runtime only external
 npm deps are needed. `scripts/docker-manifest.mjs` walks an app's package.json,
-follows `@clevscaffold/*` into each lib, and flattens the external dependency
+follows `@clevrook/*` into each lib, and flattens the external dependency
 closure into a self-contained `package.json` in the app's `dist`. The Docker
 runtime stage `npm install --omit=dev` from that — so `apps/api` images ship
 TypeORM/BullMQ/OpenFeature (no Prisma) and `apps/api-prisma` images ship Prisma
@@ -111,7 +111,7 @@ Per key, first hit wins:
 - **Add a Prisma field:** edit `apps/api-prisma/prisma/schema.prisma`, then
   `npm run prisma:migrate`. Keep `@@map`/snake_case.
 - **Add a lib:** `nx g @nx/js:lib <name>` under `libs/`; respect the ORM-free rule
-  for anything both apps consume. Add the `@clevscaffold/<name>` path alias.
+  for anything both apps consume. Add the `@clevrook/<name>` path alias.
 - **Add config:** add the key to the app's `config/*.json` (non-secret) or
   `.env.example` (secret), a validation rule in `libs/config`, and read it via a
   namespace — never `process.env` directly.

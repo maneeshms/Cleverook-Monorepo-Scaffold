@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { IN_APP_SINK } from '@clevscaffold/messaging';
+import { IN_APP_SINK } from '@clevrook/messaging';
 import { NotificationsModule } from './notifications.module';
 import { NotificationsService } from './notifications.service';
 

@@ -2,9 +2,9 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { paginate, Paginated, RedisService } from '@clevscaffold/common';
-import { LoggerService } from '@clevscaffold/logger';
-import { MessageType, MessagingService } from '@clevscaffold/messaging';
+import { paginate, Paginated, RedisService } from '@clevrook/common';
+import { LoggerService } from '@clevrook/logger';
+import { MessageType, MessagingService } from '@clevrook/messaging';
 import { UsersService } from '../users/users.service';
 import { Task, TaskStatus } from './entities/task.entity';
 import { CreateTaskDto } from './dto/create-task.dto';

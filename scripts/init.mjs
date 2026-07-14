@@ -3,7 +3,7 @@
  * ClevScaffold initializer — tailors a fresh clone to one project.
  *
  * Zero dependencies. Prunes the ORM(s) and frontend(s) you don't want, renames
- * the @clevscaffold scope, removes itself + the init-matrix workflow, regenerates
+ * the @clevrook scope, removes itself + the init-matrix workflow, regenerates
  * the lockfile, and verifies the result builds + tests green.
  *
  * Usage:
@@ -20,7 +20,7 @@
  * Flags:
  *   --yes                non-interactive (use defaults / provided flags)
  *   --name <kebab>       workspace + package name
- *   --scope <@x>         npm scope replacing @clevscaffold (leading @ optional)
+ *   --scope <@x>         npm scope replacing @clevrook (leading @ optional)
  *   --orm <v>            typeorm | prisma | both        (default both)
  *   --frontend <v>       vite | next | both | none       (default both)
  *   --minimal            core-only app; add capabilities with --with-* below
@@ -41,7 +41,7 @@ import path from 'node:path';
 
 // fileURLToPath (not URL.pathname) so paths containing spaces resolve correctly.
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const OLD_SCOPE = '@clevscaffold';
+const OLD_SCOPE = '@clevrook';
 
 // ── Component manifest ──────────────────────────────────────────────────────
 // Each removable component lists what to delete when it is NOT selected. Runtime
@@ -547,7 +547,7 @@ async function main() {
   stripSentinelMarkers('.github/dependabot.yml');
   console.log('  pruned dependabot.yml to the kept apps');
 
-  // 6. Rename the @clevscaffold scope across all text files.
+  // 6. Rename the @clevrook scope across all text files.
   let renamed = 0;
   for (const file of walkTextFiles(ROOT)) {
     if (RENAME_SKIP_FILES.has(path.basename(file))) continue;

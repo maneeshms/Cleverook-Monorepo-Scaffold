@@ -9,5 +9,5 @@ Full detail: [docs/agents/frontend.md](../../docs/agents/frontend.md).
 - No tests here (per project direction) — the 90% floor is backend-only.
 - Never store tokens/secrets in localStorage (module memory in the sample; httpOnly-cookie BFF in prod).
 - API base URL from env (`VITE_API_URL` / Next env); prefer same-origin `/api` via the proxy.
-- Don't import `@clevscaffold/*` backend libs into a frontend. Keep Dockerfile/railway.json wiring intact.
+- Don't import `@clevrook/*` backend libs into a frontend. Keep Dockerfile/railway.json wiring intact.
 - Exact-pinned deps + committed lockfile.

@@ -203,7 +203,7 @@ Redis optional) and you opt capabilities back in à la carte:
 | ---------------------- | --------------------------------------------------------------------------------- |
 | `--with-auth`          | JWT auth + users (+ `InitUsersAndSessions` migration)                             |
 | `--with-messaging`     | messaging engine + notifications sink (**implies auth** — notifications FK→users) |
-| `--with-feature-flags` | `@clevscaffold/feature-flags` module                                              |
+| `--with-feature-flags` | `@clevrook/feature-flags` module                                                  |
 | `--with-metrics`       | Prometheus `/metrics` endpoint                                                    |
 
 Capabilities are `clevscaffold:<token>:start/end` blocks (tokens `auth`, `messaging`,

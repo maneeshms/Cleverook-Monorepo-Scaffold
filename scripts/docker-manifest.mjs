@@ -2,9 +2,9 @@
 /**
  * Emit a self-contained production package.json for one app's Docker runtime image.
  *
- * The apps compile their @clevscaffold/* libs into dist (tsc + tsc-alias), so at
+ * The apps compile their @clevrook/* libs into dist (tsc + tsc-alias), so at
  * runtime only the EXTERNAL npm deps are needed — not the workspace libs. This
- * script walks the app's package.json, follows @clevscaffold/* deps into each
+ * script walks the app's package.json, follows @clevrook/* deps into each
  * lib's package.json, and flattens the external dependency closure (exact pins)
  * into a lean manifest. The runtime stage then `npm install --omit=dev` from it,
  * so each image carries only what that app actually runs.
@@ -38,7 +38,7 @@ function collect(dir) {
   if (seen.has(dir)) return;
   seen.add(dir);
   for (const [name, ver] of Object.entries(readPkg(dir).dependencies ?? {})) {
-    if (name.startsWith('@clevscaffold/')) {
+    if (name.startsWith('@clevrook/')) {
       // A workspace dep that resolves to no lib dir means a typo or a missing
       // package — silently dropping it would ship an incomplete manifest.
       if (!nameToDir[name]) {
@@ -64,7 +64,7 @@ collect(appDir);
 
 const app = readPkg(appDir);
 const out = {
-  name: `${app.name.replace('@clevscaffold/', '')}-deploy`,
+  name: `${app.name.replace('@clevrook/', '')}-deploy`,
   version: app.version,
   private: true,
   dependencies: Object.fromEntries(Object.entries(deps).sort(([a], [b]) => a.localeCompare(b))),

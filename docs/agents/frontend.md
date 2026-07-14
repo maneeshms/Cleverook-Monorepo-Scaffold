@@ -27,7 +27,7 @@ unit suites here. The 90% floor applies to backend code only.
 - **API base URL comes from the environment** (`VITE_API_URL` / Next env), never
   hardcoded. Prefer same-origin (`/api`) via the reverse proxy to avoid CORS.
 - Exact-pinned dependencies + committed lockfile, same as the backend.
-- Don't import backend libs (`@clevscaffold/*`) into a frontend — they're Node/Nest
+- Don't import backend libs (`@clevrook/*`) into a frontend — they're Node/Nest
   code. Share types by copying or a future shared contract package.
 
 ## When extending

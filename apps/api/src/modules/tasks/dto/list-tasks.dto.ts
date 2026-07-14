@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
-import { PaginationQueryDto } from '@clevscaffold/common';
+import { PaginationQueryDto } from '@clevrook/common';
 import { TaskStatus } from '../entities/task.entity';
 
 export class ListTasksDto extends PaginationQueryDto {

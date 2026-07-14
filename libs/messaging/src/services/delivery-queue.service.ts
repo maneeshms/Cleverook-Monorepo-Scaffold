@@ -2,8 +2,8 @@ import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Queue, Worker, type ConnectionOptions } from 'bullmq';
-import { LoggerService } from '@clevscaffold/logger';
-import { RedisService } from '@clevscaffold/common';
+import { LoggerService } from '@clevrook/logger';
+import { RedisService } from '@clevrook/common';
 import {
   CHANNEL_PROVIDERS,
   ChannelProvider,

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { LoggerService } from '@clevscaffold/logger';
+import { LoggerService } from '@clevrook/logger';
 import { TokenService } from './token.service';
 
 /**

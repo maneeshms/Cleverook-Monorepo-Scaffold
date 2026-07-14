@@ -1,9 +1,9 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
-import { AlertSeverity, AuditAction, AuditStatus, LoggerService } from '@clevscaffold/logger';
+import { AlertSeverity, AuditAction, AuditStatus, LoggerService } from '@clevrook/logger';
 // clevscaffold:messaging:start
-import { MessagingService, MessageType } from '@clevscaffold/messaging';
+import { MessagingService, MessageType } from '@clevrook/messaging';
 // clevscaffold:messaging:end
 import { UsersService } from '../users/users.service';
 import { TokenPair, TokenService } from './services/token.service';

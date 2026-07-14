@@ -2,7 +2,7 @@ import { Body, Controller, HttpCode, HttpStatus, Post, Req } from '@nestjs/commo
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
-import { AuthenticatedUser, CurrentUser, Public } from '@clevscaffold/common';
+import { AuthenticatedUser, CurrentUser, Public } from '@clevrook/common';
 import { AuthService } from './auth.service';
 import { LoginDto, RefreshDto, RegisterDto } from './auth.dtos';
 

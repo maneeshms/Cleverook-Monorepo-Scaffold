@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Put } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { AuthenticatedUser, CurrentUser, Role, Roles } from '@clevscaffold/common';
+import { AuthenticatedUser, CurrentUser, Role, Roles } from '@clevrook/common';
 import { FeatureFlagsService } from './feature-flags.service';
 import { FlagKeyParam, UpsertFlagDto } from './dto/upsert-flag.dto';
 

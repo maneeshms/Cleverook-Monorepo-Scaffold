@@ -24,14 +24,14 @@ import {
   // clevscaffold:featureflags:start
   featureFlagsConfig,
   // clevscaffold:featureflags:end
-} from '@clevscaffold/config';
-import { DatabaseModule } from '@clevscaffold/database';
+} from '@clevrook/config';
+import { DatabaseModule } from '@clevrook/database';
 // clevscaffold:featureflags:start
-import { FeatureFlagsModule } from '@clevscaffold/feature-flags';
+import { FeatureFlagsModule } from '@clevrook/feature-flags';
 // clevscaffold:featureflags:end
-import { LoggerModule } from '@clevscaffold/logger';
+import { LoggerModule } from '@clevrook/logger';
 // clevscaffold:messaging:start
-import { MessagingModule } from '@clevscaffold/messaging';
+import { MessagingModule } from '@clevrook/messaging';
 // clevscaffold:messaging:end
 import {
   AllExceptionsFilter,
@@ -46,7 +46,7 @@ import {
   // clevscaffold:metrics:start
   MetricsModule,
   // clevscaffold:metrics:end
-} from '@clevscaffold/common';
+} from '@clevrook/common';
 // clevscaffold:auth:start
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';

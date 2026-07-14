@@ -14,8 +14,8 @@ import {
   // clevscaffold:metrics:start
   metricsConfig,
   // clevscaffold:metrics:end
-} from '@clevscaffold/config';
-import { LoggerModule } from '@clevscaffold/logger';
+} from '@clevrook/config';
+import { LoggerModule } from '@clevrook/logger';
 import {
   AllExceptionsFilter,
   LoggingInterceptor,
@@ -29,7 +29,7 @@ import {
   // clevscaffold:metrics:start
   MetricsModule,
   // clevscaffold:metrics:end
-} from '@clevscaffold/common';
+} from '@clevrook/common';
 import { PrismaModule } from './prisma/prisma.module';
 // clevscaffold:auth:start
 import { AuthModule } from './modules/auth/auth.module';

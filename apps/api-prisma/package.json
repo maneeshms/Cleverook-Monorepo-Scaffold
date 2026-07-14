@@ -1,11 +1,11 @@
 {
-  "name": "@clevscaffold/api-prisma",
+  "name": "@clevrook/api-prisma",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@clevscaffold/common": "*",
-    "@clevscaffold/config": "*",
-    "@clevscaffold/logger": "*",
+    "@clevrook/common": "*",
+    "@clevrook/config": "*",
+    "@clevrook/logger": "*",
     "@nestjs/common": "11.1.28",
     "@nestjs/config": "4.0.4",
     "@nestjs/core": "11.1.28",

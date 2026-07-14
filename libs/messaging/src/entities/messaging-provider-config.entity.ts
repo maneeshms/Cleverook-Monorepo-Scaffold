@@ -1,5 +1,5 @@
 import { Column, Entity } from 'typeorm';
-import { BaseEntity } from '@clevscaffold/database';
+import { BaseEntity } from '@clevrook/database';
 
 /**
  * One delivery provider (resend, console-email, console-sms, in-app, …).

@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { HealthCheck, HealthCheckService, TypeOrmHealthIndicator } from '@nestjs/terminus';
-import { Public } from '@clevscaffold/common';
+import { Public } from '@clevrook/common';
 
 /**
  * Liveness (GET /health) answers "is the process up" and never touches

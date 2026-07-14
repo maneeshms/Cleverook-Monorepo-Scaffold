@@ -1,6 +1,6 @@
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
-import { AuditAction, AuditStatus } from '@clevscaffold/logger';
+import { AuditAction, AuditStatus } from '@clevrook/logger';
 import { AuthService } from './auth.service';
 
 describe('AuthService (prisma)', () => {

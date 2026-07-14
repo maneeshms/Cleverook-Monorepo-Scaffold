@@ -1,5 +1,5 @@
 import { Column, Entity, Index } from 'typeorm';
-import { BaseEntity } from '@clevscaffold/database';
+import { BaseEntity } from '@clevrook/database';
 
 /**
  * Maps a channel (optionally scoped to a use_case) to a primary provider and an

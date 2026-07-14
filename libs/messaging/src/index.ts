@@ -19,7 +19,7 @@ export * from './interfaces/in-app-sink.interface';
 export * from './templates/registry';
 
 // Entities — exported so the host can reference them if needed (autoLoadEntities
-// registers them via forFeature; migrations live in @clevscaffold/database for now).
+// registers them via forFeature; migrations live in @clevrook/database for now).
 export * from './entities/messaging-provider-config.entity';
 export * from './entities/messaging-channel-route.entity';
 export * from './entities/message-template.entity';

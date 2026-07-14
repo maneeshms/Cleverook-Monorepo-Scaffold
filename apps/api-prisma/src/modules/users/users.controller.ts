@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Patch } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
-import { AuthenticatedUser, CurrentUser } from '@clevscaffold/common';
+import { AuthenticatedUser, CurrentUser } from '@clevrook/common';
 import { toProfile, UsersService } from './users.service';
 
 export class UpdateProfileDto {

@@ -1,5 +1,5 @@
 import { Column, Entity, Index } from 'typeorm';
-import { BaseEntity } from '@clevscaffold/database';
+import { BaseEntity } from '@clevrook/database';
 
 /**
  * A feature flag backing the OpenFeature `database` provider.

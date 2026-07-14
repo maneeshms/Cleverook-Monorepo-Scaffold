@@ -2,7 +2,7 @@ import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common
 import { Test } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import helmet from 'helmet';
-import { correlationId } from '@clevscaffold/common';
+import { correlationId } from '@clevrook/common';
 import { AppModule } from '../../src/app.module';
 
 export interface TestApp {

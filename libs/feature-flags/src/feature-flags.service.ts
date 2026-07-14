@@ -8,7 +8,7 @@ import {
   Provider,
 } from '@openfeature/server-sdk';
 import { Repository } from 'typeorm';
-import { LoggerService } from '@clevscaffold/logger';
+import { LoggerService } from '@clevrook/logger';
 import { FeatureFlag } from './entities/feature-flag.entity';
 import { FEATURE_FLAGS_OPTIONS, FeatureFlagsModuleOptions } from './feature-flags.options';
 import { DatabaseFlagProvider } from './providers/database-flag.provider';

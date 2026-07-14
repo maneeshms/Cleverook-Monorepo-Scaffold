@@ -1,5 +1,5 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import { BaseEntity } from '@clevscaffold/database';
+import { BaseEntity } from '@clevrook/database';
 import { User } from '../../users/entities/user.entity';
 
 /**

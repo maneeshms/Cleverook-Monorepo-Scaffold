@@ -1,7 +1,7 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { SecretCipher } from '@clevscaffold/common';
+import { SecretCipher } from '@clevrook/common';
 import { MessagingProviderConfig } from '../entities/messaging-provider-config.entity';
 import { MessagingChannelRoute } from '../entities/messaging-channel-route.entity';
 import { Channel } from '../enums/channel.enum';

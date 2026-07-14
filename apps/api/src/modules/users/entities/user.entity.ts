@@ -1,6 +1,6 @@
 import { Column, Entity, Index, OneToMany } from 'typeorm';
-import { Role } from '@clevscaffold/common';
-import { BaseEntity } from '@clevscaffold/database';
+import { Role } from '@clevrook/common';
+import { BaseEntity } from '@clevrook/database';
 import { UserSession } from '../../auth/entities/user-session.entity';
 
 @Entity('users')

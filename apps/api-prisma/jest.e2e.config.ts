@@ -9,9 +9,9 @@ export default {
   },
   moduleFileExtensions: ['ts', 'js', 'json'],
   moduleNameMapper: {
-    '^@clevscaffold/common(.*)$': '<rootDir>/../../libs/common/src$1',
-    '^@clevscaffold/config(.*)$': '<rootDir>/../../libs/config/src$1',
-    '^@clevscaffold/logger(.*)$': '<rootDir>/../../libs/logger/src$1',
+    '^@clevrook/common(.*)$': '<rootDir>/../../libs/common/src$1',
+    '^@clevrook/config(.*)$': '<rootDir>/../../libs/config/src$1',
+    '^@clevrook/logger(.*)$': '<rootDir>/../../libs/logger/src$1',
   },
   maxWorkers: 1,
 };

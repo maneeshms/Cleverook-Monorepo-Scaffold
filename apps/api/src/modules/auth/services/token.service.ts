@@ -4,8 +4,8 @@ import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHash, randomBytes } from 'crypto';
 import { IsNull, LessThan, Repository } from 'typeorm';
-import { parseDurationMs } from '@clevscaffold/common';
-import { AlertSeverity, LoggerService } from '@clevscaffold/logger';
+import { parseDurationMs } from '@clevrook/common';
+import { AlertSeverity, LoggerService } from '@clevrook/logger';
 import { User } from '../../users/entities/user.entity';
 import { UserSession } from '../entities/user-session.entity';
 

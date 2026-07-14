@@ -9,11 +9,11 @@ export default {
   },
   moduleFileExtensions: ['ts', 'js', 'json'],
   moduleNameMapper: {
-    '^@clevscaffold/common(.*)$': '<rootDir>/../../libs/common/src$1',
-    '^@clevscaffold/database(.*)$': '<rootDir>/../../libs/database/src$1',
-    '^@clevscaffold/config(.*)$': '<rootDir>/../../libs/config/src$1',
-    '^@clevscaffold/logger(.*)$': '<rootDir>/../../libs/logger/src$1',
-    '^@clevscaffold/messaging(.*)$': '<rootDir>/../../libs/messaging/src$1',
+    '^@clevrook/common(.*)$': '<rootDir>/../../libs/common/src$1',
+    '^@clevrook/database(.*)$': '<rootDir>/../../libs/database/src$1',
+    '^@clevrook/config(.*)$': '<rootDir>/../../libs/config/src$1',
+    '^@clevrook/logger(.*)$': '<rootDir>/../../libs/logger/src$1',
+    '^@clevrook/messaging(.*)$': '<rootDir>/../../libs/messaging/src$1',
   },
   // Serial: e2e specs share one Postgres test database and reset it between files.
   maxWorkers: 1,

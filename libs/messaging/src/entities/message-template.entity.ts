@@ -1,5 +1,5 @@
 import { Column, Entity, Index } from 'typeorm';
-import { BaseEntity } from '@clevscaffold/database';
+import { BaseEntity } from '@clevrook/database';
 
 /**
  * DB override for the in-code template registry, keyed by (key, channel, locale).

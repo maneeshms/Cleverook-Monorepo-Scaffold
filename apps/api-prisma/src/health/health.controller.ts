@@ -1,6 +1,6 @@
 import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { Public } from '@clevscaffold/common';
+import { Public } from '@clevrook/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 /**

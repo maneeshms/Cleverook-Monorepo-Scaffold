@@ -10,7 +10,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { AuthenticatedUser, CurrentUser, PaginationQueryDto } from '@clevscaffold/common';
+import { AuthenticatedUser, CurrentUser, PaginationQueryDto } from '@clevrook/common';
 import { NotificationsService } from './notifications.service';
 
 @ApiTags('notifications')
