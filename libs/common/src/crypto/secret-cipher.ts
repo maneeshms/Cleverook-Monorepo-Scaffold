@@ -16,6 +16,15 @@ export class SecretCipher {
   private readonly key: Buffer;
 
   constructor(passphrase: string) {
+    // Refuse to derive a key from an empty/trivial passphrase: silently falling
+    // back to a constant would encrypt every deployment's secrets under the same
+    // publicly-known key. Callers must supply a real key (min 16 chars).
+    if (!passphrase || passphrase.trim().length < 16) {
+      throw new Error(
+        'SecretCipher requires a passphrase of at least 16 characters ' +
+          '(set MESSAGING_ENCRYPTION_KEY or JWT_ACCESS_SECRET).',
+      );
+    }
     this.key = scryptSync(passphrase, 'clevscaffold-secrets-v1', 32) as Buffer;
   }
 

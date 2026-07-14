@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { User } from '@prisma/client';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma, User } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export interface CreateUserData {
@@ -34,8 +34,10 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   findByEmail(email: string): Promise<User | null> {
-    // Soft-delete aware: a deleted account's email is free again (partial-unique
-    // semantics are enforced at the app level for the demo schema).
+    // Only matches live accounts. Note: Prisma has no partial-unique-index support,
+    // so the DB keeps a FULL unique index on email — a soft-deleted address stays
+    // reserved (unlike the TypeORM app, which frees it via a partial index). create()
+    // translates the resulting unique violation into a clean 409.
     return this.prisma.user.findFirst({
       where: { email: email.toLowerCase(), deletedAt: null },
     });
@@ -51,10 +53,19 @@ export class UsersService {
     return user;
   }
 
-  create(data: CreateUserData): Promise<User> {
-    return this.prisma.user.create({
-      data: { ...data, email: data.email.toLowerCase() },
-    });
+  async create(data: CreateUserData): Promise<User> {
+    try {
+      return await this.prisma.user.create({
+        data: { ...data, email: data.email.toLowerCase() },
+      });
+    } catch (err) {
+      // P2002 = unique constraint violation. Surface a clean 409 instead of a
+      // leaked 500 (e.g. re-registering a soft-deleted account's email).
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictException('Email is already registered');
+      }
+      throw err;
+    }
   }
 
   async updateProfile(id: string, data: { displayName?: string }): Promise<User> {

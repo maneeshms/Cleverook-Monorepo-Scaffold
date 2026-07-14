@@ -59,6 +59,11 @@ describe('MetricsController', () => {
     await expect(
       controller.getMetrics({ headers: { authorization: 'Bearer wrong' } } as any, res()),
     ).rejects.toThrow(UnauthorizedException);
+    // Same length as 'Bearer s3cret' but wrong content — exercises the constant-time
+    // compare's mismatch path (not just the length shortcut).
+    await expect(
+      controller.getMetrics({ headers: { authorization: 'Bearer WRONG!' } } as any, res()),
+    ).rejects.toThrow(UnauthorizedException);
     await expect(controller.getMetrics({ headers: {} } as any, res())).rejects.toThrow(
       UnauthorizedException,
     );

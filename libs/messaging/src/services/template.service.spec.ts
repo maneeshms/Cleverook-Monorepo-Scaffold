@@ -75,4 +75,21 @@ describe('TemplateService', () => {
     const out = await service.render('WELCOME', Channel.EMAIL, { gone: null });
     expect(out.text).toBe('ab');
   });
+
+  it('HTML-escapes interpolated values in the html variant (no markup injection)', async () => {
+    repo.findOne.mockResolvedValue({
+      subject: 'hi {{name}}',
+      bodyHtml: '<p>Hi {{name}}</p>',
+      bodyText: 'Hi {{name}}',
+      enabled: true,
+    });
+    const evil = '</p><img src=x onerror=alert(1)>';
+    const out = await service.render('WELCOME', Channel.EMAIL, { name: evil });
+    // html escaped — the payload can't break out of the <p> or add a tag
+    expect(out.html).toBe('<p>Hi &lt;/p&gt;&lt;img src=x onerror=alert(1)&gt;</p>');
+    expect(out.html).not.toContain('<img');
+    // subject + text are NOT HTML contexts — left as-is
+    expect(out.text).toBe(`Hi ${evil}`);
+    expect(out.subject).toBe(`hi ${evil}`);
+  });
 });

@@ -27,4 +27,20 @@ describe('correlationId middleware', () => {
     expect(id).toMatch(/^[0-9a-f-]{36}$/);
     expect(res.setHeader).toHaveBeenCalledWith(CORRELATION_ID_HEADER, id);
   });
+
+  it('rejects a malformed inbound id (control chars / log forging) and mints a UUID', () => {
+    const { req } = run({ [CORRELATION_ID_HEADER]: 'evil\n[ADMIN] forged log line' });
+    expect(req.headers[CORRELATION_ID_HEADER]).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('rejects an over-long inbound id and mints a UUID', () => {
+    const { req } = run({ [CORRELATION_ID_HEADER]: 'a'.repeat(129) });
+    expect(req.headers[CORRELATION_ID_HEADER]).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('accepts a well-formed inbound id at the length limit', () => {
+    const ok = 'a'.repeat(128);
+    const { req } = run({ [CORRELATION_ID_HEADER]: ok });
+    expect(req.headers[CORRELATION_ID_HEADER]).toBe(ok);
+  });
 });

@@ -40,7 +40,10 @@ export class MessagingConfigService implements OnModuleInit {
     @Inject(MESSAGING_OPTIONS)
     private readonly options: MessagingModuleOptions,
   ) {
-    this.cipher = new SecretCipher(this.options.encryptionKey || 'fallback-dev-key');
+    // No dev fallback: SecretCipher throws on a weak/empty key rather than
+    // encrypting provider credentials under a public constant. The host wires
+    // encryptionKey from MESSAGING_ENCRYPTION_KEY (JWT_ACCESS_SECRET fallback).
+    this.cipher = new SecretCipher(this.options.encryptionKey);
   }
 
   async onModuleInit() {

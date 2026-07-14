@@ -1,4 +1,5 @@
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { toProfile, UsersService } from './users.service';
 
 describe('UsersService (prisma)', () => {
@@ -48,6 +49,24 @@ describe('UsersService (prisma)', () => {
     });
   });
 
+  it('create translates a unique violation (P2002) into a 409, not a 500', async () => {
+    userModel.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: 'test',
+      }),
+    );
+    await expect(service.create({ email: 'dupe@x.co', passwordHash: 'h' })).rejects.toThrow(
+      ConflictException,
+    );
+  });
+
+  it('create rethrows non-P2002 errors unchanged', async () => {
+    const boom = new Error('db down');
+    userModel.create.mockRejectedValue(boom);
+    await expect(service.create({ email: 'x@y.co', passwordHash: 'h' })).rejects.toThrow(boom);
+  });
+
   it('updateProfile verifies existence first', async () => {
     await expect(service.updateProfile('ghost', { displayName: 'X' })).rejects.toThrow(
       NotFoundException,
@@ -94,12 +113,12 @@ describe('UsersService (prisma)', () => {
 
     it('isLocked respects expiry', () => {
       expect(service.isLocked(user() as never)).toBe(false);
-      expect(
-        service.isLocked(user({ lockedUntil: new Date(Date.now() + 60_000) }) as never),
-      ).toBe(true);
-      expect(
-        service.isLocked(user({ lockedUntil: new Date(Date.now() - 60_000) }) as never),
-      ).toBe(false);
+      expect(service.isLocked(user({ lockedUntil: new Date(Date.now() + 60_000) }) as never)).toBe(
+        true,
+      );
+      expect(service.isLocked(user({ lockedUntil: new Date(Date.now() - 60_000) }) as never)).toBe(
+        false,
+      );
     });
   });
 

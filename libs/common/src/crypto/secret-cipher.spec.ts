@@ -35,4 +35,10 @@ describe('SecretCipher', () => {
   it('returns null on garbage input', () => {
     expect(cipher.decrypt('not-base64-ciphertext')).toBeNull();
   });
+
+  it('refuses an empty or too-short passphrase (no silent weak-key fallback)', () => {
+    expect(() => new SecretCipher('')).toThrow(/at least 16/);
+    expect(() => new SecretCipher('short')).toThrow(/at least 16/);
+    expect(() => new SecretCipher('   ')).toThrow(/at least 16/);
+  });
 });
