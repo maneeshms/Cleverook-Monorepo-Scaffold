@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@clevrook/common": "*",
+    "@clevrook/compliance": "*",
     "@clevrook/config": "*",
     "@clevrook/database": "*",
     "@clevrook/feature-flags": "*",

@@ -94,3 +94,25 @@ export const featureFlagsConfig = registerAs('featureFlags', () => ({
     parseInt(process.env.FEATURE_FLAG_CACHE_TTL_MS ?? '30000', 10),
   ),
 }));
+
+export const complianceConfig = registerAs('compliance', () => {
+  const int = (raw: string | undefined, fallback: number) => {
+    const n = parseInt(raw ?? '', 10);
+    return Number.isFinite(n) ? n : fallback;
+  };
+  return {
+    // HMAC key for the tamper-evident audit hash chain. Falls back to
+    // JWT_ACCESS_SECRET so the app boots, but set a DEDICATED key in prod — the
+    // chain's integrity guarantee is only as strong as this secret staying secret.
+    auditHmacSecret: process.env.AUDIT_HMAC_SECRET || process.env.JWT_ACCESS_SECRET || '',
+    // Retention windows in days (GDPR storage-limitation). 0 or less = keep forever.
+    retention: {
+      auditLogDays: int(process.env.RETENTION_AUDIT_LOG_DAYS, 365),
+      softDeletedUserGraceDays: int(process.env.RETENTION_SOFT_DELETED_USER_DAYS, 30),
+      notificationDays: int(process.env.RETENTION_NOTIFICATION_DAYS, 180),
+      messageDeliveryDays: int(process.env.RETENTION_MESSAGE_DELIVERY_DAYS, 90),
+    },
+    // Run the built-in daily retention cron. Set to 'false' to drive it externally.
+    retentionCron: (process.env.RETENTION_CRON ?? 'true').toLowerCase() !== 'false',
+  };
+});

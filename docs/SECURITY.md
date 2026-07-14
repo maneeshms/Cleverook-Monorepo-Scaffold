@@ -75,6 +75,15 @@ the residual low-risk items are tracked in [ROADMAP.md](ROADMAP.md).
 - **Pre-commit:** husky runs lint-staged (eslint + prettier) and commitlint
   (Conventional Commits) before every commit.
 
+## Compliance (SOC 2 · GDPR · ISO 27001)
+
+The technical controls that back a SOC 2 / GDPR / ISO 27001 program — the tamper-
+evident audit trail, GDPR export/erasure, consent ledger, and retention enforcement —
+ship as the opt-in `compliance` capability (`@clevrook/compliance`, `--with-compliance`).
+See **[COMPLIANCE.md](COMPLIANCE.md)** for the control-to-framework mapping and the
+explicit technical-vs-organisational split (what the scaffold does vs. what your org
+must own).
+
 ## Reporting
 
 Never commit a real secret. If one is exposed, rotate it immediately and purge it

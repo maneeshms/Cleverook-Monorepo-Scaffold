@@ -28,6 +28,8 @@
  *   --with-messaging     include the messaging engine + notifications (implies auth)
  *   --with-feature-flags include the OpenFeature feature-flags module
  *   --with-metrics       include the Prometheus /metrics endpoint
+ *   --with-compliance    include the compliance toolkit (audit trail, GDPR
+ *                        export/erasure, consent, retention) — implies auth
  *   --reinit-git         wipe .git and start a fresh repo
  *   --no-install         skip npm install (lockfile not regenerated)
  *   --skip-verify        skip the build + test verification step
@@ -107,7 +109,7 @@ const COMPONENTS = {
 // lib path aliases / package deps. `tasks` is a reference-only demo — always
 // dropped in a minimal app, never re-addable via a flag. Tokens are single
 // lowercase words (the marker-cleanup regex is [a-z]+).
-const ALL_CAPS = ['auth', 'messaging', 'featureflags', 'metrics', 'tasks'];
+const ALL_CAPS = ['auth', 'messaging', 'featureflags', 'metrics', 'compliance', 'tasks'];
 const MIGRATIONS_DIR = 'libs/database/src/migrations';
 const CAPABILITIES = {
   auth: {
@@ -140,6 +142,14 @@ const CAPABILITIES = {
   },
   // MetricsModule lives in libs/common (kept); only app wiring + env are gated.
   metrics: { flag: 'with-metrics' },
+  compliance: {
+    flag: 'with-compliance',
+    requires: ['auth'], // wiring reads the users table; personal data is per-user
+    dirs: ['libs/compliance', 'apps/api/src/modules/compliance'],
+    migrations: ['1750000000005-AddCompliance.ts'],
+    tsPaths: [`${OLD_SCOPE}/compliance`],
+    pkgDeps: [{ file: 'apps/api/package.json', dep: `${OLD_SCOPE}/compliance` }],
+  },
   // Reference-only CRUD demo. Never user-selectable; always dropped in --minimal.
   tasks: { dirs: ['apps/api/src/modules/tasks'], migrations: ['1750000000004-AddTasks.ts'] },
 };
@@ -149,6 +159,11 @@ const CAP_SENTINEL_FILES = [
   'apps/api/src/main.ts',
   'apps/api/src/modules/auth/auth.service.ts',
   'apps/api/src/modules/auth/auth.service.spec.ts',
+  // Compliance wiring carries internal tasks/messaging sentinels (it registers
+  // those modules' personal data) — prune them when those capabilities are off.
+  'apps/api/src/modules/compliance/compliance-wiring.service.ts',
+  'apps/api/src/modules/compliance/compliance-wiring.service.spec.ts',
+  'apps/api/src/modules/compliance/compliance-wiring.module.ts',
   'apps/api-prisma/src/app.module.ts',
   'apps/api-prisma/prisma/schema.prisma',
   '.env.example',
@@ -190,6 +205,7 @@ function parseArgs(argv) {
       'with-messaging',
       'with-feature-flags',
       'with-metrics',
+      'with-compliance',
     ];
     if (boolFlags.includes(key)) {
       out.flags.add(key);
@@ -368,6 +384,7 @@ async function main() {
     messaging: flags.has('with-messaging'),
     featureflags: flags.has('with-feature-flags'),
     metrics: flags.has('with-metrics'),
+    compliance: flags.has('with-compliance'),
   };
 
   if (!yes) {
@@ -386,7 +403,7 @@ async function main() {
       const picked = (
         await prompt(
           rl,
-          'Capabilities [auth,messaging,feature-flags,metrics] (comma-sep, blank=none)',
+          'Capabilities [auth,messaging,feature-flags,metrics,compliance] (comma-sep, blank=none)',
           '',
         )
       ).toLowerCase();
@@ -400,6 +417,7 @@ async function main() {
       if (set.has('messaging')) withCap.messaging = true;
       if (set.has('feature-flags') || set.has('featureflags')) withCap.featureflags = true;
       if (set.has('metrics')) withCap.metrics = true;
+      if (set.has('compliance')) withCap.compliance = true;
     }
     await rl.close();
   }
@@ -441,12 +459,17 @@ async function main() {
     }
     if (withCap.featureflags) caps.add('featureflags');
     if (withCap.metrics) caps.add('metrics');
+    if (withCap.compliance) {
+      caps.add('compliance');
+      caps.add('auth'); // wiring reads users; personal data is per-user
+    }
     // tasks is reference-only — never added to a minimal app.
   }
   // Capabilities that live only in the TypeORM app vanish when it is removed.
   if (remove.includes('typeorm')) {
     caps.delete('messaging');
     caps.delete('featureflags');
+    caps.delete('compliance');
     caps.delete('tasks');
   }
   const dropCaps = ALL_CAPS.filter((c) => !caps.has(c));

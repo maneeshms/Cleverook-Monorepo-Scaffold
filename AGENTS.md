@@ -165,6 +165,7 @@ the top priority — any auth/validation/data change starts with
 | `docs/agents/nestjs.md`       | **any backend code** — module/controller/service/DTO/ORM shapes, with code   |
 | `docs/agents/recipes.md`      | **any multi-step task** — module, endpoint, migration, config key, dep, auth |
 | `docs/agents/security.md`     | **any** auth, validation, crypto, data-exposure, or endpoint change          |
+| `docs/agents/compliance.md`   | **audit trail, GDPR export/erasure, consent, retention** (`libs/compliance`) |
 | `docs/agents/architecture.md` | adding a lib/app; lib boundaries; workspaces; lean Docker                    |
 | `docs/agents/conventions.md`  | naming, types, Swagger, commits, code style                                  |
 | `docs/agents/testing.md`      | writing tests, coverage floor, e2e, the scanner                              |

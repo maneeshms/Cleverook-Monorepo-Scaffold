@@ -24,11 +24,18 @@ import {
   // clevscaffold:featureflags:start
   featureFlagsConfig,
   // clevscaffold:featureflags:end
+  // clevscaffold:compliance:start
+  complianceConfig,
+  // clevscaffold:compliance:end
 } from '@clevrook/config';
 import { DatabaseModule } from '@clevrook/database';
 // clevscaffold:featureflags:start
 import { FeatureFlagsModule } from '@clevrook/feature-flags';
 // clevscaffold:featureflags:end
+// clevscaffold:compliance:start
+import { ComplianceModule } from '@clevrook/compliance';
+import { ComplianceWiringModule } from './modules/compliance/compliance-wiring.module';
+// clevscaffold:compliance:end
 import { LoggerModule } from '@clevrook/logger';
 // clevscaffold:messaging:start
 import { MessagingModule } from '@clevrook/messaging';
@@ -84,6 +91,9 @@ import { HealthModule } from './health/health.module';
         // clevscaffold:featureflags:start
         featureFlagsConfig,
         // clevscaffold:featureflags:end
+        // clevscaffold:compliance:start
+        complianceConfig,
+        // clevscaffold:compliance:end
       ],
       validate: createEnvValidator({
         configDir: process.env.CONFIG_DIR ?? join(process.cwd(), 'apps/api/config'),
@@ -162,6 +172,21 @@ import { HealthModule } from './health/health.module';
       }),
     }),
     // clevscaffold:featureflags:end
+    // clevscaffold:compliance:start
+    // Compliance toolkit (audit trail, GDPR export/erasure, consent, retention) —
+    // config injected so the lib stays env-agnostic. ComplianceWiringModule
+    // registers this app's personal-data contributors + retention targets. See
+    // docs/COMPLIANCE.md for the SOC 2 / GDPR / ISO 27001 control mapping.
+    ComplianceModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        auditHmacSecret: config.get<string>('compliance.auditHmacSecret') ?? '',
+        retention: config.get('compliance.retention'),
+        retentionCron: config.get<boolean>('compliance.retentionCron'),
+      }),
+    }),
+    ComplianceWiringModule,
+    // clevscaffold:compliance:end
     // clevscaffold:auth:start
     AuthModule,
     UsersModule,

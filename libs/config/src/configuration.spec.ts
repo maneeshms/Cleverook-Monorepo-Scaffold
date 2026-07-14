@@ -1,5 +1,6 @@
 import {
   appConfig,
+  complianceConfig,
   databaseConfig,
   featureFlagsConfig,
   jwtConfig,
@@ -35,6 +36,43 @@ describe('configuration namespaces', () => {
     it('splits and trims the CORS allowlist', () => {
       process.env.CORS_ORIGINS = ' https://a.example.com , https://b.example.com ,';
       expect(appConfig().corsOrigins).toEqual(['https://a.example.com', 'https://b.example.com']);
+    });
+  });
+
+  describe('complianceConfig', () => {
+    it('applies retention defaults and falls back to JWT secret for the HMAC key', () => {
+      for (const k of [
+        'AUDIT_HMAC_SECRET',
+        'RETENTION_AUDIT_LOG_DAYS',
+        'RETENTION_SOFT_DELETED_USER_DAYS',
+        'RETENTION_NOTIFICATION_DAYS',
+        'RETENTION_MESSAGE_DELIVERY_DAYS',
+        'RETENTION_CRON',
+      ]) {
+        delete process.env[k];
+      }
+      process.env.JWT_ACCESS_SECRET = 'jwt-secret-fallback';
+      const cfg = complianceConfig();
+      expect(cfg.auditHmacSecret).toBe('jwt-secret-fallback');
+      expect(cfg.retention).toEqual({
+        auditLogDays: 365,
+        softDeletedUserGraceDays: 30,
+        notificationDays: 180,
+        messageDeliveryDays: 90,
+      });
+      expect(cfg.retentionCron).toBe(true);
+    });
+
+    it('honours explicit windows, a dedicated key, and disables the cron', () => {
+      process.env.AUDIT_HMAC_SECRET = 'dedicated';
+      process.env.RETENTION_AUDIT_LOG_DAYS = '30';
+      process.env.RETENTION_NOTIFICATION_DAYS = 'not-a-number';
+      process.env.RETENTION_CRON = 'false';
+      const cfg = complianceConfig();
+      expect(cfg.auditHmacSecret).toBe('dedicated');
+      expect(cfg.retention.auditLogDays).toBe(30);
+      expect(cfg.retention.notificationDays).toBe(180); // invalid → default
+      expect(cfg.retentionCron).toBe(false);
     });
   });
 

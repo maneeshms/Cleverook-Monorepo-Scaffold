@@ -128,6 +128,33 @@ export class EnvironmentVariables {
   @IsOptional()
   MESSAGING_ENCRYPTION_KEY?: string;
 
+  // ── Compliance (audit trail, GDPR retention) ──
+  // Dedicated HMAC key for the tamper-evident audit chain; falls back to
+  // JWT_ACCESS_SECRET when unset. Retention windows are plain day counts.
+  @IsString()
+  @IsOptional()
+  AUDIT_HMAC_SECRET?: string;
+
+  @IsString()
+  @IsOptional()
+  RETENTION_AUDIT_LOG_DAYS?: string;
+
+  @IsString()
+  @IsOptional()
+  RETENTION_SOFT_DELETED_USER_DAYS?: string;
+
+  @IsString()
+  @IsOptional()
+  RETENTION_NOTIFICATION_DAYS?: string;
+
+  @IsString()
+  @IsOptional()
+  RETENTION_MESSAGE_DELIVERY_DAYS?: string;
+
+  @IsString()
+  @IsOptional()
+  RETENTION_CRON?: string;
+
   // ── Observability ──
   @IsString()
   @IsOptional()

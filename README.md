@@ -48,6 +48,7 @@ Full walkthrough: **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**.
 - [DATABASE](docs/DATABASE.md) — local / self-hosted / Supabase, migrations
 - [TESTING](docs/TESTING.md) — unit, e2e, coverage, the OWASP scanner
 - [SECURITY](docs/SECURITY.md) — threat→control map + scanner baseline
+- [COMPLIANCE](docs/COMPLIANCE.md) — SOC 2 / GDPR / ISO 27001 control map + `--with-compliance`
 - [DEPLOYMENT](docs/DEPLOYMENT.md) — Railway, per app
 - [SCALING](docs/SCALING.md) — horizontal scale-out checklist
 - [ARCHITECTURE](docs/ARCHITECTURE.md) — the big picture
