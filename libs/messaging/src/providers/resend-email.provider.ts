@@ -28,23 +28,20 @@ export class ResendEmailProvider implements ChannelProvider {
     private readonly options: MessagingModuleOptions,
   ) {}
 
-  private async resolveCredentials(): Promise<{ apiKey: string; fromEmail: string; fromName: string }> {
+  private async resolveCredentials(): Promise<{
+    apiKey: string;
+    fromEmail: string;
+    fromName: string;
+  }> {
     const provider = await this.messagingConfig.getProvider('resend');
     const dbCreds = provider?.credentials ?? {};
     const dbConfig = provider?.config ?? {};
     const envResend = this.options.resend ?? {};
     return {
       apiKey: dbCreds.apiKey || envResend.apiKey || '',
-      fromEmail:
-        dbCreds.fromEmail ||
-        (dbConfig.fromEmail as string) ||
-        envResend.fromEmail ||
-        '',
+      fromEmail: dbCreds.fromEmail || (dbConfig.fromEmail as string) || envResend.fromEmail || '',
       fromName:
-        dbCreds.fromName ||
-        (dbConfig.fromName as string) ||
-        envResend.fromName ||
-        'ClevScaffold',
+        dbCreds.fromName || (dbConfig.fromName as string) || envResend.fromName || 'ClevScaffold',
     };
   }
 
@@ -53,7 +50,8 @@ export class ResendEmailProvider implements ChannelProvider {
     if (!apiKey || !fromEmail) {
       return {
         ok: false,
-        error: 'Resend not configured (missing API key or from-email). Set RESEND_API_KEY/RESEND_FROM_EMAIL or configure the provider.',
+        error:
+          'Resend not configured (missing API key or from-email). Set RESEND_API_KEY/RESEND_FROM_EMAIL or configure the provider.',
       };
     }
 

@@ -1,9 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Queue, Worker, type ConnectionOptions } from 'bullmq';
@@ -136,7 +131,7 @@ export class DeliveryQueueService implements OnModuleInit, OnModuleDestroy {
 
     record.status = result.ok ? DeliveryStatus.SENT : DeliveryStatus.FAILED;
     record.providerMessageId = result.providerMessageId ?? null;
-    record.error = result.ok ? null : result.error ?? 'Unknown error';
+    record.error = result.ok ? null : (result.error ?? 'Unknown error');
     await this.deliveries.save(record);
 
     if (!result.ok) {

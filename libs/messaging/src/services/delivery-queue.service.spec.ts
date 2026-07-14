@@ -145,9 +145,7 @@ describe('DeliveryQueueService — inline mode (no Redis)', () => {
       expect.objectContaining({ toMasked: 'a***@example.com' }),
     );
 
-    await service.enqueue(
-      job({ delivery: { channel: Channel.EMAIL, to: 'no-at-sign' } }),
-    );
+    await service.enqueue(job({ delivery: { channel: Channel.EMAIL, to: 'no-at-sign' } }));
     expect(deliveries.create).toHaveBeenLastCalledWith(
       expect.objectContaining({ toMasked: '***' }),
     );

@@ -154,12 +154,12 @@ function dividerOr(): string {
  * shown in notification previews and SMS fallbacks.
  */
 export const TEMPLATE_REGISTRY: Record<string, TemplateEntry> = {
-
   // ── Email verification ─────────────────────────────────────────────────────
   EMAIL_VERIFICATION: {
     [Channel.EMAIL]: {
       subject: 'Your ClevScaffold verification code: {{code}}',
-      html: emailWrapper(card(`
+      html: emailWrapper(
+        card(`
             <!-- Icon circle -->
             <div style="text-align:center;margin-bottom:20px;">
               <div style="display:inline-block;width:64px;height:64px;border-radius:50%;
@@ -229,7 +229,8 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateEntry> = {
                 </td>
               </tr>
             </table>
-      `)),
+      `),
+      ),
       text: `Your ClevScaffold email verification code is: {{code}}\n\nExpires in {{ttlMinutes}} minutes.\n\nVerify here: {{link}}\n\nIf you didn't create a ClevScaffold account, ignore this email.`,
     },
   },
@@ -245,7 +246,8 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateEntry> = {
   WELCOME: {
     [Channel.EMAIL]: {
       subject: 'Welcome to ClevScaffold, {{displayName}}! 🎉',
-      html: emailWrapper(card(`
+      html: emailWrapper(
+        card(`
             <!-- Hero graphic area -->
             <div style="text-align:center;margin-bottom:24px;">
               <div style="display:inline-block;width:72px;height:72px;border-radius:50%;
@@ -315,7 +317,8 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateEntry> = {
             <div style="text-align:center;">
               ${button('Open the app 🚀', '{{link}}')}
             </div>
-      `)),
+      `),
+      ),
       text: `Welcome to ClevScaffold{{displayNameComma}}\n\nYour account is ready — explore the sample modules and make it your own.\n\nOpen the app: {{link}}`,
     },
   },
@@ -324,7 +327,8 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateEntry> = {
   PASSWORD_RESET: {
     [Channel.EMAIL]: {
       subject: 'Reset your ClevScaffold password',
-      html: emailWrapper(card(`
+      html: emailWrapper(
+        card(`
             <!-- Icon -->
             <div style="text-align:center;margin-bottom:20px;">
               <div style="display:inline-block;width:64px;height:64px;border-radius:50%;
@@ -371,7 +375,8 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateEntry> = {
               Can't click the button? Copy and paste this link:<br>
               <span style="color:${TEAL_DARK};word-break:break-all;">{{link}}</span>
             </p>
-      `)),
+      `),
+      ),
       text: `ClevScaffold password reset\n\nReset your password here (expires in {{expiresInMinutes}} min):\n{{link}}\n\nIf you didn't request this, ignore this email.`,
     },
   },
@@ -380,7 +385,8 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateEntry> = {
   TASK_ASSIGNED: {
     [Channel.EMAIL]: {
       subject: '{{assignerName}} assigned you "{{taskTitle}}"',
-      html: emailWrapper(card(`
+      html: emailWrapper(
+        card(`
             <!-- Icon -->
             <div style="text-align:center;margin-bottom:20px;">
               <div style="display:inline-block;width:64px;height:64px;border-radius:50%;
@@ -428,7 +434,8 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateEntry> = {
               font-family:Arial,sans-serif;line-height:1.6;">
               You can manage your tasks anytime from the app dashboard.
             </p>
-      `)),
+      `),
+      ),
       text: `{{assignerName}} assigned you "{{taskTitle}}" on ClevScaffold.\n\nView task: {{link}}`,
     },
     [Channel.IN_APP]: {

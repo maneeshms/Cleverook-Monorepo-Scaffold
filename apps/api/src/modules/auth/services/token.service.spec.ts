@@ -42,7 +42,10 @@ describe('TokenService', () => {
 
   describe('issueForNewSession', () => {
     it('stores only the SHA-256 of the refresh token', async () => {
-      const pair = await service.issueForNewSession(user, { ipAddress: '1.1.1.1', userAgent: 'ua' });
+      const pair = await service.issueForNewSession(user, {
+        ipAddress: '1.1.1.1',
+        userAgent: 'ua',
+      });
       const stored = sessions.save.mock.calls[0][0];
       expect(stored.refreshTokenHash).toBe(sha256(pair.refreshToken));
       expect(stored.refreshTokenHash).not.toBe(pair.refreshToken);
@@ -95,9 +98,7 @@ describe('TokenService', () => {
     });
 
     it('revokes and rejects expired sessions', async () => {
-      sessions.findOne.mockResolvedValue(
-        activeSession({ expiresAt: new Date(Date.now() - 1000) }),
-      );
+      sessions.findOne.mockResolvedValue(activeSession({ expiresAt: new Date(Date.now() - 1000) }));
       await expect(service.refreshSession('old')).rejects.toThrow('Session expired');
       expect(sessions.update).toHaveBeenCalledWith('sess-1', { revokedAt: expect.any(Date) });
     });

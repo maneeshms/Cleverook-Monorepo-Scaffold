@@ -34,8 +34,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // Multer surfaces upload-limit violations as a `MulterError` (a plain Error,
     // not an HttpException) — without this it would masquerade as a 500. Map the
     // size limit to 413 and the rest (too many files, unexpected field) to 400.
-    const isMulter =
-      exception instanceof Error && exception.name === 'MulterError';
+    const isMulter = exception instanceof Error && exception.name === 'MulterError';
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     if (isHttp) status = exception.getStatus();

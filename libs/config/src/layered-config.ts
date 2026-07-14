@@ -71,7 +71,8 @@ function readJsonLayer(file: string): Record<string, unknown> {
  */
 export function loadLayeredConfig(options: LayeredConfigOptions = {}): Record<string, string> {
   if (options.loadDotenv !== false) dotenv.config(); // .env → process.env, never overriding real env
-  const configDir = options.configDir ?? process.env.CONFIG_DIR ?? path.join(process.cwd(), 'config');
+  const configDir =
+    options.configDir ?? process.env.CONFIG_DIR ?? path.join(process.cwd(), 'config');
   const env = options.env ?? process.env.NODE_ENV ?? 'development';
 
   const defaults = readJsonLayer(path.join(configDir, 'default.json'));

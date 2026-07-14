@@ -13,8 +13,12 @@ describe('MessagingService', () => {
   let queue: { enqueue: jest.Mock };
 
   beforeEach(async () => {
-    config = { routeFor: jest.fn().mockResolvedValue({ primary: 'resend', fallback: 'console-email' }) };
-    templates = { render: jest.fn().mockResolvedValue({ subject: 'S', html: '<b>H</b>', text: 'T' }) };
+    config = {
+      routeFor: jest.fn().mockResolvedValue({ primary: 'resend', fallback: 'console-email' }),
+    };
+    templates = {
+      render: jest.fn().mockResolvedValue({ subject: 'S', html: '<b>H</b>', text: 'T' }),
+    };
     queue = { enqueue: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -37,7 +41,12 @@ describe('MessagingService', () => {
       variables: { code: '123456' },
     });
 
-    expect(templates.render).toHaveBeenCalledWith('EMAIL_VERIFICATION', Channel.EMAIL, { code: '123456' }, 'en');
+    expect(templates.render).toHaveBeenCalledWith(
+      'EMAIL_VERIFICATION',
+      Channel.EMAIL,
+      { code: '123456' },
+      'en',
+    );
     expect(config.routeFor).toHaveBeenCalledWith(Channel.EMAIL);
     expect(queue.enqueue).toHaveBeenCalledTimes(1);
     expect(queue.enqueue).toHaveBeenCalledWith(

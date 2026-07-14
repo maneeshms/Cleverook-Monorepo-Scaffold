@@ -227,12 +227,7 @@ describe('TasksService', () => {
       redisEnabled = true;
       qb.getRawMany.mockResolvedValue(rawRows);
       await service.getStats('u1');
-      expect(redisClient.set).toHaveBeenCalledWith(
-        'tasks:stats:u1',
-        expect.any(String),
-        'EX',
-        30,
-      );
+      expect(redisClient.set).toHaveBeenCalledWith('tasks:stats:u1', expect.any(String), 'EX', 30);
     });
 
     it('invalidates affected users on writes', async () => {

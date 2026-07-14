@@ -49,7 +49,13 @@ const OLD_SCOPE = '@clevscaffold';
 // component's directory removes its dependencies with it — no root-dep pruning.
 const COMPONENTS = {
   typeorm: {
-    dirs: ['apps/api', 'libs/database', 'libs/feature-flags', 'libs/messaging', 'scripts/seed-api.mjs'],
+    dirs: [
+      'apps/api',
+      'libs/database',
+      'libs/feature-flags',
+      'libs/messaging',
+      'scripts/seed-api.mjs',
+    ],
     scripts: [
       'dev:api',
       'migration:generate',
@@ -64,7 +70,14 @@ const COMPONENTS = {
   },
   prisma: {
     dirs: ['apps/api-prisma', 'prisma.config.ts'],
-    scripts: ['dev:api-prisma', 'prisma:generate', 'prisma:migrate', 'prisma:deploy', 'prisma:seed', 'prisma:studio'],
+    scripts: [
+      'dev:api-prisma',
+      'prisma:generate',
+      'prisma:migrate',
+      'prisma:deploy',
+      'prisma:seed',
+      'prisma:studio',
+    ],
     tsPaths: [],
     sentinel: 'prisma',
     dockerApps: ['api-prisma'],
@@ -141,7 +154,22 @@ const CAP_SENTINEL_FILES = [
   '.env.example',
 ];
 
-const TEXT_EXT = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs', '.json', '.md', '.mdc', '.yml', '.yaml', '.prisma', '.conf', '.template', '.example']);
+const TEXT_EXT = new Set([
+  '.ts',
+  '.tsx',
+  '.js',
+  '.mjs',
+  '.cjs',
+  '.json',
+  '.md',
+  '.mdc',
+  '.yml',
+  '.yaml',
+  '.prisma',
+  '.conf',
+  '.template',
+  '.example',
+]);
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'tmp', '.next', 'coverage', '.nx']);
 const RENAME_SKIP_FILES = new Set(['package-lock.json', 'init.mjs']);
 
@@ -153,8 +181,15 @@ function parseArgs(argv) {
     if (!a.startsWith('--')) continue;
     const key = a.slice(2);
     const boolFlags = [
-      'yes', 'reinit-git', 'no-install', 'skip-verify',
-      'minimal', 'with-auth', 'with-messaging', 'with-feature-flags', 'with-metrics',
+      'yes',
+      'reinit-git',
+      'no-install',
+      'skip-verify',
+      'minimal',
+      'with-auth',
+      'with-messaging',
+      'with-feature-flags',
+      'with-metrics',
     ];
     if (boolFlags.includes(key)) {
       out.flags.add(key);
@@ -278,8 +313,14 @@ function stripSentinelBlocks(rel, name) {
   const kept = [];
   let skipping = false;
   for (const line of lines) {
-    if (!skipping && line.includes(startTok)) { skipping = true; continue; }
-    if (skipping && line.includes(endTok)) { skipping = false; continue; }
+    if (!skipping && line.includes(startTok)) {
+      skipping = true;
+      continue;
+    }
+    if (skipping && line.includes(endTok)) {
+      skipping = false;
+      continue;
+    }
     if (!skipping) kept.push(line);
   }
   writeFileSync(full, kept.join('\n'));
@@ -343,9 +384,18 @@ async function main() {
     }
     if (minimal) {
       const picked = (
-        await prompt(rl, 'Capabilities [auth,messaging,feature-flags,metrics] (comma-sep, blank=none)', '')
+        await prompt(
+          rl,
+          'Capabilities [auth,messaging,feature-flags,metrics] (comma-sep, blank=none)',
+          '',
+        )
       ).toLowerCase();
-      const set = new Set(picked.split(',').map((s) => s.trim()).filter(Boolean));
+      const set = new Set(
+        picked
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+      );
       if (set.has('auth')) withCap.auth = true;
       if (set.has('messaging')) withCap.messaging = true;
       if (set.has('feature-flags') || set.has('featureflags')) withCap.featureflags = true;
@@ -356,7 +406,9 @@ async function main() {
 
   // --with-* only means anything under --minimal; the default keeps everything.
   if (!minimal && Object.values(withCap).some(Boolean)) {
-    console.warn('  note: --with-* flags are ignored without --minimal (default keeps all features).');
+    console.warn(
+      '  note: --with-* flags are ignored without --minimal (default keeps all features).',
+    );
   }
 
   name = name ?? 'my-app';
@@ -366,7 +418,8 @@ async function main() {
   if (!scope.startsWith('@')) scope = `@${scope}`;
 
   if (!['typeorm', 'prisma', 'both'].includes(orm)) throw new Error(`invalid --orm "${orm}"`);
-  if (!['vite', 'next', 'both', 'none'].includes(frontend)) throw new Error(`invalid --frontend "${frontend}"`);
+  if (!['vite', 'next', 'both', 'none'].includes(frontend))
+    throw new Error(`invalid --frontend "${frontend}"`);
 
   // Which components to KEEP.
   const keep = new Set();

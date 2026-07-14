@@ -40,7 +40,11 @@ describe('ConsoleSmsProvider', () => {
     const logSpy = jest.spyOn(console, 'log').mockImplementation();
     const provider = new ConsoleSmsProvider();
     expect(provider.channels).toEqual([Channel.SMS]);
-    const withBody = await provider.send({ channel: Channel.SMS, to: '+15550001', body: 'code 1234' });
+    const withBody = await provider.send({
+      channel: Channel.SMS,
+      to: '+15550001',
+      body: 'code 1234',
+    });
     expect(withBody.ok).toBe(true);
     const withText = await provider.send({ channel: Channel.SMS, to: '+15550001', text: 'txt' });
     expect(withText.ok).toBe(true);
@@ -145,7 +149,9 @@ describe('ResendEmailProvider', () => {
     });
     const result = await provider.send(delivery);
     expect(result.ok).toBe(true);
-    expect(mockResendSend).toHaveBeenCalledWith(expect.objectContaining({ from: 'Cfg <cfg@x.co>' }));
+    expect(mockResendSend).toHaveBeenCalledWith(
+      expect.objectContaining({ from: 'Cfg <cfg@x.co>' }),
+    );
   });
 
   it('propagates provider errors', async () => {

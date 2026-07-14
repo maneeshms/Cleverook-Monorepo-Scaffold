@@ -53,8 +53,10 @@ if (!env) {
   for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET']) {
     const v = process.env[key] ?? env[key];
     if (!v) warn(key, 'not set — auth endpoints will refuse to boot (apps that require it)');
-    else if (v.length < 32) fail(key, `only ${v.length} chars — validation requires ≥32 (openssl rand -base64 48)`);
-    else if (/change|example|replace|xxx/i.test(v)) fail(key, 'looks like a placeholder — generate a real secret');
+    else if (v.length < 32)
+      fail(key, `only ${v.length} chars — validation requires ≥32 (openssl rand -base64 48)`);
+    else if (/change|example|replace|xxx/i.test(v))
+      fail(key, 'looks like a placeholder — generate a real secret');
     else ok(key, `set (${v.length} chars)`);
   }
 }

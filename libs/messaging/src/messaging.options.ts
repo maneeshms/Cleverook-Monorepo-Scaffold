@@ -29,8 +29,7 @@ export interface MessagingModuleOptions {
 export const MESSAGING_OPTIONS = 'MESSAGING_OPTIONS';
 
 /** Async registration shape for {@link MessagingModule.forRootAsync}. */
-export interface MessagingModuleAsyncOptions
-  extends Pick<ModuleMetadata, 'imports'> {
+export interface MessagingModuleAsyncOptions extends Pick<ModuleMetadata, 'imports'> {
   /** Providers to inject into `useFactory` (e.g. ConfigService). */
   inject?: InjectionToken[];
   /** Builds the runtime options — usually from the host's ConfigService. */

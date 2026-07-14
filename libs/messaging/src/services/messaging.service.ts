@@ -1,9 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Channel } from '../enums/channel.enum';
-import {
-  MESSAGE_TYPE_DEFINITIONS,
-  MessageType,
-} from '../enums/message-type';
+import { MESSAGE_TYPE_DEFINITIONS, MessageType } from '../enums/message-type';
 import { OutboundDelivery } from '../interfaces/channel-provider.interface';
 import { MessagingConfigService } from './messaging-config.service';
 import { TemplateService } from './template.service';
@@ -78,7 +75,12 @@ export class MessagingService {
       return;
     }
 
-    const rendered = await this.templates.render(templateKey, channel, variables, input.locale ?? 'en');
+    const rendered = await this.templates.render(
+      templateKey,
+      channel,
+      variables,
+      input.locale ?? 'en',
+    );
 
     const delivery: OutboundDelivery = {
       channel,

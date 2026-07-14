@@ -58,10 +58,7 @@ export function detectImageMime(buffer: Buffer): ImageMime | null {
   }
 
   // WebP: RIFF container — "RIFF" <4-byte size> "WEBP"
-  if (
-    buffer.toString('ascii', 0, 4) === 'RIFF' &&
-    buffer.toString('ascii', 8, 12) === 'WEBP'
-  ) {
+  if (buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') {
     return 'image/webp';
   }
 

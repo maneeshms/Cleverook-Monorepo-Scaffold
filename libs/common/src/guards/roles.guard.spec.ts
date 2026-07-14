@@ -35,8 +35,6 @@ describe('RolesGuard', () => {
   });
 
   it('lets SUPER_ADMIN through any requirement', () => {
-    expect(guardWith([Role.ADMIN]).canActivate(makeContext({ role: Role.SUPER_ADMIN }))).toBe(
-      true,
-    );
+    expect(guardWith([Role.ADMIN]).canActivate(makeContext({ role: Role.SUPER_ADMIN }))).toBe(true);
   });
 });

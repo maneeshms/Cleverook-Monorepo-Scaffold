@@ -72,4 +72,6 @@ const out = {
 
 mkdirSync(path.dirname(path.join(ROOT, outFile)), { recursive: true });
 writeFileSync(path.join(ROOT, outFile), JSON.stringify(out, null, 2) + '\n');
-console.error(`docker-manifest: ${outFile} — ${Object.keys(deps).length} prod deps for ${app.name}`);
+console.error(
+  `docker-manifest: ${outFile} — ${Object.keys(deps).length} prod deps for ${app.name}`,
+);

@@ -1,7 +1,9 @@
 import { HealthController } from './health.controller';
 
 describe('HealthController', () => {
-  const health = { check: jest.fn(async (checks: (() => unknown)[]) => Promise.all(checks.map((c) => c()))) };
+  const health = {
+    check: jest.fn(async (checks: (() => unknown)[]) => Promise.all(checks.map((c) => c()))),
+  };
   const db = { pingCheck: jest.fn().mockResolvedValue({ database: { status: 'up' } }) };
   const controller = new HealthController(health as never, db as never);
 

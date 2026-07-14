@@ -147,8 +147,14 @@ describe('Auth (e2e)', () => {
         .set('Authorization', `Bearer ${s1.body.accessToken}`)
         .expect(204);
 
-      await api().post('/api/v1/auth/refresh').send({ refreshToken: s1.body.refreshToken }).expect(401);
-      await api().post('/api/v1/auth/refresh').send({ refreshToken: s2.body.refreshToken }).expect(401);
+      await api()
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: s1.body.refreshToken })
+        .expect(401);
+      await api()
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: s2.body.refreshToken })
+        .expect(401);
     });
   });
 });

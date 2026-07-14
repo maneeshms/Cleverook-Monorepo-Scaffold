@@ -1,8 +1,7 @@
 import { detectImageMime, IMAGE_EXTENSION, ALLOWED_IMAGE_MIMES } from './image-signature';
 
 /** Build a buffer from magic bytes padded to at least 12 bytes. */
-const sig = (...bytes: number[]) =>
-  Buffer.concat([Buffer.from(bytes), Buffer.alloc(16)]);
+const sig = (...bytes: number[]) => Buffer.concat([Buffer.from(bytes), Buffer.alloc(16)]);
 
 describe('detectImageMime', () => {
   it('detects a real JPEG signature', () => {
@@ -10,9 +9,7 @@ describe('detectImageMime', () => {
   });
 
   it('detects a real PNG signature', () => {
-    expect(
-      detectImageMime(sig(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)),
-    ).toBe('image/png');
+    expect(detectImageMime(sig(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a))).toBe('image/png');
   });
 
   it('detects GIF87a and GIF89a', () => {

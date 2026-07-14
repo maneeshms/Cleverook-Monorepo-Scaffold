@@ -14,7 +14,10 @@ export class CreateTaskDto {
   @MaxLength(2000)
   description?: string;
 
-  @ApiProperty({ required: false, description: 'Assign to another user (sends them a notification)' })
+  @ApiProperty({
+    required: false,
+    description: 'Assign to another user (sends them a notification)',
+  })
   @IsOptional()
   @IsUUID()
   assigneeId?: string;

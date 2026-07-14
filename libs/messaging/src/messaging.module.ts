@@ -13,10 +13,7 @@ import { ConsoleEmailProvider } from './providers/console-email.provider';
 import { ConsoleSmsProvider } from './providers/console-sms.provider';
 import { InAppProvider } from './providers/in-app.provider';
 import { CHANNEL_PROVIDERS } from './interfaces/channel-provider.interface';
-import {
-  MESSAGING_OPTIONS,
-  MessagingModuleAsyncOptions,
-} from './messaging.options';
+import { MESSAGING_OPTIONS, MessagingModuleAsyncOptions } from './messaging.options';
 
 /**
  * The omnichannel messaging engine, as a reusable NestJS library.

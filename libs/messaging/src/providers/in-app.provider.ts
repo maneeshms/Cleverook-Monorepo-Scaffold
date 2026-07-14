@@ -21,9 +21,7 @@ export class InAppProvider implements ChannelProvider {
   readonly key = 'in-app';
   readonly channels = [Channel.IN_APP];
 
-  constructor(
-    @Optional() @Inject(IN_APP_SINK) private readonly sink?: InAppSink,
-  ) {}
+  constructor(@Optional() @Inject(IN_APP_SINK) private readonly sink?: InAppSink) {}
 
   async send(d: OutboundDelivery): Promise<DeliveryResult> {
     if (!this.sink) {

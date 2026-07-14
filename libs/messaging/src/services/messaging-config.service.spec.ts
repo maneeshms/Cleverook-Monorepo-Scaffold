@@ -74,8 +74,18 @@ describe('MessagingConfigService', () => {
 
   describe('routeFor', () => {
     const routeRows = [
-      { channel: Channel.EMAIL, useCase: null, primaryProviderKey: 'resend', fallbackProviderKey: 'console-email' },
-      { channel: Channel.EMAIL, useCase: 'otp', primaryProviderKey: 'console-email', fallbackProviderKey: null },
+      {
+        channel: Channel.EMAIL,
+        useCase: null,
+        primaryProviderKey: 'resend',
+        fallbackProviderKey: 'console-email',
+      },
+      {
+        channel: Channel.EMAIL,
+        useCase: 'otp',
+        primaryProviderKey: 'console-email',
+        fallbackProviderKey: null,
+      },
     ];
 
     it('prefers the use_case-scoped route, then the global route', async () => {
@@ -126,7 +136,10 @@ describe('MessagingConfigService', () => {
     it('provides built-in defaults for SMS, IN_APP and unknown channels', async () => {
       const { service } = makeService();
       await service.refresh();
-      expect(await service.routeFor(Channel.SMS)).toEqual({ primary: 'console-sms', fallback: null });
+      expect(await service.routeFor(Channel.SMS)).toEqual({
+        primary: 'console-sms',
+        fallback: null,
+      });
       expect(await service.routeFor(Channel.IN_APP)).toEqual({ primary: 'in-app', fallback: null });
       expect(await service.routeFor('CARRIER_PIGEON' as Channel)).toEqual({
         primary: 'console-email',
@@ -143,7 +156,9 @@ describe('MessagingConfigService', () => {
     getMany.mockRejectedValueOnce(new Error('db blip'));
     const provider = await service.getProvider('resend');
     expect(provider).not.toBeNull(); // stale data served
-    expect((service as never as { cacheExpiry: number }).cacheExpiry).toBeGreaterThan(Date.now() - 1);
+    expect((service as never as { cacheExpiry: number }).cacheExpiry).toBeGreaterThan(
+      Date.now() - 1,
+    );
   });
 
   it('re-reads the DB once the cache expires', async () => {
