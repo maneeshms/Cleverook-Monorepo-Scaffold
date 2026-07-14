@@ -14,6 +14,10 @@ export class DatabaseFlagProvider extends BaseFlagProvider {
 
   private cache = new Map<string, FlagRecord>();
   private loadedAt = 0;
+  // Coalesces concurrent refreshes: requests that arrive while a refresh is in
+  // flight await the same promise instead of each firing its own `repo.find()`,
+  // avoiding a DB read spike every time the cache goes stale under load.
+  private refreshInFlight: Promise<void> | null = null;
 
   constructor(
     private readonly repo: Repository<FeatureFlag>,
@@ -28,6 +32,14 @@ export class DatabaseFlagProvider extends BaseFlagProvider {
 
   private async refreshIfStale(): Promise<void> {
     if (Date.now() - this.loadedAt < this.cacheTtlMs && this.loadedAt !== 0) return;
+    if (this.refreshInFlight) return this.refreshInFlight;
+    this.refreshInFlight = this.refresh().finally(() => {
+      this.refreshInFlight = null;
+    });
+    return this.refreshInFlight;
+  }
+
+  private async refresh(): Promise<void> {
     const rows = await this.repo.find();
     this.cache = new Map(
       rows.map((r) => [

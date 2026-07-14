@@ -16,7 +16,13 @@ jobs:
     # CodeQL uploads results to code scanning (GitHub Advanced Security; free on
     # public repos). Set repo variable ENABLE_CODE_SCANNING=true once it's enabled
     # — until then this job is skipped so CI stays green on repos without it.
-    if: vars.ENABLE_CODE_SCANNING == 'true'
+    # Fork PRs are skipped too: their read-only token can't upload SARIF, so the
+    # analyze job would fail once the repo is public and takes fork contributions
+    # (push + weekly schedule still cover the default branch).
+    if: >-
+      vars.ENABLE_CODE_SCANNING == 'true' &&
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
     permissions:
       security-events: write
       actions: read

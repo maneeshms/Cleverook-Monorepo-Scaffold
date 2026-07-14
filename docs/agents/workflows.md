@@ -35,11 +35,12 @@ hardcoded version. e2e JWT secrets are generated per-run (`openssl rand`), never
 committed. The Docker image tag is derived from the repo name (lowercased).
 
 **Dependabot** (`.github/dependabot.yml`) — weekly npm (root + each frontend),
-GitHub Actions, and Docker base images. Related packages are grouped, and **every
-major bump is funnelled into one isolated `major-updates` PR** per ecosystem, so
-routine minor/patch updates stay safe to merge while risky majors are reviewed (or
-held) deliberately. To drop majors entirely, swap the `major-updates` group for an
-`ignore` rule (documented inline). `init.mjs` prunes the ORM/frontend app blocks so
+GitHub Actions, and Docker base images. Related packages are grouped, and for the
+**npm** ecosystems **every major bump is funnelled into one isolated `major-updates`
+PR**, so routine minor/patch updates stay safe to merge while risky majors are
+reviewed (or held) deliberately. GitHub Actions / Docker bumps are low-risk tag
+moves and stay grouped. To drop npm majors entirely, swap the `major-updates` group
+for an `ignore` rule (documented inline). `init.mjs` prunes the ORM/frontend app blocks so
 a generated project only watches the apps it actually has.
 
 Reproduce locally before pushing:

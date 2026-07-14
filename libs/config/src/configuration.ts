@@ -88,5 +88,9 @@ export const featureFlagsConfig = registerAs('featureFlags', () => ({
   // (LaunchDarkly, Flagsmith, ...) later without touching call sites.
   provider: (process.env.FEATURE_FLAG_PROVIDER ?? 'env').toLowerCase(),
   // How long the database provider caches flags in memory before re-reading.
-  cacheTtlMs: parseInt(process.env.FEATURE_FLAG_CACHE_TTL_MS ?? '30000', 10) || 30000,
+  // Explicit NaN check (not `|| 30000`) so a configured 0 (caching disabled) is
+  // preserved; only invalid/missing input falls back to the default.
+  cacheTtlMs: ((v) => (Number.isFinite(v) && v >= 0 ? v : 30000))(
+    parseInt(process.env.FEATURE_FLAG_CACHE_TTL_MS ?? '30000', 10),
+  ),
 }));

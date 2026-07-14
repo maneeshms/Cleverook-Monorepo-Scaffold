@@ -172,9 +172,10 @@ import { HealthModule } from './health/health.module';
     HealthModule,
   ],
   providers: [
-    // Guard chain (order matters): Throttle → JwtAuth → Roles.
+    // Global guards run in registration order; Throttle is always first.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     // clevscaffold:auth:start
+    // …then the auth chain: JwtAuth (authenticate) → Roles (authorize).
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     // clevscaffold:auth:end

@@ -78,13 +78,18 @@ async function bootstrap() {
       .setTitle('ClevScaffold API')
       .setDescription(
         'ClevScaffold reference API (TypeORM).\n\n' +
+          // clevscaffold:auth:start
           '**Authentication:** Bearer JWT via `Authorization: Bearer <token>`.\n' +
           'Obtain tokens via POST /api/v1/auth/login or /api/v1/auth/register.\n\n' +
-          'Prometheus metrics: GET /api/v1/metrics (see METRICS_* config).',
+          // clevscaffold:auth:end
+          // clevscaffold:metrics:start
+          'Prometheus metrics: GET /api/v1/metrics (see METRICS_* config).' +
+          // clevscaffold:metrics:end
+          '',
       )
       .setVersion('1.0.0')
-      .addBearerAuth()
       // clevscaffold:auth:start
+      .addBearerAuth()
       .addTag('auth', 'Registration, login, token refresh, logout')
       .addTag('users', 'Profile, GDPR export, account deletion, admin listing')
       // clevscaffold:auth:end

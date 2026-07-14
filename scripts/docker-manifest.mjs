@@ -39,9 +39,24 @@ function collect(dir) {
   seen.add(dir);
   for (const [name, ver] of Object.entries(readPkg(dir).dependencies ?? {})) {
     if (name.startsWith('@clevscaffold/')) {
-      if (nameToDir[name]) collect(nameToDir[name]);
+      // A workspace dep that resolves to no lib dir means a typo or a missing
+      // package — silently dropping it would ship an incomplete manifest.
+      if (!nameToDir[name]) {
+        throw new Error(
+          `docker-manifest: ${dir} depends on ${name}, which resolves to no workspace package.`,
+        );
+      }
+      collect(nameToDir[name]);
+    } else if (deps[name] && deps[name] !== ver) {
+      // Two packages pin the same external dep to different versions — the flat
+      // runtime manifest can only carry one, so fail loudly instead of silently
+      // picking whichever was collected last.
+      throw new Error(
+        `docker-manifest: version conflict for ${name} — ${deps[name]} vs ${ver}. ` +
+          `Pin it to the same exact version across all packages.`,
+      );
     } else {
-      deps[name] = ver; // exact pins are consistent across packages
+      deps[name] = ver;
     }
   }
 }

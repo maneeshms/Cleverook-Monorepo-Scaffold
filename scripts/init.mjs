@@ -241,10 +241,11 @@ export default function App() {
  * Requests are same-origin to /api/v1/* (see the Vite dev proxy).
  */
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(\`/api/v1\${path}\`, {
-    ...init,
-    headers: { 'Content-Type': 'application/json', ...(init.headers as Record<string, string>) },
-  });
+  // Normalize via Headers so a caller passing a Headers instance, a plain
+  // object, or an entries array (all valid RequestInit.headers) works the same.
+  const headers = new Headers(init.headers);
+  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  const res = await fetch(\`/api/v1\${path}\`, { ...init, headers });
   if (!res.ok) throw new Error(\`Request failed (\${res.status})\`);
   return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
 }
