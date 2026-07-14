@@ -12,6 +12,6 @@
     "@nestjs/typeorm": "11.0.3",
     "bullmq": "5.80.2",
     "resend": "6.17.1",
-    "typeorm": "1.0.0"
+    "typeorm": "1.1.0"
   }
 }

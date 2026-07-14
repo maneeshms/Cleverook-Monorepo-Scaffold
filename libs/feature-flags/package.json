@@ -13,6 +13,6 @@
     "@nestjs/typeorm": "11.0.3",
     "@openfeature/server-sdk": "1.22.0",
     "class-validator": "0.14.4",
-    "typeorm": "1.0.0"
+    "typeorm": "1.1.0"
   }
 }
