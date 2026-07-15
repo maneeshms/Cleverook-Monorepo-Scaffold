@@ -47,6 +47,7 @@ describe('configuration namespaces', () => {
         'RETENTION_SOFT_DELETED_USER_DAYS',
         'RETENTION_NOTIFICATION_DAYS',
         'RETENTION_MESSAGE_DELIVERY_DAYS',
+        'RETENTION_DEVICE_TOKEN_DAYS',
         'RETENTION_CRON',
       ]) {
         delete process.env[k];
@@ -59,6 +60,7 @@ describe('configuration namespaces', () => {
         softDeletedUserGraceDays: 30,
         notificationDays: 180,
         messageDeliveryDays: 90,
+        deviceTokenDays: 270,
       });
       expect(cfg.retentionCron).toBe(true);
     });
@@ -167,6 +169,20 @@ describe('configuration namespaces', () => {
       expect(cfg.resend.fromName).toBe('ClevScaffold');
       expect(cfg.emailProviderOverride).toBe('');
       expect(cfg.encryptionKey).toBe('');
+    });
+
+    it('reads the FCM push fallback and push override', () => {
+      delete process.env.FCM_SERVICE_ACCOUNT_JSON;
+      delete process.env.MESSAGING_PUSH_PROVIDER;
+      const empty = messagingConfig();
+      expect(empty.fcm.serviceAccountJson).toBe('');
+      expect(empty.pushProviderOverride).toBe('');
+
+      process.env.FCM_SERVICE_ACCOUNT_JSON = 'eyJmYWtlIjoi';
+      process.env.MESSAGING_PUSH_PROVIDER = 'console-push';
+      const cfg = messagingConfig();
+      expect(cfg.fcm.serviceAccountJson).toBe('eyJmYWtlIjoi');
+      expect(cfg.pushProviderOverride).toBe('console-push');
     });
   });
 

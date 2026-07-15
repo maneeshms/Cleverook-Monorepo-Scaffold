@@ -4,14 +4,18 @@ import { MessagingProviderConfig } from './entities/messaging-provider-config.en
 import { MessagingChannelRoute } from './entities/messaging-channel-route.entity';
 import { MessageTemplate } from './entities/message-template.entity';
 import { MessageDelivery } from './entities/message-delivery.entity';
+import { DeviceToken } from './entities/device-token.entity';
 import { MessagingConfigService } from './services/messaging-config.service';
 import { TemplateService } from './services/template.service';
 import { DeliveryQueueService } from './services/delivery-queue.service';
 import { MessagingService } from './services/messaging.service';
+import { DeviceTokenService } from './services/device-token.service';
 import { ResendEmailProvider } from './providers/resend-email.provider';
 import { ConsoleEmailProvider } from './providers/console-email.provider';
 import { ConsoleSmsProvider } from './providers/console-sms.provider';
 import { InAppProvider } from './providers/in-app.provider';
+import { FcmPushProvider } from './providers/fcm-push.provider';
+import { ConsolePushProvider } from './providers/console-push.provider';
 import { CHANNEL_PROVIDERS } from './interfaces/channel-provider.interface';
 import { MESSAGING_OPTIONS, MessagingModuleAsyncOptions } from './messaging.options';
 
@@ -42,6 +46,7 @@ export class MessagingModule {
           MessagingChannelRoute,
           MessageTemplate,
           MessageDelivery,
+          DeviceToken,
         ]),
       ],
       providers: [
@@ -54,10 +59,13 @@ export class MessagingModule {
         TemplateService,
         DeliveryQueueService,
         MessagingService,
+        DeviceTokenService,
         ResendEmailProvider,
         ConsoleEmailProvider,
         ConsoleSmsProvider,
         InAppProvider,
+        FcmPushProvider,
+        ConsolePushProvider,
         {
           provide: CHANNEL_PROVIDERS,
           useFactory: (
@@ -65,11 +73,20 @@ export class MessagingModule {
             consoleEmail: ConsoleEmailProvider,
             consoleSms: ConsoleSmsProvider,
             inApp: InAppProvider,
-          ) => [resend, consoleEmail, consoleSms, inApp],
-          inject: [ResendEmailProvider, ConsoleEmailProvider, ConsoleSmsProvider, InAppProvider],
+            fcmPush: FcmPushProvider,
+            consolePush: ConsolePushProvider,
+          ) => [resend, consoleEmail, consoleSms, inApp, fcmPush, consolePush],
+          inject: [
+            ResendEmailProvider,
+            ConsoleEmailProvider,
+            ConsoleSmsProvider,
+            InAppProvider,
+            FcmPushProvider,
+            ConsolePushProvider,
+          ],
         },
       ],
-      exports: [MessagingService, MessagingConfigService],
+      exports: [MessagingService, MessagingConfigService, DeviceTokenService],
     };
   }
 }

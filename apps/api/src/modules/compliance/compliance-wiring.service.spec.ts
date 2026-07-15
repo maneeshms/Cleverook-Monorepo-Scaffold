@@ -8,6 +8,7 @@ describe('ComplianceWiringService', () => {
   // clevscaffold:tasks:end
   // clevscaffold:messaging:start
   let notifications: any;
+  let deviceTokens: any;
   // clevscaffold:messaging:end
   let personalData: PersonalDataRegistry;
   let retention: RetentionRegistry;
@@ -32,6 +33,11 @@ describe('ComplianceWiringService', () => {
       find: jest.fn().mockResolvedValue([{ id: 'n1' }]),
       delete: jest.fn().mockResolvedValue({ affected: 3 }),
     };
+    deviceTokens = {
+      listForUser: jest.fn().mockResolvedValue([{ id: 'd1', platform: 'ANDROID' }]),
+      eraseForUser: jest.fn().mockResolvedValue(2),
+      purgeStale: jest.fn().mockResolvedValue(4),
+    };
     // clevscaffold:messaging:end
     personalData = new PersonalDataRegistry();
     retention = new RetentionRegistry();
@@ -44,6 +50,7 @@ describe('ComplianceWiringService', () => {
       // clevscaffold:tasks:end
       // clevscaffold:messaging:start
       notifications,
+      deviceTokens,
       // clevscaffold:messaging:end
     );
     service.onModuleInit();
@@ -114,6 +121,20 @@ describe('ComplianceWiringService', () => {
     expect(target.windowDays({ notificationDays: 180 } as any)).toBe(180);
     notifications.delete.mockResolvedValue({});
     expect(await target.purge(new Date())).toBe(0);
+  });
+
+  it('registers the devices contributor + stale-token retention', async () => {
+    const c = personalData.list().find((x) => x.key === 'devices')!;
+    await c.collect('u1');
+    expect(deviceTokens.listForUser).toHaveBeenCalledWith('u1');
+    expect(await c.erase('u1')).toBe(2);
+    expect(deviceTokens.eraseForUser).toHaveBeenCalledWith('u1');
+
+    const target = retention.list().find((x) => x.key === 'device-tokens')!;
+    const cutoff = new Date('2026-01-01');
+    expect(await target.purge(cutoff)).toBe(4);
+    expect(deviceTokens.purgeStale).toHaveBeenCalledWith(cutoff);
+    expect(target.windowDays({ deviceTokenDays: 270 } as any)).toBe(270);
   });
   // clevscaffold:messaging:end
 });

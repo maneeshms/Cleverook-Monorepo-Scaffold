@@ -1,6 +1,7 @@
 import { Channel } from '../enums/channel.enum';
 import { ConsoleEmailProvider } from './console-email.provider';
 import { ConsoleSmsProvider } from './console-sms.provider';
+import { ConsolePushProvider } from './console-push.provider';
 import { InAppProvider } from './in-app.provider';
 import { ResendEmailProvider } from './resend-email.provider';
 
@@ -50,6 +51,35 @@ describe('ConsoleSmsProvider', () => {
     expect(withText.ok).toBe(true);
     const empty = await provider.send({ channel: Channel.SMS, to: '+15550001' });
     expect(empty.ok).toBe(true);
+    logSpy.mockRestore();
+  });
+});
+
+describe('ConsolePushProvider', () => {
+  it('prints a masked token with title/body and succeeds', async () => {
+    const logSpy = jest.spyOn(console, 'log').mockImplementation();
+    const provider = new ConsolePushProvider();
+    expect(provider.channels).toEqual([Channel.PUSH]);
+    const result = await provider.send({
+      channel: Channel.PUSH,
+      to: 'a-long-fcm-registration-token',
+      subject: 'New task',
+      body: 'Ship it',
+    });
+    expect(result.ok).toBe(true);
+    expect(result.providerMessageId).toMatch(/^console-/);
+    const printed = logSpy.mock.calls[0][0] as string;
+    expect(printed).toContain('a-long-f…'); // token masked, never printed whole
+    expect(printed).not.toContain('a-long-fcm-registration-token');
+    expect(printed).toContain('New task');
+    logSpy.mockRestore();
+  });
+
+  it('handles short tokens and missing title/body gracefully', async () => {
+    const logSpy = jest.spyOn(console, 'log').mockImplementation();
+    const result = await new ConsolePushProvider().send({ channel: Channel.PUSH, to: 'short' });
+    expect(result.ok).toBe(true);
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('(no title)'));
     logSpy.mockRestore();
   });
 });

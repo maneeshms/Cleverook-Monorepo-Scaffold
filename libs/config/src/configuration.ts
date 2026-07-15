@@ -69,6 +69,14 @@ export const messagingConfig = registerAs('messaging', () => ({
   // Route resolution order: DB route row → this override → default
   // (resend when an API key is present, else console-email).
   emailProviderOverride: process.env.MESSAGING_EMAIL_PROVIDER ?? '',
+  // FCM push (Android + iOS via APNs relay + Web): the Firebase service-account
+  // JSON, raw or base64-encoded. Empty ⇒ PUSH routes to console-push.
+  fcm: {
+    serviceAccountJson: process.env.FCM_SERVICE_ACCOUNT_JSON ?? '',
+  },
+  // Route resolution order: DB route row → this override → default
+  // (fcm when a service account is present, else console-push).
+  pushProviderOverride: process.env.MESSAGING_PUSH_PROVIDER ?? '',
   // Key for encrypting DB-stored provider credentials (AES-256-GCM).
   // Falls back to JWT_ACCESS_SECRET — set MESSAGING_ENCRYPTION_KEY in prod.
   encryptionKey: process.env.MESSAGING_ENCRYPTION_KEY ?? '',
@@ -111,6 +119,8 @@ export const complianceConfig = registerAs('compliance', () => {
       softDeletedUserGraceDays: int(process.env.RETENTION_SOFT_DELETED_USER_DAYS, 30),
       notificationDays: int(process.env.RETENTION_NOTIFICATION_DAYS, 180),
       messageDeliveryDays: int(process.env.RETENTION_MESSAGE_DELIVERY_DAYS, 90),
+      // FCM guidance: treat tokens unseen for >270 days as stale.
+      deviceTokenDays: int(process.env.RETENTION_DEVICE_TOKEN_DAYS, 270),
     },
     // Run the built-in daily retention cron. Set to 'false' to drive it externally.
     retentionCron: (process.env.RETENTION_CRON ?? 'true').toLowerCase() !== 'false',

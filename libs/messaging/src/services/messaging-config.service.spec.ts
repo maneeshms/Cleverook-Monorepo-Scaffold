@@ -146,6 +146,35 @@ describe('MessagingConfigService', () => {
         fallback: null,
       });
     });
+
+    it('defaults PUSH by FCM service-account presence — no console fallback when real', async () => {
+      const withFcm = makeService({ options: { fcm: { serviceAccountJson: '{"x":1}' } } }).service;
+      await withFcm.refresh();
+      // fallback stays null so a failed real send surfaces as FAILED (and dead
+      // tokens get pruned) instead of being masked by a console "success".
+      expect(await withFcm.routeFor(Channel.PUSH)).toEqual({ primary: 'fcm', fallback: null });
+
+      const withoutFcm = makeService().service;
+      await withoutFcm.refresh();
+      expect(await withoutFcm.routeFor(Channel.PUSH)).toEqual({
+        primary: 'console-push',
+        fallback: null,
+      });
+    });
+
+    it('honours the pushProviderOverride switch', async () => {
+      const { service } = makeService({
+        options: {
+          fcm: { serviceAccountJson: '{"x":1}' },
+          pushProviderOverride: 'console-push',
+        },
+      });
+      await service.refresh();
+      expect(await service.routeFor(Channel.PUSH)).toEqual({
+        primary: 'console-push',
+        fallback: null,
+      });
+    });
   });
 
   it('keeps the stale cache and backs off when a refresh fails', async () => {

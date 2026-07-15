@@ -7,6 +7,7 @@ import { User } from '../users/entities/user.entity';
 import { Task } from '../tasks/entities/task.entity';
 // clevscaffold:tasks:end
 // clevscaffold:messaging:start
+import { DeviceTokenService } from '@clevrook/messaging';
 import { Notification } from '../notifications/entities/notification.entity';
 // clevscaffold:messaging:end
 
@@ -34,6 +35,7 @@ export class ComplianceWiringService implements OnModuleInit {
     // clevscaffold:messaging:start
     @InjectRepository(Notification)
     private readonly notifications: Repository<Notification>,
+    private readonly deviceTokens: DeviceTokenService,
     // clevscaffold:messaging:end
   ) {}
 
@@ -44,6 +46,7 @@ export class ComplianceWiringService implements OnModuleInit {
     // clevscaffold:tasks:end
     // clevscaffold:messaging:start
     this.registerNotifications();
+    this.registerDevices();
     // clevscaffold:messaging:end
   }
 
@@ -129,6 +132,23 @@ export class ComplianceWiringService implements OnModuleInit {
         const res = await this.notifications.delete({ createdAt: LessThan(olderThan) });
         return res.affected ?? 0;
       },
+    });
+  }
+
+  /** Push device tokens are personal data (they identify a person's device). */
+  private registerDevices(): void {
+    this.personalData.register({
+      key: 'devices',
+      collect: (userId) => this.deviceTokens.listForUser(userId),
+      erase: (userId) => this.deviceTokens.eraseForUser(userId),
+    });
+
+    // Storage limitation + FCM hygiene: registrations unseen past the window
+    // are dead weight (uninstalled apps) and get purged.
+    this.retention.register({
+      key: 'device-tokens',
+      windowDays: (p) => p.deviceTokenDays,
+      purge: (olderThan) => this.deviceTokens.purgeStale(olderThan),
     });
   }
   // clevscaffold:messaging:end

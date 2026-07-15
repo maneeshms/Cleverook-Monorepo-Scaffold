@@ -26,7 +26,7 @@ once — and `scripts/init.mjs` strips it down to just what your project needs.
 | **Security**       | helmet, strict CORS, validated DTOs, parameterized queries, audit/alert logging, OWASP e2e + a 49-check runtime scanner (baseline 49/49).                                       |
 | **Scale**          | Stateless apps, Redis-backed throttling + BullMQ queue, health/readiness probes, graceful shutdown, Prometheus metrics.                                                         |
 | **Quality gates**  | Unit coverage floor **≥ 90%** (enforced), full e2e, ESLint 9 flat config, CI for build/test/e2e/docker/security (CodeQL + dependency-review opt-in via `ENABLE_CODE_SCANNING`). |
-| **Messaging**      | Omnichannel `libs/messaging` (channels/providers/routing/templates/queue), Resend email + console fallback, in-app sink.                                                        |
+| **Messaging**      | Omnichannel `libs/messaging` (channels/providers/routing/templates/queue), Resend email, FCM device push (Android/iOS/Web) with token registry + auto-prune, in-app sink.       |
 | **Agent-ready**    | `AGENTS.md` canonical + `docs/agents/*` topic docs + adapters for Claude, Cursor, and Copilot.                                                                                  |
 
 ## Quick start
@@ -49,6 +49,7 @@ Full walkthrough: **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**.
 - [TESTING](docs/TESTING.md) — unit, e2e, coverage, the OWASP scanner
 - [SECURITY](docs/SECURITY.md) — threat→control map + scanner baseline
 - [COMPLIANCE](docs/COMPLIANCE.md) — SOC 2 / GDPR / ISO 27001 control map + `--with-compliance`
+- [PUSH_NOTIFICATIONS](docs/PUSH_NOTIFICATIONS.md) — Android/iOS/Web device push via FCM
 - [DEPLOYMENT](docs/DEPLOYMENT.md) — Railway, per app
 - [SCALING](docs/SCALING.md) — horizontal scale-out checklist
 - [ARCHITECTURE](docs/ARCHITECTURE.md) — the big picture

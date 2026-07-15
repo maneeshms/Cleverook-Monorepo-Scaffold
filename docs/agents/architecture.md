@@ -98,6 +98,9 @@ Per key, first hit wins:
 - **Messaging:** channels/providers/routing/templates + queue fan-out. Resend email
   with console-email fallback (no provider key ⇒ logged, not sent). IN_APP channel
   writes through a host-provided `IN_APP_SINK` (the api's `NotificationsService`).
+  PUSH channel: FCM HTTP v1 (Android/iOS/Web, zero-dep OAuth) over the
+  `device_tokens` registry — per-user fan-out, dead-token auto-prune,
+  `console-push` fallback when unconfigured. See `docs/PUSH_NOTIFICATIONS.md`.
 
 ## How to extend
 

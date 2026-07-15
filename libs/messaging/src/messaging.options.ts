@@ -23,6 +23,16 @@ export interface MessagingModuleOptions {
    * overriding the DB route. The "no-surprise" switch between real send and console.
    */
   emailProviderOverride?: string | null;
+  /**
+   * Env/boot fallback for the FCM push provider (DB config takes precedence).
+   * The Firebase service-account JSON, raw or base64-encoded — one credential
+   * covers Android, iOS (via Google's APNs relay), and Web.
+   */
+  fcm?: {
+    serviceAccountJson?: string;
+  };
+  /** Forces the PUSH channel to a specific provider key (e.g. 'console-push'). */
+  pushProviderOverride?: string | null;
 }
 
 /** DI token for the resolved {@link MessagingModuleOptions}. */

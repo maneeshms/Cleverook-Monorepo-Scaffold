@@ -129,7 +129,11 @@ const CAPABILITIES = {
     flag: 'with-messaging',
     requires: ['auth'], // notifications.user_id FK → users
     dirs: ['apps/api/src/modules/notifications', 'libs/messaging'],
-    migrations: ['1750000000001-AddMessagingTables.ts', '1750000000002-AddNotifications.ts'],
+    migrations: [
+      '1750000000001-AddMessagingTables.ts',
+      '1750000000002-AddNotifications.ts',
+      '1750000000006-AddDeviceTokens.ts',
+    ],
     tsPaths: [`${OLD_SCOPE}/messaging`],
     pkgDeps: [{ file: 'apps/api/package.json', dep: `${OLD_SCOPE}/messaging` }],
   },

@@ -441,5 +441,10 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateEntry> = {
     [Channel.IN_APP]: {
       text: `{{assignerName}} assigned you "{{taskTitle}}"`,
     },
+    // PUSH: subject → notification title, text → notification body (FCM).
+    [Channel.PUSH]: {
+      subject: 'New task from {{assignerName}}',
+      text: '{{taskTitle}}',
+    },
   },
 };

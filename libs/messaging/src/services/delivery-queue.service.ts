@@ -12,6 +12,7 @@ import {
 import { Channel } from '../enums/channel.enum';
 import { MessageDelivery, DeliveryStatus } from '../entities/message-delivery.entity';
 import { MESSAGING_OPTIONS, MessagingModuleOptions } from '../messaging.options';
+import { DeviceTokenService } from './device-token.service';
 
 const QUEUE_NAME = 'messaging';
 
@@ -61,6 +62,7 @@ export class DeliveryQueueService implements OnModuleInit, OnModuleDestroy {
     private readonly options: MessagingModuleOptions,
     private readonly redis: RedisService,
     private readonly logger: LoggerService,
+    private readonly deviceTokens: DeviceTokenService,
   ) {}
 
   onModuleInit(): void {
@@ -140,6 +142,15 @@ export class DeliveryQueueService implements OnModuleInit, OnModuleDestroy {
         undefined,
         'Messaging',
       );
+      // A dead device token is permanent (uninstall / token rotation) — prune
+      // the registration so future dispatches stop fanning out to it.
+      if (job.delivery.channel === Channel.PUSH && record.error?.startsWith('UNREGISTERED')) {
+        await this.deviceTokens.removeToken(job.delivery.to).catch(() => undefined);
+        this.logger.log(
+          `Pruned dead push token (${this.mask(Channel.PUSH, job.delivery.to)})`,
+          'Messaging',
+        );
+      }
     }
   }
 
@@ -173,6 +184,9 @@ export class DeliveryQueueService implements OnModuleInit, OnModuleDestroy {
     }
     if (channel === Channel.SMS || channel === Channel.WHATSAPP) {
       return to.length > 4 ? `${to.slice(0, 2)}****${to.slice(-2)}` : '****';
+    }
+    if (channel === Channel.PUSH) {
+      return to.length > 12 ? `${to.slice(0, 6)}…${to.slice(-4)}` : '****';
     }
     return to;
   }

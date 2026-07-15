@@ -3,6 +3,7 @@ import { MESSAGING_OPTIONS } from './messaging.options';
 import { CHANNEL_PROVIDERS } from './interfaces/channel-provider.interface';
 import { ConsoleEmailProvider } from './providers/console-email.provider';
 import { ConsoleSmsProvider } from './providers/console-sms.provider';
+import { ConsolePushProvider } from './providers/console-push.provider';
 import { InAppProvider } from './providers/in-app.provider';
 
 describe('MessagingModule.forRootAsync', () => {
@@ -35,12 +36,23 @@ describe('MessagingModule.forRootAsync', () => {
     const consoleEmail = new ConsoleEmailProvider();
     const consoleSms = new ConsoleSmsProvider();
     const inApp = new InAppProvider(undefined);
-    const collected = providersFactory.useFactory(resend, consoleEmail, consoleSms, inApp);
+    const fcmPush = { key: 'fcm' };
+    const consolePush = new ConsolePushProvider();
+    const collected = providersFactory.useFactory(
+      resend,
+      consoleEmail,
+      consoleSms,
+      inApp,
+      fcmPush,
+      consolePush,
+    );
     expect(collected.map((p: { key: string }) => p.key)).toEqual([
       'resend',
       'console-email',
       'console-sms',
       'in-app',
+      'fcm',
+      'console-push',
     ]);
   });
 

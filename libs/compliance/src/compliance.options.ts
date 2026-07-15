@@ -14,6 +14,8 @@ export interface RetentionPolicy {
   notificationDays?: number;
   /** Delete message-delivery audit rows older than this. Default 90. */
   messageDeliveryDays?: number;
+  /** Delete push device tokens not seen since this (FCM staleness guidance). Default 270. */
+  deviceTokenDays?: number;
 }
 
 /**
@@ -63,4 +65,5 @@ export const DEFAULT_RETENTION: Required<RetentionPolicy> = {
   softDeletedUserGraceDays: 30,
   notificationDays: 180,
   messageDeliveryDays: 90,
+  deviceTokenDays: 270,
 };

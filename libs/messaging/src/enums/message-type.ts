@@ -45,7 +45,7 @@ export const MESSAGE_TYPE_DEFINITIONS: Record<MessageType, MessageTypeDefinition
     templateKey: 'PASSWORD_RESET',
   },
   [MessageType.TASK_ASSIGNED]: {
-    channels: [Channel.EMAIL, Channel.IN_APP],
+    channels: [Channel.EMAIL, Channel.IN_APP, Channel.PUSH],
     category: MessageCategory.TRANSACTIONAL,
     templateKey: 'TASK_ASSIGNED',
   },

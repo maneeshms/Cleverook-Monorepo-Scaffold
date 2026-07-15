@@ -154,6 +154,10 @@ import { HealthModule } from './health/health.module';
           fromName: config.get<string>('messaging.resend.fromName'),
         },
         emailProviderOverride: config.get<string>('messaging.emailProviderOverride') ?? null,
+        fcm: {
+          serviceAccountJson: config.get<string>('messaging.fcm.serviceAccountJson'),
+        },
+        pushProviderOverride: config.get<string>('messaging.pushProviderOverride') ?? null,
       }),
     }),
     NotificationsModule,

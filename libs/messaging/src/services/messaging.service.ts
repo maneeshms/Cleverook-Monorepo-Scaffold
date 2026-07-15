@@ -5,6 +5,7 @@ import { OutboundDelivery } from '../interfaces/channel-provider.interface';
 import { MessagingConfigService } from './messaging-config.service';
 import { TemplateService } from './template.service';
 import { DeliveryQueueService } from './delivery-queue.service';
+import { DeviceTokenService } from './device-token.service';
 
 export interface DispatchRecipient {
   email?: string | null;
@@ -39,6 +40,7 @@ export class MessagingService {
     private readonly configService: MessagingConfigService,
     private readonly templates: TemplateService,
     private readonly queue: DeliveryQueueService,
+    private readonly deviceTokens: DeviceTokenService,
   ) {}
 
   async dispatch(input: DispatchInput): Promise<void> {
@@ -69,8 +71,8 @@ export class MessagingService {
     channel: Channel,
     variables: Record<string, unknown>,
   ): Promise<void> {
-    const to = this.resolveDestination(channel, input);
-    if (!to) {
+    const destinations = await this.resolveDestinations(channel, input);
+    if (destinations.length === 0) {
       this.logger.debug(`Skipping ${channel} for ${input.messageType}: no contact point`);
       return;
     }
@@ -82,40 +84,49 @@ export class MessagingService {
       input.locale ?? 'en',
     );
 
-    const delivery: OutboundDelivery = {
-      channel,
-      to,
-      subject: rendered.subject,
-      html: rendered.html,
-      text: rendered.text,
-      body: rendered.text, // sms/whatsapp/in-app use the text part as the body
-      metadata: input.metadata,
-    };
-
     const route = await this.configService.routeFor(channel);
-    await this.queue.enqueue({
-      messageType: input.messageType,
-      userId: input.userId ?? null,
-      delivery,
-      providerKey: route.primary,
-      fallbackProviderKey: route.fallback,
-    });
+    // PUSH fans out to every registered device; other channels have one target.
+    await Promise.all(
+      destinations.map((to) => {
+        const delivery: OutboundDelivery = {
+          channel,
+          to,
+          subject: rendered.subject,
+          html: rendered.html,
+          text: rendered.text,
+          body: rendered.text, // sms/whatsapp/push/in-app use the text part as the body
+          metadata: input.metadata,
+        };
+        return this.queue.enqueue({
+          messageType: input.messageType,
+          userId: input.userId ?? null,
+          delivery,
+          providerKey: route.primary,
+          fallbackProviderKey: route.fallback,
+        });
+      }),
+    );
   }
 
-  private resolveDestination(channel: Channel, input: DispatchInput): string | null {
+  private async resolveDestinations(channel: Channel, input: DispatchInput): Promise<string[]> {
     const r = input.recipient ?? {};
     switch (channel) {
       case Channel.EMAIL:
-        return r.email ?? null;
+        return r.email ? [r.email] : [];
       case Channel.SMS:
       case Channel.WHATSAPP:
-        return r.phone ?? null;
-      case Channel.PUSH:
-        return r.pushToken ?? null;
+        return r.phone ? [r.phone] : [];
+      case Channel.PUSH: {
+        // An explicit token targets one device; otherwise every device the user
+        // registered (POST /notifications/devices) gets the notification.
+        if (r.pushToken) return [r.pushToken];
+        if (!input.userId) return [];
+        return this.deviceTokens.tokensForUser(input.userId);
+      }
       case Channel.IN_APP:
-        return input.userId ?? null;
+        return input.userId ? [input.userId] : [];
       default:
-        return null;
+        return [];
     }
   }
 }

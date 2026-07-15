@@ -126,6 +126,10 @@ export class MessagingConfigService implements OnModuleInit {
       const override = this.options.emailProviderOverride;
       if (override) route = { primary: override, fallback: route?.fallback ?? 'console-email' };
     }
+    if (channel === Channel.PUSH) {
+      const override = this.options.pushProviderOverride;
+      if (override) route = { primary: override, fallback: null };
+    }
 
     if (!route) {
       route = this.defaultRoute(channel);
@@ -141,6 +145,13 @@ export class MessagingConfigService implements OnModuleInit {
       }
       case Channel.SMS:
         return { primary: 'console-sms', fallback: null };
+      case Channel.PUSH: {
+        // No console fallback when FCM is configured: a failed real send must
+        // surface as FAILED (and prune dead tokens) — never be masked by a
+        // console "success".
+        const hasFcm = !!this.options.fcm?.serviceAccountJson;
+        return { primary: hasFcm ? 'fcm' : 'console-push', fallback: null };
+      }
       case Channel.IN_APP:
         return { primary: 'in-app', fallback: null };
       default:

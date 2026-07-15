@@ -122,6 +122,17 @@ export class EnvironmentVariables {
   @IsOptional()
   MESSAGING_EMAIL_PROVIDER?: string;
 
+  // Firebase service-account JSON (raw or base64) for FCM push — covers
+  // Android, iOS (APNs relay), and Web. Empty ⇒ PUSH routes to console-push.
+  @IsString()
+  @IsOptional()
+  FCM_SERVICE_ACCOUNT_JSON?: string;
+
+  // 'fcm' | 'console-push' — overrides the DB-configured route.
+  @IsString()
+  @IsOptional()
+  MESSAGING_PUSH_PROVIDER?: string;
+
   // AES-256-GCM key for provider credentials stored in the DB.
   // Falls back to JWT_ACCESS_SECRET when unset — set a dedicated key in prod.
   @IsString()
@@ -150,6 +161,10 @@ export class EnvironmentVariables {
   @IsString()
   @IsOptional()
   RETENTION_MESSAGE_DELIVERY_DAYS?: string;
+
+  @IsString()
+  @IsOptional()
+  RETENTION_DEVICE_TOKEN_DAYS?: string;
 
   @IsString()
   @IsOptional()

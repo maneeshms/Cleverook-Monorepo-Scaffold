@@ -57,14 +57,16 @@ const makeService = ({
     save: jest.fn().mockResolvedValue(undefined),
   };
   const logger = { log: jest.fn(), error: jest.fn() };
+  const deviceTokens = { removeToken: jest.fn().mockResolvedValue(undefined) };
   const service = new DeliveryQueueService(
     providers as never,
     deliveries as never,
     { encryptionKey: 'k', redisUrl } as never,
     { isEnabled: () => redisEnabled } as never,
     logger as never,
+    deviceTokens as never,
   );
-  return { service, deliveries, logger };
+  return { service, deliveries, logger, deviceTokens };
 };
 
 const job = (overrides: Partial<DeliveryJob> = {}): DeliveryJob => ({
@@ -164,6 +166,63 @@ describe('DeliveryQueueService — inline mode (no Redis)', () => {
     await service.enqueue(job({ delivery: { channel: Channel.IN_APP, to: 'user-42' } }));
     expect(deliveries.create).toHaveBeenLastCalledWith(
       expect.objectContaining({ toMasked: 'user-42' }),
+    );
+  });
+
+  it('masks push tokens in the audit row', async () => {
+    const primary = makeProvider('primary', { ok: true });
+    primary.channels = [Channel.PUSH];
+    const { service, deliveries } = makeService({ providers: [primary] });
+
+    await service.enqueue(
+      job({ delivery: { channel: Channel.PUSH, to: 'fcm-registration-token-abcd1234' } }),
+    );
+    expect(deliveries.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({ toMasked: 'fcm-re…1234' }),
+    );
+
+    await service.enqueue(job({ delivery: { channel: Channel.PUSH, to: 'short' } }));
+    expect(deliveries.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({ toMasked: '****' }),
+    );
+  });
+
+  it('prunes the device token when FCM reports it UNREGISTERED', async () => {
+    const primary = makeProvider('primary', {
+      ok: false,
+      error: 'UNREGISTERED: FCM rejected the token (404)',
+    });
+    primary.channels = [Channel.PUSH];
+    const { service, deviceTokens } = makeService({ providers: [primary] });
+    await service.enqueue(
+      job({ delivery: { channel: Channel.PUSH, to: 'dead-token-1234567890' } }),
+    );
+    expect(deviceTokens.removeToken).toHaveBeenCalledWith('dead-token-1234567890');
+  });
+
+  it('does NOT prune on ordinary push failures or non-push channels', async () => {
+    const push = makeProvider('primary', { ok: false, error: 'FCM send failed (500): boom' });
+    push.channels = [Channel.PUSH];
+    const { service, deviceTokens } = makeService({ providers: [push] });
+    await service.enqueue(job({ delivery: { channel: Channel.PUSH, to: 'alive-token-123456' } }));
+    expect(deviceTokens.removeToken).not.toHaveBeenCalled();
+
+    const email = makeProvider('primary', { ok: false, error: 'UNREGISTERED: weird' });
+    const second = makeService({ providers: [email] });
+    await second.service.enqueue(job());
+    expect(second.deviceTokens.removeToken).not.toHaveBeenCalled();
+  });
+
+  it('a failing prune never breaks delivery bookkeeping', async () => {
+    const primary = makeProvider('primary', { ok: false, error: 'UNREGISTERED: gone' });
+    primary.channels = [Channel.PUSH];
+    const { service, deliveries, deviceTokens } = makeService({ providers: [primary] });
+    deviceTokens.removeToken.mockRejectedValueOnce(new Error('db down'));
+    await expect(
+      service.enqueue(job({ delivery: { channel: Channel.PUSH, to: 'dead-token-1234567890' } })),
+    ).resolves.toBeUndefined();
+    expect(deliveries.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: DeliveryStatus.FAILED }),
     );
   });
 
