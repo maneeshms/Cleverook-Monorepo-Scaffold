@@ -48,3 +48,47 @@ jobs:
           npm run lint
           npm run build
           npm run test
+
+  # Evolution tools: a minimal project must be able to grow — add a capability
+  # later (scripts/add.mjs) and spawn new named apps (scripts/new-app.mjs).
+  evolve:
+    name: evolve (add + new-app in a generated project)
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - name: Generate a minimal auth-only project
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/gen && cp -R . /tmp/gen && cd /tmp/gen
+          node scripts/init.mjs --yes --name demo-app --scope @demo \
+            --orm typeorm --frontend none --mobile none \
+            --minimal --with-auth --no-install
+      - name: add.mjs — enable messaging from the pristine checkout
+        working-directory: /tmp/gen
+        run: |
+          set -euo pipefail
+          node scripts/add.mjs messaging --from "$GITHUB_WORKSPACE" --no-install
+          test -f docs/wiring-messaging.md
+          test -d libs/messaging
+          grep -q '"messaging"' .clevscaffold.json
+      - name: new-app.mjs — create a backend + a web app with custom names
+        working-directory: /tmp/gen
+        run: |
+          set -euo pipefail
+          node scripts/new-app.mjs --type api --name billing --port 3002 \
+            --from "$GITHUB_WORKSPACE" --no-install
+          node scripts/new-app.mjs --type vite --name storefront \
+            --from "$GITHUB_WORKSPACE" --no-install
+          grep -q 'apps/billing' package.json
+      - name: The evolved project still installs, builds, and tests green
+        working-directory: /tmp/gen
+        run: |
+          set -euo pipefail
+          npm install
+          npm run build
+          npm run test
+          npx nx build storefront
+          npx nx lint billing

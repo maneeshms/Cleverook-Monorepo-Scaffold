@@ -55,6 +55,11 @@ requires them again. The tasks demo is reference-only and is never included in a
 minimal app. A minimal Vite frontend is reduced to a health/landing page, and a
 minimal Expo mobile app to a health-check screen.
 
+**Starting minimal is not a one-way door.** Init records your choices in
+`.clevscaffold.json` and leaves `scripts/add.mjs` (enable a capability later)
+and `scripts/new-app.mjs` (create a new api/vite/next/expo app with a custom
+name) in the project — see [EVOLVING.md](EVOLVING.md).
+
 ## 2. Configure
 
 ```bash

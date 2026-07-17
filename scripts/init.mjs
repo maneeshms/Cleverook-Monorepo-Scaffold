@@ -6,6 +6,11 @@
  * the @clevrook scope, removes itself + the init-matrix workflow, regenerates
  * the lockfile, and verifies the result builds + tests green.
  *
+ * Generated projects can EVOLVE later: init writes `.clevscaffold.json`
+ * (scaffold origin + your choices) and keeps `scripts/add.mjs` (enable a
+ * capability later) and `scripts/new-app.mjs` (create a new api/vite/next/expo
+ * app) — see docs/EVOLVING.md.
+ *
  * Usage:
  *   node scripts/init.mjs                         # interactive
  *   node scripts/init.mjs --yes --name my-app --scope @myco \
@@ -35,181 +40,42 @@
  *   --no-install         skip npm install (lockfile not regenerated)
  *   --skip-verify        skip the build + test verification step
  */
-import { existsSync, rmSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { existsSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import {
+  OLD_SCOPE,
+  COMPONENTS,
+  ALL_CAPS,
+  MIGRATIONS_DIR,
+  CAPABILITIES,
+  CAP_SENTINEL_FILES,
+  RENAME_SKIP_FILES,
+  walkTextFiles,
+  rmrf as rmrfAt,
+  readJson as readJsonAt,
+  writeJson as writeJsonAt,
+  removePkgDep as removePkgDepAt,
+  stripSentinelBlocks as stripSentinelBlocksAt,
+  stripSentinelMarkers as stripSentinelMarkersAt,
+  rewriteArrayLiteral as rewriteArrayLiteralAt,
+  writeMinimalVite,
+  writeMinimalMobile,
+} from './scaffold-manifest.mjs';
 
 // fileURLToPath (not URL.pathname) so paths containing spaces resolve correctly.
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const OLD_SCOPE = '@clevrook';
-
-// ── Component manifest ──────────────────────────────────────────────────────
-// Each removable component lists what to delete when it is NOT selected. Runtime
-// deps live in each package's own package.json (npm workspaces), so removing a
-// component's directory removes its dependencies with it — no root-dep pruning.
-const COMPONENTS = {
-  typeorm: {
-    dirs: [
-      'apps/api',
-      'libs/database',
-      'libs/auth',
-      'libs/feature-flags',
-      'libs/messaging',
-      'scripts/seed-api.mjs',
-    ],
-    scripts: [
-      'dev:api',
-      'migration:generate',
-      'migration:create',
-      'migration:run',
-      'migration:revert',
-      'seed:api',
-    ],
-    tsPaths: [
-      `${OLD_SCOPE}/database`,
-      `${OLD_SCOPE}/auth`,
-      `${OLD_SCOPE}/feature-flags`,
-      `${OLD_SCOPE}/messaging`,
-    ],
-    sentinel: 'typeorm',
-    dockerApps: ['api'],
-  },
-  prisma: {
-    dirs: ['apps/api-prisma', 'prisma.config.ts'],
-    scripts: [
-      'dev:api-prisma',
-      'prisma:generate',
-      'prisma:migrate',
-      'prisma:deploy',
-      'prisma:seed',
-      'prisma:studio',
-    ],
-    tsPaths: [],
-    sentinel: 'prisma',
-    dockerApps: ['api-prisma'],
-  },
-  vite: {
-    dirs: ['apps/web'],
-    scripts: ['dev:web'],
-    tsPaths: [],
-    excludes: ['apps/web'],
-    dockerApps: ['web'],
-    auditDirs: ['apps/web'],
-  },
-  next: {
-    dirs: ['apps/web-next'],
-    scripts: ['dev:web-next'],
-    tsPaths: [],
-    excludes: ['apps/web-next'],
-    dockerApps: ['web-next'],
-    auditDirs: ['apps/web-next'],
-  },
-  // Expo React Native app — standalone (own lockfile), no Docker image (ships
-  // through app stores / EAS, not containers), hence no dockerApps entry.
-  expo: {
-    dirs: ['apps/mobile'],
-    scripts: ['dev:mobile'],
-    tsPaths: [],
-    excludes: ['apps/mobile'],
-    auditDirs: ['apps/mobile'],
-  },
-};
-
-// ── Capability manifest (minimal-app generator) ─────────────────────────────
-// Capabilities layer on top of the core skeleton. `--minimal` starts core-only;
-// `--with-*` flags re-add them. Dropping a capability strips its <token> sentinel
-// blocks from the shared files below and deletes its module dirs / migrations /
-// lib path aliases / package deps. `tasks` is a reference-only demo — always
-// dropped in a minimal app, never re-addable via a flag. Tokens are single
-// lowercase words (the marker-cleanup regex is [a-z]+).
-const ALL_CAPS = ['auth', 'messaging', 'featureflags', 'metrics', 'compliance', 'tasks'];
-const MIGRATIONS_DIR = 'libs/database/src/migrations';
-const CAPABILITIES = {
-  auth: {
-    flag: 'with-auth',
-    dirs: [
-      'libs/auth',
-      'apps/api/src/modules/auth',
-      'apps/api/src/modules/users',
-      'apps/api-prisma/src/modules/auth',
-      'apps/api-prisma/src/modules/users',
-      'apps/api-prisma/prisma/migrations/20260711222513_init',
-    ],
-    files: ['apps/api-prisma/prisma/seed.ts'],
-    migrations: ['1750000000000-InitUsersAndSessions.ts'],
-    tsPaths: [`${OLD_SCOPE}/auth`],
-    pkgDeps: [{ file: 'apps/api/package.json', dep: `${OLD_SCOPE}/auth` }],
-    scripts: ['prisma:seed'],
-  },
-  messaging: {
-    flag: 'with-messaging',
-    requires: ['auth'], // notifications.user_id FK → users
-    dirs: ['apps/api/src/modules/notifications', 'libs/messaging'],
-    migrations: [
-      '1750000000001-AddMessagingTables.ts',
-      '1750000000002-AddNotifications.ts',
-      '1750000000006-AddDeviceTokens.ts',
-    ],
-    tsPaths: [`${OLD_SCOPE}/messaging`],
-    pkgDeps: [{ file: 'apps/api/package.json', dep: `${OLD_SCOPE}/messaging` }],
-  },
-  featureflags: {
-    flag: 'with-feature-flags',
-    dirs: ['libs/feature-flags'],
-    migrations: ['1750000000003-AddFeatureFlags.ts'],
-    tsPaths: [`${OLD_SCOPE}/feature-flags`],
-    pkgDeps: [{ file: 'apps/api/package.json', dep: `${OLD_SCOPE}/feature-flags` }],
-  },
-  // MetricsModule lives in libs/common (kept); only app wiring + env are gated.
-  metrics: { flag: 'with-metrics' },
-  compliance: {
-    flag: 'with-compliance',
-    requires: ['auth'], // wiring reads the users table; personal data is per-user
-    dirs: ['libs/compliance', 'apps/api/src/modules/compliance'],
-    migrations: ['1750000000005-AddCompliance.ts'],
-    tsPaths: [`${OLD_SCOPE}/compliance`],
-    pkgDeps: [{ file: 'apps/api/package.json', dep: `${OLD_SCOPE}/compliance` }],
-  },
-  // Reference-only CRUD demo. Never user-selectable; always dropped in --minimal.
-  tasks: { dirs: ['apps/api/src/modules/tasks'], migrations: ['1750000000004-AddTasks.ts'] },
-};
-// Shared files that carry capability <token> sentinel blocks.
-const CAP_SENTINEL_FILES = [
-  'apps/api/src/app.module.ts',
-  'apps/api/src/main.ts',
-  'apps/api/src/modules/auth/app-auth.service.ts',
-  'apps/api/src/modules/auth/app-auth.service.spec.ts',
-  // Compliance wiring carries internal tasks/messaging sentinels (it registers
-  // those modules' personal data) — prune them when those capabilities are off.
-  'apps/api/src/modules/compliance/compliance-wiring.service.ts',
-  'apps/api/src/modules/compliance/compliance-wiring.service.spec.ts',
-  'apps/api/src/modules/compliance/compliance-wiring.module.ts',
-  'apps/api-prisma/src/app.module.ts',
-  'apps/api-prisma/prisma/schema.prisma',
-  '.env.example',
-];
-
-const TEXT_EXT = new Set([
-  '.ts',
-  '.tsx',
-  '.js',
-  '.mjs',
-  '.cjs',
-  '.json',
-  '.md',
-  '.mdc',
-  '.yml',
-  '.yaml',
-  '.prisma',
-  '.conf',
-  '.template',
-  '.example',
-]);
-const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'tmp', '.next', 'coverage', '.nx']);
-const RENAME_SKIP_FILES = new Set(['package-lock.json', 'init.mjs']);
+const rmrf = (rel) => rmrfAt(ROOT, rel);
+const readJson = (rel) => readJsonAt(ROOT, rel);
+const writeJson = (rel, obj) => writeJsonAt(ROOT, rel, obj);
+const removePkgDep = (rel, dep) => removePkgDepAt(ROOT, rel, dep);
+const stripSentinelBlocks = (rel, name) => stripSentinelBlocksAt(ROOT, rel, name);
+const stripSentinelMarkers = (rel) => stripSentinelMarkersAt(ROOT, rel);
+const rewriteArrayLiteral = (rel, key, values, quote) =>
+  rewriteArrayLiteralAt(ROOT, rel, key, values, quote);
 
 // ── arg parsing ─────────────────────────────────────────────────────────────
 function parseArgs(argv) {
@@ -239,226 +105,24 @@ function parseArgs(argv) {
   return out;
 }
 
-// ── fs helpers ──────────────────────────────────────────────────────────────
-function walkTextFiles(dir, acc = []) {
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    // Skip the .git dir exactly — NOT .github (startsWith('.git') would eat it).
-    if (entry.name === '.git') continue;
-    if (SKIP_DIRS.has(entry.name)) continue;
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      walkTextFiles(full, acc);
-    } else if (entry.isFile()) {
-      const ext = path.extname(entry.name);
-      if (TEXT_EXT.has(ext) || entry.name === 'Dockerfile') acc.push(full);
-    }
-  }
-  return acc;
-}
-
-function rmrf(rel) {
-  const full = path.join(ROOT, rel);
-  if (existsSync(full)) {
-    rmSync(full, { recursive: true, force: true });
-    console.log(`  removed ${rel}`);
-  }
-}
-
-/** Remove a dependency from a package.json (used when a capability's lib is dropped). */
-function removePkgDep(rel, dep) {
-  const full = path.join(ROOT, rel);
-  if (!existsSync(full)) return;
-  const pkg = JSON.parse(readFileSync(full, 'utf8'));
-  let changed = false;
-  for (const field of ['dependencies', 'devDependencies', 'peerDependencies']) {
-    if (pkg[field] && dep in pkg[field]) {
-      delete pkg[field][dep];
-      changed = true;
-    }
-  }
-  if (changed) writeFileSync(full, JSON.stringify(pkg, null, 2) + '\n');
-}
-
-/** Minimal frontend: replace the coupled auth+tasks Vite sample with a health page. */
-function writeMinimalVite(appName) {
-  const app = `import { useEffect, useState } from 'react';
-import { api } from './api';
-
-export default function App() {
-  const [apiUp, setApiUp] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    api
-      .health()
-      .then((h) => setApiUp(h.status === 'ok'))
-      .catch(() => setApiUp(false));
-  }, []);
-
-  return (
-    <main className="shell">
-      <header>
-        <h1>${appName}</h1>
-        <span className={\`badge \${apiUp ? 'up' : 'down'}\`}>
-          API {apiUp === null ? '…' : apiUp ? 'up' : 'down'}
-        </span>
-      </header>
-      <section className="card">
-        <h2>Your app shell is ready</h2>
-        <p>This page checks the backend health endpoint. Start building your UI here.</p>
-      </section>
-    </main>
-  );
-}
-`;
-  const client = `/**
- * Minimal API client — just the health check. Add your own endpoints here.
- * Requests are same-origin to /api/v1/* (see the Vite dev proxy).
- */
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  // Normalize via Headers so a caller passing a Headers instance, a plain
-  // object, or an entries array (all valid RequestInit.headers) works the same.
-  const headers = new Headers(init.headers);
-  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  const res = await fetch(\`/api/v1\${path}\`, { ...init, headers });
-  if (!res.ok) throw new Error(\`Request failed (\${res.status})\`);
-  return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
-}
-
-export const api = {
-  health: () => request<{ status: string }>('/health'),
-};
-`;
-  if (existsSync(path.join(ROOT, 'apps/web/src/App.tsx'))) {
-    writeFileSync(path.join(ROOT, 'apps/web/src/App.tsx'), app);
-    writeFileSync(path.join(ROOT, 'apps/web/src/api.ts'), client);
-    console.log('  wrote minimal apps/web (health landing page)');
-  }
-}
-
-/**
- * Minimal mobile: replace the coupled auth+tasks+push Expo sample with a health
- * screen. Deps stay untouched (pruning them would desync apps/mobile's own
- * package-lock.json and break `npm ci`); expo-secure-store / expo-notifications /
- * expo-device are simply unused until you add auth or push back —
- * `npm uninstall` them in apps/mobile if you never will.
- */
-function writeMinimalMobile(appName) {
-  const app = `import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { api } from './src/api';
-
-export default function App() {
-  const [apiUp, setApiUp] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    api
-      .health()
-      .then((h) => setApiUp(h.status === 'ok'))
-      .catch(() => setApiUp(false));
-  }, []);
-
-  return (
-    <View style={styles.shell}>
-      <StatusBar style="dark" />
-      <Text style={styles.title}>${appName}</Text>
-      <Text style={styles.badge}>API {apiUp === null ? '…' : apiUp ? 'up' : 'down'}</Text>
-      <Text style={styles.muted}>
-        This screen checks the backend health endpoint. Start building your app here.
-      </Text>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  shell: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
-  title: { fontSize: 24, fontWeight: '700' },
-  badge: { fontSize: 16, fontWeight: '600' },
-  muted: { color: '#7a828c', textAlign: 'center' },
-});
-`;
-  const client = `/**
- * Minimal API client — just the health check. Add your own endpoints here.
- * Point EXPO_PUBLIC_API_URL at your API's LAN address (see .env.example).
- */
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
-
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const headers = new Headers(init.headers);
-  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  const res = await fetch(\`\${BASE_URL}/api/v1\${path}\`, { ...init, headers });
-  if (!res.ok) throw new Error(\`Request failed (\${res.status})\`);
-  return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
-}
-
-export const api = {
-  health: () => request<{ status: string }>('/health'),
-};
-`;
-  if (existsSync(path.join(ROOT, 'apps/mobile/App.tsx'))) {
-    writeFileSync(path.join(ROOT, 'apps/mobile/App.tsx'), app);
-    writeFileSync(path.join(ROOT, 'apps/mobile/src/api.ts'), client);
-    rmSync(path.join(ROOT, 'apps/mobile/src/push.ts'), { force: true });
-    console.log('  wrote minimal apps/mobile (health screen)');
-  }
-}
-
-function readJson(rel) {
-  return JSON.parse(readFileSync(path.join(ROOT, rel), 'utf8'));
-}
-function writeJson(rel, obj) {
-  writeFileSync(path.join(ROOT, rel), JSON.stringify(obj, null, 2) + '\n');
-}
-
-/** Remove every line block delimited by `clevscaffold:<name>:start/end` (inclusive). */
-function stripSentinelBlocks(rel, name) {
-  const full = path.join(ROOT, rel);
-  if (!existsSync(full)) return;
-  const startTok = `clevscaffold:${name}:start`;
-  const endTok = `clevscaffold:${name}:end`;
-  const lines = readFileSync(full, 'utf8').split('\n');
-  const kept = [];
-  let skipping = false;
-  for (const line of lines) {
-    if (!skipping && line.includes(startTok)) {
-      skipping = true;
-      continue;
-    }
-    if (skipping && line.includes(endTok)) {
-      skipping = false;
-      continue;
-    }
-    if (!skipping) kept.push(line);
-  }
-  writeFileSync(full, kept.join('\n'));
-  console.log(`  pruned ${name} block(s) in ${rel}`);
-}
-
-/** Remove any lingering `clevscaffold:*:start/end` marker lines (content kept). */
-function stripSentinelMarkers(rel) {
-  const full = path.join(ROOT, rel);
-  if (!existsSync(full)) return;
-  const kept = readFileSync(full, 'utf8')
-    .split('\n')
-    .filter((line) => !/clevscaffold:[a-z]+:(start|end)/.test(line));
-  writeFileSync(full, kept.join('\n'));
-}
-
-/** Replace a YAML/JS inline array literal `key: [a, b, c]` with a filtered set. */
-function rewriteArrayLiteral(rel, matchKey, keepValues, quote = false) {
-  const full = path.join(ROOT, rel);
-  if (!existsSync(full)) return;
-  let text = readFileSync(full, 'utf8');
-  const re = new RegExp(`(${matchKey}:\\s*)\\[[^\\]]*\\]`);
-  const rendered = keepValues.map((v) => (quote ? `'${v}'` : v)).join(', ');
-  text = text.replace(re, `$1[${rendered}]`);
-  writeFileSync(full, text);
-}
-
 // ── interactive prompt ──────────────────────────────────────────────────────
 async function prompt(rl, question, def) {
   const ans = (await rl.question(`${question}${def ? ` (${def})` : ''}: `)).trim();
   return ans || def;
+}
+
+/** Best-effort git metadata for .clevscaffold.json (captured before --reinit-git). */
+function gitInfo() {
+  const run = (cmd) => {
+    try {
+      return execSync(cmd, { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] })
+        .toString()
+        .trim();
+    } catch {
+      return null;
+    }
+  };
+  return { origin: run('git remote get-url origin'), commit: run('git rev-parse HEAD') };
 }
 
 async function main() {
@@ -581,6 +245,10 @@ async function main() {
   }
   console.log('');
 
+  // 0. Capture scaffold provenance BEFORE any git changes — add.mjs/new-app.mjs
+  //    use it to fetch pristine scaffold source later (docs/EVOLVING.md).
+  const { origin, commit } = gitInfo();
+
   // 1. Delete component directories.
   for (const c of remove) for (const d of COMPONENTS[c].dirs) rmrf(d);
 
@@ -649,9 +317,9 @@ async function main() {
     stripSentinelMarkers(f);
   }
 
-  // 4d. Minimal frontend: swap the coupled auth+tasks Vite sample for a health page.
-  if (minimal && keep.has('vite')) writeMinimalVite(name);
-  if (minimal && keep.has('expo')) writeMinimalMobile(name);
+  // 4d. Minimal frontend: swap the coupled auth+tasks samples for health pages.
+  if (minimal && keep.has('vite')) writeMinimalVite(ROOT, name);
+  if (minimal && keep.has('expo')) writeMinimalMobile(ROOT, name);
 
   // 5. Fix workflow matrices to the kept apps / frontend dirs.
   const keptDockerApps = [...keep].flatMap((c) => COMPONENTS[c].dockerApps ?? []);
@@ -681,7 +349,24 @@ async function main() {
   }
   console.log(`  renamed ${OLD_SCOPE} → ${scope} in ${renamed} file(s)`);
 
-  // 7. Remove the initializer + the scaffold-only matrix workflow.
+  // 6b. Record the choices + scaffold provenance so scripts/add.mjs and
+  //     scripts/new-app.mjs (which stay in the project) can evolve it later.
+  writeJson('.clevscaffold.json', {
+    scaffoldOrigin: origin,
+    scaffoldCommit: commit,
+    generatedAt: new Date().toISOString(),
+    name,
+    scope,
+    orm,
+    frontend,
+    mobile,
+    minimal,
+    capabilities: [...caps].filter((c) => c !== 'tasks').sort(),
+  });
+  console.log('  wrote .clevscaffold.json (used by scripts/add.mjs + scripts/new-app.mjs)');
+
+  // 7. Remove the initializer + the scaffold-only matrix workflow. add.mjs,
+  //    new-app.mjs, and scaffold-manifest.mjs stay — they power later evolution.
   rmrf('.github/workflows/init-matrix.yml');
 
   // 8. Regenerate lockfile + verify.
@@ -712,6 +397,9 @@ async function main() {
 
   const summary = minimal ? `minimal (${[...caps].join(', ') || 'core only'})` : 'full reference';
   console.log(`\n✅  ${name} is ready — ${summary}. See docs/GETTING_STARTED.md.`);
+  console.log(
+    '    Evolve later: node scripts/add.mjs <capability> · node scripts/new-app.mjs (docs/EVOLVING.md)',
+  );
 }
 
 main().catch((err) => {

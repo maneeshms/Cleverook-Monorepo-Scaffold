@@ -45,6 +45,7 @@ Full walkthrough: **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**.
 ## Documentation
 
 - [GETTING_STARTED](docs/GETTING_STARTED.md) — clone → init → run
+- [EVOLVING](docs/EVOLVING.md) — after init: enable capabilities later, create new named apps
 - [CONFIGURATION](docs/CONFIGURATION.md) — the layered config scheme
 - [DATABASE](docs/DATABASE.md) — local / self-hosted / Supabase, migrations
 - [TESTING](docs/TESTING.md) — unit, e2e, coverage, the OWASP scanner
@@ -77,6 +78,11 @@ npm run scan:security
 `--orm typeorm|prisma|both`, `--frontend vite|next|both|none`, `--mobile expo|none`,
 `--yes`. It prunes
 unused apps/libs, renames the scope, and verifies the result builds and tests green.
+
+Generated projects can **evolve**: `node scripts/add.mjs messaging` enables a
+skipped capability later; `node scripts/new-app.mjs --type api --name billing
+--port 3002` creates a new app (api/vite/next/expo, custom name) registered in
+workspaces, CI, and Dependabot. See [docs/EVOLVING.md](docs/EVOLVING.md).
 
 ## License
 

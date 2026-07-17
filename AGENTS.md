@@ -294,6 +294,15 @@ It prunes by directory manifests **and sentinel-marked blocks** — comments lik
 sentinel pairs intact and balanced** when editing those files, or partial pruning
 breaks generated projects.
 
+The manifests + pruning helpers live in **`scripts/scaffold-manifest.mjs`**,
+shared by `init.mjs` and the evolution tools that STAY in generated projects:
+`scripts/add.mjs` (enable a capability later — copies from a pristine scaffold,
+writes a `docs/wiring-<cap>.md` guide) and `scripts/new-app.mjs` (new
+api/vite/next/expo app with a custom name, auto-registered). Init records its
+choices in `.clevscaffold.json`. When you add/change a capability or component,
+update `scaffold-manifest.mjs` — all three tools read it. Details:
+`docs/EVOLVING.md`.
+
 **The apps are reference/sample apps.** By default init keeps them whole. `--minimal`
 emits a **bare, bootable core** (config + logger + database + health + throttler;
 Redis optional) and you opt capabilities back in à la carte:
