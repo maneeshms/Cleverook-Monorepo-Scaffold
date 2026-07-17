@@ -17,6 +17,8 @@ apps/api           → common, config, logger, database, auth, feature-flags,
                      messaging, compliance                         (TypeORM)
 apps/api-prisma    → common, config, logger                        (Prisma)
 apps/web, web-next → standalone frontends (own package.json/lockfile)
+apps/mobile        → standalone Expo React Native app (own package.json/lockfile,
+                     no Docker — ships via EAS/app stores; see docs/MOBILE.md)
 ```
 
 **Rules:**
@@ -61,8 +63,10 @@ eslint, prettier, jest, husky) and orchestration scripts.
 - **One root lockfile** (`package-lock.json`) — npm workspaces hoists a single,
   deduplicated `node_modules`. That's deliberate: deterministic installs + one
   security-audit surface. Per-project _manifests_, single lockfile.
-- **Frontends** (`apps/web`, `apps/web-next`) are **not** workspaces — they keep
-  their own `package.json` **and** lockfile and build/deploy fully standalone.
+- **Frontends and mobile** (`apps/web`, `apps/web-next`, `apps/mobile`) are **not**
+  workspaces — they keep their own `package.json` **and** lockfile and build/deploy
+  fully standalone. In `apps/mobile`, `expo-*`/`react-native` keep Expo's `~`
+  ranges (the SDK owns them; bump via `npx expo install`).
 - Add a dep to the package that uses it (`libs/<x>/package.json` or
   `apps/<x>/package.json`), exact-pinned, then `npm install` at the root.
 

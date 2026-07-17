@@ -12,14 +12,14 @@ Clone → tailor → run in about 10 minutes.
 
 ```bash
 git clone <this-repo> my-app && cd my-app
-node scripts/init.mjs              # interactive: pick name, scope, ORM, frontend(s)
+node scripts/init.mjs              # interactive: pick name, scope, ORM, frontend(s), mobile
 ```
 
 Non-interactive:
 
 ```bash
 node scripts/init.mjs --yes --name my-app --scope @myco \
-  --orm typeorm --frontend next
+  --orm typeorm --frontend next --mobile expo   # --mobile none to skip the Expo app
 ```
 
 `init.mjs` prunes the parts you didn't pick, renames the `@clevrook` scope,
@@ -52,7 +52,8 @@ node scripts/init.mjs --yes --name my-app --orm typeorm --frontend none \
 
 A core app needs no JWT secrets (only `DATABASE_URL`); add `--with-auth` and it
 requires them again. The tasks demo is reference-only and is never included in a
-minimal app. A minimal Vite frontend is reduced to a health/landing page.
+minimal app. A minimal Vite frontend is reduced to a health/landing page, and a
+minimal Expo mobile app to a health-check screen.
 
 ## 2. Configure
 
@@ -89,6 +90,7 @@ npm run dev:api          # TypeORM API   → http://localhost:3000/api/v1
 npm run dev:api-prisma   # Prisma API    → http://localhost:3010/api/v1
 npm run dev:web          # Vite frontend → http://localhost:5173
 npm run dev:web-next     # Next frontend → http://localhost:3005
+npm run dev:mobile       # Expo (Metro)  → scan the QR with Expo Go; see docs/MOBILE.md
 ```
 
 Check it's alive:

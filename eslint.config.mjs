@@ -1,6 +1,6 @@
 // ESLint 9 flat config — backend apps, libs, and root scripts.
-// Frontends (apps/web, apps/web-next) carry their own configs and are linted
-// through their per-app lint targets.
+// Standalone apps (apps/web, apps/web-next, apps/mobile) carry their own configs
+// and are linted through their per-app lint targets.
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
@@ -14,6 +14,7 @@ export default tseslint.config(
       '**/.nx/**',
       'apps/web/**',
       'apps/web-next/**',
+      'apps/mobile/**',
       '**/*.js',
       '**/*.mjs',
       '**/generated/**',

@@ -2,7 +2,8 @@
 
 Enterprise-grade, clone-and-go scaffold for Cleverook backends. NestJS 11 · Nx
 monorepo · TypeScript · Node 22 · PostgreSQL · **two ORMs** (TypeORM + Prisma) ·
-two frontends (Vite + Next.js) · Railway. Built for high-traffic products.
+two frontends (Vite + Next.js) · Expo React Native mobile app · Railway. Built
+for high-traffic products.
 
 **This file is canonical for all agents (Claude, Cursor, Copilot).** The topic
 docs in `docs/agents/` go deeper — read the one that matches your task before you
@@ -177,6 +178,8 @@ apps/
   api-prisma/   NestJS + Prisma 7 (pg driver adapter) — compact reference
   web/          React + Vite     — wiring reference (Dockerfile/nginx/railway)
   web-next/     Next.js          — wiring reference (standalone Docker/railway)
+  mobile/       Expo React Native — wiring reference (SecureStore auth, tasks,
+                push-device registration; no Docker — ships via EAS/app stores)
 libs/
   common/       ORM-FREE: decorators, guards, filters, interceptors, redis,
                 pagination, metrics, crypto, correlation-id
@@ -200,7 +203,8 @@ docs/           human docs + docs/agents/ (agent topic docs)
 
 **npm workspaces:** every lib and backend app owns its **own `package.json`**.
 The root is a thin workspace root — shared tooling only, no runtime deps. One
-root lockfile. Frontends stay standalone (own package.json + lockfile).
+root lockfile. Frontends and the mobile app stay standalone (own package.json +
+lockfile).
 
 **Dependency direction:** `common` is ORM-free and imported everywhere;
 `database`/`auth`/`feature-flags`/`messaging`/`compliance` are TypeORM-coupled (the
@@ -217,6 +221,7 @@ npm run dev:api              # serve TypeORM api (watch)     :3000  /api/v1
 npm run dev:api-prisma       # serve Prisma api (watch)      :3010  /api/v1
 npm run dev:web              # Vite dev server               :5173
 npm run dev:web-next         # Next dev server               :3005
+npm run dev:mobile           # Expo dev server (Metro; scan QR with Expo Go)
 npm run db:up / db:down      # local Postgres + Redis (docker compose)
 npm run e2e:setup && npm run e2e   # create+migrate test DBs, run e2e
 npm run migration:run        # TypeORM migrations
@@ -256,7 +261,7 @@ the top priority — any auth/validation/data change starts with
 | `docs/agents/conventions.md`  | naming, types, Swagger, commits, code style                                  |
 | `docs/agents/testing.md`      | writing tests, coverage floor, e2e, the scanner                              |
 | `docs/agents/workflows.md`    | branching, PRs, CI gates, migrations, deploys                                |
-| `docs/agents/frontend.md`     | anything under `apps/web` or `apps/web-next`                                 |
+| `docs/agents/frontend.md`     | anything under `apps/web`, `apps/web-next`, or `apps/mobile`                 |
 
 ## Definition of done — self-audit before you claim it
 
@@ -281,7 +286,8 @@ Run through this list; if any line fails, you are not done:
 
 ## Init & pruning (do not break)
 
-`scripts/init.mjs` tailors a clone (`--orm`, `--frontend`, `--scope`, `--name`).
+`scripts/init.mjs` tailors a clone (`--orm`, `--frontend`, `--mobile`, `--scope`,
+`--name`).
 It prunes by directory manifests **and sentinel-marked blocks** — comments like
 `clevscaffold:typeorm:start` / `clevscaffold:prisma:start` in `.env.example`,
 `app.module.ts`, `scripts/e2e-setup.mjs`, and workflow/config files. **Keep

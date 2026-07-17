@@ -37,7 +37,7 @@
       "@clevrook/compliance/*": ["libs/compliance/src/*"]
     }
   },
-  "exclude": ["node_modules", "dist", "tmp", "apps/web", "apps/web-next"],
+  "exclude": ["node_modules", "dist", "tmp", "apps/web", "apps/web-next", "apps/mobile"],
   "ts-node": {
     "transpileOnly": true,
     "require": ["tsconfig-paths/register"],

@@ -21,8 +21,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Root workspace + the two frontends that carry their own lockfile.
-        dir: ['.', 'apps/web', 'apps/web-next']
+        # Root workspace + each standalone app that carries its own lockfile.
+        dir: ['.', 'apps/web', 'apps/web-next', 'apps/mobile']
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6

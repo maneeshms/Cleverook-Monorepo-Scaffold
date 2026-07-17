@@ -1,13 +1,14 @@
 ---
-description: Frontend wiring rules (apps/web, apps/web-next)
-globs: apps/web/**,apps/web-next/**
+description: Frontend & mobile wiring rules (apps/web, apps/web-next, apps/mobile)
+globs: apps/web/**,apps/web-next/**,apps/mobile/**
 ---
 
-Full detail: [docs/agents/frontend.md](../../docs/agents/frontend.md).
+Full detail: [docs/agents/frontend.md](../../docs/agents/frontend.md) and [docs/MOBILE.md](../../docs/MOBILE.md).
 
-- The frontends are wiring references, not product UI. Each has its own package.json + lockfile.
+- The frontends and the Expo mobile app are wiring references, not product UI. Each has its own package.json + lockfile.
 - No tests here (per project direction) — the 90% floor is backend-only.
 - Never store tokens/secrets in localStorage (module memory in the sample; httpOnly-cookie BFF in prod).
-- API base URL from env (`VITE_API_URL` / Next env); prefer same-origin `/api` via the proxy.
-- Don't import `@clevrook/*` backend libs into a frontend. Keep Dockerfile/railway.json wiring intact.
-- Exact-pinned deps + committed lockfile.
+- On mobile: access token in memory, refresh token in expo-secure-store — never AsyncStorage.
+- API base URL from env (`VITE_API_URL` / Next env / `EXPO_PUBLIC_API_URL`); on web prefer same-origin `/api` via the proxy.
+- Don't import `@clevrook/*` backend libs into a frontend or mobile. Keep Dockerfile/railway.json wiring intact (mobile has none — it ships via EAS).
+- Exact-pinned deps + committed lockfile; exception: apps/mobile keeps Expo's `~` ranges on expo-*/react-native — bump via `npx expo install`.

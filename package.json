@@ -28,6 +28,7 @@
     "db:down": "docker compose down",
     "dev:api": "nx serve api",
     "dev:web": "nx dev web",
+    "dev:mobile": "nx dev mobile",
     "dev:web-next": "nx dev web-next",
     "scan:security": "python3 scripts/security_scan.py",
     "migration:generate": "typeorm-ts-node-commonjs migration:generate -d libs/database/src/data-source.ts",

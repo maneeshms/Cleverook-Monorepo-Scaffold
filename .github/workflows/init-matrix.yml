@@ -2,6 +2,8 @@ name: Init Matrix
 
 # Verifies the scaffold's promise: EVERY init.mjs combination (orm × frontend)
 # produces a workspace that installs, builds, lints and unit-tests cleanly.
+# The Expo mobile app rides the frontend axis instead of doubling the matrix:
+# frontend=none also prunes mobile, every other job keeps it.
 # Runs on demand and weekly so pruning logic never silently rots.
 #
 # NOTE: this workflow is removed from generated projects by init.mjs — it only
@@ -36,6 +38,7 @@ jobs:
             --scope @demo \
             --orm ${{ matrix.orm }} \
             --frontend ${{ matrix.frontend }} \
+            --mobile ${{ matrix.frontend == 'none' && 'none' || 'expo' }} \
             --no-install
       - name: Install + build + lint + unit test the generated project
         working-directory: /tmp/gen

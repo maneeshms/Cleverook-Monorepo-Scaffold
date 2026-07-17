@@ -67,6 +67,11 @@ unregister on logout. Body: `{ "token": "<fcm token>", "platform": "ANDROID|IOS|
   Push certificate from the Firebase console) + a
   `firebase-messaging-sw.js` service worker → POST with `platform: "WEB"`.
 
+The scaffold's own Expo app (`apps/mobile`, `src/push.ts`) implements the
+register-after-login / unregister-on-logout contract — Android works in a dev
+build with `google-services.json`; iOS needs `@react-native-firebase/messaging`
+for a real FCM token. Details: [`docs/MOBILE.md`](MOBILE.md).
+
 ## Sending push from a feature
 
 Nothing push-specific in feature code — the channel set lives on the message type:

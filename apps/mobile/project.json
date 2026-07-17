@@ -1,0 +1,31 @@
+{
+  "name": "mobile",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/mobile",
+  "projectType": "application",
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "[ -d node_modules ] || npm ci --no-audit --no-fund; npx expo start",
+        "cwd": "apps/mobile"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "command": "[ -d node_modules ] || npm ci --no-audit --no-fund; npm run typecheck && npm run build",
+        "cwd": "apps/mobile"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "[ -d node_modules ] || npm ci --no-audit --no-fund; npm run lint",
+        "cwd": "apps/mobile"
+      }
+    }
+  },
+  "tags": ["scope:mobile", "type:app"]
+}

@@ -9,7 +9,7 @@
  * Usage:
  *   node scripts/init.mjs                         # interactive
  *   node scripts/init.mjs --yes --name my-app --scope @myco \
- *        --orm typeorm|prisma|both --frontend vite|next|both|none
+ *        --orm typeorm|prisma|both --frontend vite|next|both|none --mobile expo|none
  *   node scripts/init.mjs --yes --name my-app --minimal --with-auth   # bare kickstart
  *
  * The default output keeps the full reference apps (auth, users, tasks demo,
@@ -23,6 +23,7 @@
  *   --scope <@x>         npm scope replacing @clevrook (leading @ optional)
  *   --orm <v>            typeorm | prisma | both        (default both)
  *   --frontend <v>       vite | next | both | none       (default both)
+ *   --mobile <v>         expo | none                     (default expo)
  *   --minimal            core-only app; add capabilities with --with-* below
  *   --with-auth          include JWT auth + users (needed by messaging)
  *   --with-messaging     include the messaging engine + notifications (implies auth)
@@ -105,6 +106,15 @@ const COMPONENTS = {
     excludes: ['apps/web-next'],
     dockerApps: ['web-next'],
     auditDirs: ['apps/web-next'],
+  },
+  // Expo React Native app — standalone (own lockfile), no Docker image (ships
+  // through app stores / EAS, not containers), hence no dockerApps entry.
+  expo: {
+    dirs: ['apps/mobile'],
+    scripts: ['dev:mobile'],
+    tsPaths: [],
+    excludes: ['apps/mobile'],
+    auditDirs: ['apps/mobile'],
   },
 };
 
@@ -325,6 +335,74 @@ export const api = {
   }
 }
 
+/**
+ * Minimal mobile: replace the coupled auth+tasks+push Expo sample with a health
+ * screen. Deps stay untouched (pruning them would desync apps/mobile's own
+ * package-lock.json and break `npm ci`); expo-secure-store / expo-notifications /
+ * expo-device are simply unused until you add auth or push back —
+ * `npm uninstall` them in apps/mobile if you never will.
+ */
+function writeMinimalMobile(appName) {
+  const app = `import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { api } from './src/api';
+
+export default function App() {
+  const [apiUp, setApiUp] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    api
+      .health()
+      .then((h) => setApiUp(h.status === 'ok'))
+      .catch(() => setApiUp(false));
+  }, []);
+
+  return (
+    <View style={styles.shell}>
+      <StatusBar style="dark" />
+      <Text style={styles.title}>${appName}</Text>
+      <Text style={styles.badge}>API {apiUp === null ? '…' : apiUp ? 'up' : 'down'}</Text>
+      <Text style={styles.muted}>
+        This screen checks the backend health endpoint. Start building your app here.
+      </Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  shell: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
+  title: { fontSize: 24, fontWeight: '700' },
+  badge: { fontSize: 16, fontWeight: '600' },
+  muted: { color: '#7a828c', textAlign: 'center' },
+});
+`;
+  const client = `/**
+ * Minimal API client — just the health check. Add your own endpoints here.
+ * Point EXPO_PUBLIC_API_URL at your API's LAN address (see .env.example).
+ */
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers = new Headers(init.headers);
+  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  const res = await fetch(\`\${BASE_URL}/api/v1\${path}\`, { ...init, headers });
+  if (!res.ok) throw new Error(\`Request failed (\${res.status})\`);
+  return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
+}
+
+export const api = {
+  health: () => request<{ status: string }>('/health'),
+};
+`;
+  if (existsSync(path.join(ROOT, 'apps/mobile/App.tsx'))) {
+    writeFileSync(path.join(ROOT, 'apps/mobile/App.tsx'), app);
+    writeFileSync(path.join(ROOT, 'apps/mobile/src/api.ts'), client);
+    rmSync(path.join(ROOT, 'apps/mobile/src/push.ts'), { force: true });
+    console.log('  wrote minimal apps/mobile (health screen)');
+  }
+}
+
 function readJson(rel) {
   return JSON.parse(readFileSync(path.join(ROOT, rel), 'utf8'));
 }
@@ -391,6 +469,7 @@ async function main() {
   let scope = opts.scope;
   let orm = opts.orm;
   let frontend = opts.frontend;
+  let mobile = opts.mobile;
   let minimal = flags.has('minimal');
   const withCap = {
     auth: flags.has('with-auth'),
@@ -407,6 +486,7 @@ async function main() {
     scope = scope ?? (await prompt(rl, 'npm scope', `@${name}`));
     orm = orm ?? (await prompt(rl, 'ORM [typeorm|prisma|both]', 'both'));
     frontend = frontend ?? (await prompt(rl, 'Frontend [vite|next|both|none]', 'both'));
+    mobile = mobile ?? (await prompt(rl, 'Mobile app (Expo React Native) [expo|none]', 'expo'));
     if (!minimal) {
       minimal = (await prompt(rl, 'Minimal app — core only, features à la carte? [y/N]', 'n'))
         .toLowerCase()
@@ -446,11 +526,13 @@ async function main() {
   scope = scope ?? `@${name}`;
   orm = (orm ?? 'both').toLowerCase();
   frontend = (frontend ?? 'both').toLowerCase();
+  mobile = (mobile ?? 'expo').toLowerCase();
   if (!scope.startsWith('@')) scope = `@${scope}`;
 
   if (!['typeorm', 'prisma', 'both'].includes(orm)) throw new Error(`invalid --orm "${orm}"`);
   if (!['vite', 'next', 'both', 'none'].includes(frontend))
     throw new Error(`invalid --frontend "${frontend}"`);
+  if (!['expo', 'none'].includes(mobile)) throw new Error(`invalid --mobile "${mobile}"`);
 
   // Which components to KEEP.
   const keep = new Set();
@@ -458,6 +540,7 @@ async function main() {
   if (orm === 'prisma' || orm === 'both') keep.add('prisma');
   if (frontend === 'vite' || frontend === 'both') keep.add('vite');
   if (frontend === 'next' || frontend === 'both') keep.add('next');
+  if (mobile === 'expo') keep.add('expo');
 
   const remove = Object.keys(COMPONENTS).filter((c) => !keep.has(c));
 
@@ -487,7 +570,9 @@ async function main() {
   }
   const dropCaps = ALL_CAPS.filter((c) => !caps.has(c));
 
-  console.log(`\nConfiguring: name=${name} scope=${scope} orm=${orm} frontend=${frontend}`);
+  console.log(
+    `\nConfiguring: name=${name} scope=${scope} orm=${orm} frontend=${frontend} mobile=${mobile}`,
+  );
   console.log(`Keeping: ${[...keep].join(', ') || '(none)'}`);
   console.log(`Removing: ${remove.join(', ') || '(none)'}`);
   if (minimal) {
@@ -566,6 +651,7 @@ async function main() {
 
   // 4d. Minimal frontend: swap the coupled auth+tasks Vite sample for a health page.
   if (minimal && keep.has('vite')) writeMinimalVite(name);
+  if (minimal && keep.has('expo')) writeMinimalMobile(name);
 
   // 5. Fix workflow matrices to the kept apps / frontend dirs.
   const keptDockerApps = [...keep].flatMap((c) => COMPONENTS[c].dockerApps ?? []);
