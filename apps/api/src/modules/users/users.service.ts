@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Role, paginate, Paginated } from '@clevrook/common';
+import { UserSession } from '@clevrook/auth';
 import { User } from './entities/user.entity';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ListUsersDto } from './dto/list-users.dto';
@@ -23,11 +24,20 @@ export interface UserSummary {
   lastLoginAt: Date | null;
 }
 
+/**
+ * Owns the users table AND serves as the app's `AuthUserStore` — the auth
+ * library injects this service under AUTH_USER_STORE (see app.module.ts), so
+ * the user schema stays fully under this app's control.
+ */
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly users: Repository<User>,
+    // Session rows are the auth library's entity; queried here (read-only) for
+    // the GDPR export. All writes go through the library's TokenService.
+    @InjectRepository(UserSession)
+    private readonly sessions: Repository<UserSession>,
   ) {}
 
   findByEmail(email: string, withPassword = false): Promise<User | null> {
@@ -61,8 +71,9 @@ export class UsersService {
 
   /** GDPR export: everything we hold about the user, in one JSON document. */
   async exportUserData(id: string): Promise<Record<string, unknown>> {
-    const user = await this.users.findOne({ where: { id }, relations: { sessions: true } });
+    const user = await this.users.findOne({ where: { id } });
     if (!user) throw new NotFoundException('User not found');
+    const sessions = await this.sessions.find({ where: { userId: id } });
     return {
       profile: {
         id: user.id,
@@ -72,7 +83,7 @@ export class UsersService {
         createdAt: user.createdAt,
         lastLoginAt: user.lastLoginAt,
       },
-      sessions: user.sessions.map((s) => ({
+      sessions: sessions.map((s) => ({
         id: s.id,
         ipAddress: s.ipAddress,
         userAgent: s.userAgent,

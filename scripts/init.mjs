@@ -54,6 +54,7 @@ const COMPONENTS = {
     dirs: [
       'apps/api',
       'libs/database',
+      'libs/auth',
       'libs/feature-flags',
       'libs/messaging',
       'scripts/seed-api.mjs',
@@ -66,7 +67,12 @@ const COMPONENTS = {
       'migration:revert',
       'seed:api',
     ],
-    tsPaths: [`${OLD_SCOPE}/database`, `${OLD_SCOPE}/feature-flags`, `${OLD_SCOPE}/messaging`],
+    tsPaths: [
+      `${OLD_SCOPE}/database`,
+      `${OLD_SCOPE}/auth`,
+      `${OLD_SCOPE}/feature-flags`,
+      `${OLD_SCOPE}/messaging`,
+    ],
     sentinel: 'typeorm',
     dockerApps: ['api'],
   },
@@ -115,6 +121,7 @@ const CAPABILITIES = {
   auth: {
     flag: 'with-auth',
     dirs: [
+      'libs/auth',
       'apps/api/src/modules/auth',
       'apps/api/src/modules/users',
       'apps/api-prisma/src/modules/auth',
@@ -123,6 +130,8 @@ const CAPABILITIES = {
     ],
     files: ['apps/api-prisma/prisma/seed.ts'],
     migrations: ['1750000000000-InitUsersAndSessions.ts'],
+    tsPaths: [`${OLD_SCOPE}/auth`],
+    pkgDeps: [{ file: 'apps/api/package.json', dep: `${OLD_SCOPE}/auth` }],
     scripts: ['prisma:seed'],
   },
   messaging: {
@@ -161,8 +170,8 @@ const CAPABILITIES = {
 const CAP_SENTINEL_FILES = [
   'apps/api/src/app.module.ts',
   'apps/api/src/main.ts',
-  'apps/api/src/modules/auth/auth.service.ts',
-  'apps/api/src/modules/auth/auth.service.spec.ts',
+  'apps/api/src/modules/auth/app-auth.service.ts',
+  'apps/api/src/modules/auth/app-auth.service.spec.ts',
   // Compliance wiring carries internal tasks/messaging sentinels (it registers
   // those modules' personal data) — prune them when those capabilities are off.
   'apps/api/src/modules/compliance/compliance-wiring.service.ts',
@@ -561,6 +570,7 @@ async function main() {
   // 5. Fix workflow matrices to the kept apps / frontend dirs.
   const keptDockerApps = [...keep].flatMap((c) => COMPONENTS[c].dockerApps ?? []);
   rewriteArrayLiteral('.github/workflows/ci.yml', 'app', keptDockerApps);
+  rewriteArrayLiteral('.github/workflows/image-scan.yml', 'app', keptDockerApps);
   const keptAuditDirs = ['.', ...[...keep].flatMap((c) => COMPONENTS[c].auditDirs ?? [])];
   rewriteArrayLiteral('.github/workflows/security.yml', 'dir', keptAuditDirs, true);
   console.log('  updated CI workflow matrices');

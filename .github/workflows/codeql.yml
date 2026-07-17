@@ -12,7 +12,7 @@ on:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     # CodeQL uploads results to code scanning (GitHub Advanced Security; free on
     # public repos). Set repo variable ENABLE_CODE_SCANNING=true once it's enabled
     # — until then this job is skipped so CI stays green on repos without it.

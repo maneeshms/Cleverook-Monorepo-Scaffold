@@ -9,12 +9,19 @@
 
 ## CI gates (`.github/workflows/`)
 
-- **ci.yml** — `verify` (lint + typecheck + build + unit with the ≥90% coverage
-  gate) · `e2e` (Postgres service container → `e2e:setup` → `e2e`) · `docker`
-  (builds every deployable app image, no push). Trivy **fails on CRITICAL** in
-  every run; the SARIF upload is gated (see below).
+- **ci.yml** — `format:check` (prettier, whole repo) · `verify` (lint + typecheck +
+  build + unit with the ≥90% coverage gate) · `e2e` (Postgres service container →
+  `e2e:setup` → `e2e`) · `docker` (builds every deployable app image, no push).
+  Trivy **fails on CRITICAL** in every run; the SARIF upload is gated (see below).
 - **security.yml** — npm audit (root + each frontend, block on CRITICAL) ·
   gitleaks · dependency-review (PRs).
+- **image-scan.yml** — **daily** (04:30 UTC + dispatch) Trivy scan of every
+  deployable image rebuilt fresh from `main` (`pull: true` for current base
+  layers). Fixable CRITICAL/HIGH → auto-managed GitHub issue per app (label
+  `vulnerability`, refreshed while present, auto-closed when clean) + red run.
+  Accepted risks: `.trivyignore` (owner + reason + expiry required per entry —
+  it feeds the ci.yml CRITICAL gate too). SLAs + remediation playbook:
+  `docs/SECURITY.md` → _Continuous vulnerability management_.
 - **codeql.yml** — CodeQL `security-and-quality` on push/PR + weekly.
 - **init-matrix.yml** — runs every `init.mjs` orm×frontend combo → install/build/
   test (dispatch + weekly). Removed from generated projects.
@@ -33,6 +40,27 @@ gitleaks still run everywhere. gitleaks uses the license-free binary (the Action
 needs a paid org license). Node version comes from `.nvmrc` in every job — no
 hardcoded version. e2e JWT secrets are generated per-run (`openssl rand`), never
 committed. The Docker image tag is derived from the repo name (lowercased).
+
+**Switching runners (GitHub-hosted ⇄ self-hosted).** Every job resolves its
+runner as `${{ vars.CI_RUNNER || 'ubuntu-latest' }}`:
+
+- **GitHub-hosted (default):** leave `CI_RUNNER` unset.
+- **Self-hosted** (e.g. Actions minutes exhausted):
+  `gh variable set CI_RUNNER --body self-hosted` — applies to every run started
+  after that (re-run failed jobs to pick it up). Switch back:
+  `gh variable delete CI_RUNNER`.
+
+The jobs are deliberately runner-agnostic: e2e starts its own disposable Postgres
+via `docker run` on port **55432** (`services:` containers are Linux-only, and
+5432/5433 are usually taken on dev machines — the container is force-removed in
+an `always()` step so nothing lingers on a persistent runner), and gitleaks picks
+the binary matching the runner OS/arch with a per-platform SHA pin. Self-hosted
+prerequisites: Docker running (docker/image-scan/e2e jobs) and the machine awake
+for scheduled runs — a sleeping laptop queues the daily image scan until it wakes
+(dropped after 24 h). On an Apple-Silicon runner images build as arm64 (prod is
+amd64) — scans stay meaningful but digests differ. **Never point `CI_RUNNER` at a
+self-hosted runner on a public repo or one accepting fork PRs** — fork PR code
+would execute on that machine.
 
 **Dependabot** (`.github/dependabot.yml`) — weekly npm (root + each frontend),
 GitHub Actions, and Docker base images. Related packages are grouped, and for the
@@ -73,6 +101,9 @@ npm run db:up && npm run e2e:setup && npm run e2e
 node scripts/init.mjs            # interactive
 node scripts/init.mjs --yes --name my-app --scope @myco \
      --orm typeorm|prisma|both --frontend vite|next|both|none
+# minimal core + à-la-carte capabilities:
+node scripts/init.mjs --yes --minimal \
+     --with-auth --with-messaging --with-feature-flags --with-metrics --with-compliance
 ```
 
 init prunes unused apps/libs (dirs + sentinel-marked blocks), rewrites the CI

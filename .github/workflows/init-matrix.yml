@@ -16,7 +16,7 @@ on:
 jobs:
   matrix:
     name: init --orm ${{ matrix.orm }} --frontend ${{ matrix.frontend }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:

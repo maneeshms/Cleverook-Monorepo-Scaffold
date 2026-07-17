@@ -9,7 +9,7 @@ The canonical guide is [`AGENTS.md`](../AGENTS.md); deep topic docs live in
 [`docs/agents/`](../docs/agents) — read **`nestjs.md`** before writing backend code
 (exact controller/service/DTO/ORM shapes, with examples) and **`recipes.md`** for
 any multi-step task. Mirror `apps/api/src/modules/tasks`, the canonical module.
-The top 12 rules:
+The top 14 rules:
 
 1. **Every code change ships with tests; coverage must stay ≥ 90%** (jest enforces it).
 2. **No secrets** in source, tests, comments, JSON config, or YAML — env only, never logged.
@@ -30,14 +30,31 @@ The top 12 rules:
 11. **No mock/fake data** — real providers, explicit fallback or 503 when unconfigured.
 12. **Config is layered:** `process.env` → `config/{NODE_ENV}.json` →
     `config/default.json` → code default. Secrets never in JSON.
+13. **Use the shipped libs, never reimplement** (capability map in `AGENTS.md`):
+    config, logger (`log/audit/alert`), auth guards, pagination, Redis, metrics,
+    `SecretCipher`, messaging, feature-flags, compliance. New personal data →
+    register a `PersonalDataContributor`; sensitive mutations →
+    `auditService.record(...)` with ids/field names only, never PII values.
+14. **Never guess** — only reference files, symbols, routes, env keys, commands,
+    and packages verified to exist in this repo. If docs and code disagree, the
+    code wins; flag the doc drift.
 
 **When a gate fails, the code is wrong — not the gate.** Never lower coverage
 thresholds, skip/delete failing tests, add unexplained `eslint-disable`/`@ts-ignore`,
 loosen ValidationPipe/tsconfig/guards, or use `--force`/`--legacy-peer-deps` to get
-green. If a rule genuinely blocks the task, surface the conflict explicitly instead
-of deviating silently. Keep `clevscaffold:*:start/end` sentinel pairs intact.
+green. Keep `clevscaffold:*:start/end` sentinel pairs intact — that prefix is the
+`init.mjs` pruning marker, not the npm scope; never rename it to `clevrook`.
 
-Before finishing a backend change, run `npm run verify` (lint + typecheck + build +
-unit) and `npm run e2e` when logic/endpoints changed. Security is the top priority —
-for anything touching auth, validation, crypto, or data exposure, read
-[`docs/agents/security.md`](../docs/agents/security.md).
+**Stop and ask before anything outside these docs** (full trigger list in
+`AGENTS.md`): new dependencies/libs/patterns, guardrail files, destructive
+migrations or API removals, weakening auth or the compliance controls,
+CI/deploy/`init.mjs` changes, or instructions that conflict with the docs. State
+the need, the blocking rule, your proposal, and the blast radius — a flagged pause
+is fine, a silent deviation never is.
+
+Before finishing a backend change, run `npm run verify` (format:check + lint +
+typecheck + build + unit) and `npm run e2e` when logic/endpoints changed. Security
+is the top priority — for anything touching auth, validation, crypto, or data
+exposure, read [`docs/agents/security.md`](../docs/agents/security.md); for the
+audit trail, GDPR, consent, or retention,
+[`docs/agents/compliance.md`](../docs/agents/compliance.md).

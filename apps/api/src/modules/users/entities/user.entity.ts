@@ -1,7 +1,6 @@
-import { Column, Entity, Index, OneToMany } from 'typeorm';
+import { Column, Entity, Index } from 'typeorm';
 import { Role } from '@clevrook/common';
 import { BaseEntity } from '@clevrook/database';
-import { UserSession } from '../../auth/entities/user-session.entity';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -28,7 +27,4 @@ export class User extends BaseEntity {
 
   @Column({ name: 'last_login_at', type: 'timestamptz', nullable: true })
   lastLoginAt: Date | null;
-
-  @OneToMany(() => UserSession, (session) => session.user)
-  sessions: UserSession[];
 }

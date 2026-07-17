@@ -22,7 +22,7 @@ permissions:
 jobs:
   automerge:
     name: Auto-merge safe Dependabot PRs
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     # Only same-repo Dependabot PR runs that finished green.
     if: >
       github.event.workflow_run.event == 'pull_request' &&

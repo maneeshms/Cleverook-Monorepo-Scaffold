@@ -1,0 +1,149 @@
+name: Image Scan
+
+# Daily vulnerability scan of every deployable image, built fresh from main.
+# CI scans images at build time (ci.yml); this catches CVEs disclosed AFTER the
+# last merge — the common case, since images age faster than code changes.
+#
+# Outcome model (see docs/SECURITY.md → Continuous vulnerability management):
+#   fixable CRITICAL/HIGH found → one open issue per app (created or refreshed,
+#     never duplicated) + the job goes red until it's remediated;
+#   scan clean again → the issue is closed automatically with a comment.
+# Accepted risks live in .trivyignore (each entry needs a reason + expiry).
+
+on:
+  schedule:
+    # Daily 04:30 UTC — off the top of the hour to dodge scheduler congestion.
+    - cron: '30 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    name: Daily scan (${{ matrix.app }})
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+      issues: write # create/refresh/close the per-app vulnerability issue
+      actions: read # required by upload-sarif to read workflow run metadata
+      security-events: write # upload Trivy SARIF to code scanning (when enabled)
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [api, api-prisma, web, web-next]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+      - name: Compute image tag
+        run: echo "IMAGE=$(echo '${{ github.event.repository.name }}' | tr '[:upper:]' '[:lower:]')-${{ matrix.app }}:scan" >> "$GITHUB_ENV"
+      # pull: true is load-bearing — it re-pulls the FROM base images so the scan
+      # sees today's base layers, not a stale cached base from the last CI build.
+      - name: Build ${{ matrix.app }} image from main
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          push: false
+          load: true
+          pull: true
+          tags: ${{ env.IMAGE }}
+          cache-from: type=gha,scope=${{ matrix.app }}
+      # Full report (no ignores) — complete visibility for the issue body/artifact.
+      - name: Trivy full report (${{ matrix.app }})
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}
+          format: table
+          output: trivy-report-${{ matrix.app }}.txt
+          severity: CRITICAL,HIGH,MEDIUM
+          exit-code: '0'
+      # The actionable gate: fixable CRITICAL/HIGH, minus accepted risks.
+      - name: Gate — fixable CRITICAL/HIGH (${{ matrix.app }})
+        id: gate
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+      # SARIF → code scanning alerts, only where GHAS is enabled (same gating as ci.yml).
+      - name: Trivy SARIF (${{ matrix.app }})
+        if: vars.ENABLE_CODE_SCANNING == 'true'
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}
+          format: sarif
+          output: trivy-${{ matrix.app }}.sarif
+          severity: CRITICAL,HIGH
+          exit-code: '0'
+      - name: Upload Trivy SARIF
+        if: vars.ENABLE_CODE_SCANNING == 'true'
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-${{ matrix.app }}.sarif
+          category: trivy-scheduled-${{ matrix.app }}
+      - name: File or refresh the vulnerability issue
+        if: steps.gate.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: '[image-scan] Fixable CRITICAL/HIGH vulnerabilities: ${{ matrix.app }}'
+        run: |
+          set -euo pipefail
+          gh label create vulnerability --color D93F0B \
+            --description 'Automated daily image-scan finding' --force || true
+          {
+            echo "The daily Trivy scan found **fixable CRITICAL/HIGH** vulnerabilities in the \`${{ matrix.app }}\` image built from \`main\`."
+            echo
+            echo "**Remediation SLAs and playbook:** \`docs/SECURITY.md\` → _Continuous vulnerability management_."
+            echo "**Scan run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo
+            echo '<details><summary>Full report (CRITICAL/HIGH/MEDIUM, includes unfixable)</summary>'
+            echo
+            echo '```'
+            head -c 60000 "trivy-report-${{ matrix.app }}.txt"
+            echo '```'
+            echo '</details>'
+            echo
+            echo '_This issue is managed by `image-scan.yml`: refreshed on every scan while the finding persists, closed automatically when the scan is clean._'
+          } > issue-body.md
+          # Exact title match via jq — GitHub search mangles '[' and ':' in titles.
+          existing=$(gh issue list --state open --limit 100 --json number,title \
+            --jq '[.[] | select(.title == env.TITLE) | .number] | first // empty')
+          if [ -n "$existing" ]; then
+            gh issue edit "$existing" --body-file issue-body.md
+            gh issue comment "$existing" --body "Still present on the $(date -u +%F) scan."
+          else
+            gh issue create --title "$TITLE" --body-file issue-body.md --label vulnerability ||
+              gh issue create --title "$TITLE" --body-file issue-body.md
+          fi
+      - name: Close the issue when the scan is clean
+        if: steps.gate.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: '[image-scan] Fixable CRITICAL/HIGH vulnerabilities: ${{ matrix.app }}'
+        run: |
+          set -euo pipefail
+          existing=$(gh issue list --state open --limit 100 --json number,title \
+            --jq '[.[] | select(.title == env.TITLE) | .number] | first // empty')
+          if [ -n "$existing" ]; then
+            gh issue close "$existing" \
+              --comment "Resolved — the $(date -u +%F) scan is clean."
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: trivy-report-${{ matrix.app }}
+          path: trivy-report-${{ matrix.app }}.txt
+      # Keep the workflow red while actionable vulnerabilities remain — the issue
+      # is the work item; the red run is the daily reminder it isn't done.
+      - name: Fail while fixable CRITICAL/HIGH remain
+        if: steps.gate.outcome == 'failure'
+        run: exit 1

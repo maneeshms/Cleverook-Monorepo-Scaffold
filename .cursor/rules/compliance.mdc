@@ -1,0 +1,22 @@
+---
+description: Compliance ruleset — audit trail, GDPR, consent, retention
+globs: libs/compliance/**,apps/api/src/modules/compliance/**
+---
+
+Full ruleset: [docs/agents/compliance.md](../../docs/agents/compliance.md);
+framework mapping: [docs/COMPLIANCE.md](../../docs/COMPLIANCE.md). Treat this area
+like auth — a subtle bug quietly invalidates audit evidence.
+
+- The audit trail is append-only: never add an update/delete path to `AuditLog`
+  (retention purge is the only exception). No `save()` over existing rows, no soft delete.
+- Never break the hash chain: `record()` computes `HMAC(secret, prevHash | canonical(payload))`
+  under a Postgres advisory lock. A field added to `AuditLog` that should be covered goes
+  in BOTH `payload()` and verification. `sequence` (DB-generated) never goes in the hash.
+- No PII or secrets in audit `metadata` — ids, counts, field NAMES only. The trail is
+  retained as erasure proof; it must not hold the data that was erased.
+- Erasure means erased (GDPR Art. 17): anonymise/tombstone or hard-delete. A soft delete
+  that leaves email/name behind is a finding, not a fix.
+- New personal data → register a `PersonalDataContributor` (+ `RetentionTarget` if it ages)
+  in the app's compliance wiring service. The lib never imports feature modules.
+- Retention windows come from config; `0` = keep-forever and must be deliberate.
+- `AUDIT_HMAC_SECRET`: dedicated key in prod, JWT fallback for dev — keep that handling.

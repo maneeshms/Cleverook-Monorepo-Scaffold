@@ -1,8 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { AccessTokenPayload } from '../services/token.service';
+import { AUTH_OPTIONS, AuthModuleOptions } from '../auth.options';
 
 /**
  * Validates the access token signature + expiry, then returns the payload which
@@ -12,15 +12,13 @@ import { AccessTokenPayload } from '../services/token.service';
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
-  constructor(config: ConfigService) {
-    // passport-jwt's types now require secretOrKey to be defined (string | Buffer);
-    // env validation guarantees it at boot, so assert here for the type + safety.
-    const secretOrKey = config.get<string>('jwt.accessSecret');
-    if (!secretOrKey) throw new Error('jwt.accessSecret is not configured');
+  constructor(@Inject(AUTH_OPTIONS) options: AuthModuleOptions) {
+    // The host must supply a real secret — fail at boot, never at first request.
+    if (!options.accessSecret) throw new Error('AuthModule: accessSecret is not configured');
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey,
+      secretOrKey: options.accessSecret,
       // Pin the algorithm explicitly — never accept 'none' or an attacker-chosen
       // alg (algorithm-confusion defense-in-depth).
       algorithms: ['HS256'],

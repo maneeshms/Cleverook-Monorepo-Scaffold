@@ -13,6 +13,7 @@ describe('UsersService', () => {
     softRemove: jest.Mock;
   };
   let qb: Record<string, jest.Mock>;
+  let sessionsRepo: { find: jest.Mock };
 
   const user = (overrides: Partial<User> = {}): User =>
     ({
@@ -47,7 +48,8 @@ describe('UsersService', () => {
       update: jest.fn(),
       softRemove: jest.fn(),
     };
-    service = new UsersService(repo as never);
+    sessionsRepo = { find: jest.fn().mockResolvedValue([]) };
+    service = new UsersService(repo as never, sessionsRepo as never);
   });
 
   it('findByEmail lowercases and only selects the hash when asked', async () => {
@@ -82,15 +84,13 @@ describe('UsersService', () => {
 
   it('exportUserData returns profile + sessions and 404s on unknown user', async () => {
     await expect(service.exportUserData('ghost')).rejects.toThrow(NotFoundException);
-    repo.findOne.mockResolvedValue(
-      user({
-        sessions: [
-          { id: 's1', ipAddress: 'ip', userAgent: 'ua', createdAt: new Date(), lastUsedAt: null },
-        ] as never,
-      }),
-    );
+    repo.findOne.mockResolvedValue(user());
+    sessionsRepo.find.mockResolvedValue([
+      { id: 's1', ipAddress: 'ip', userAgent: 'ua', createdAt: new Date(), lastUsedAt: null },
+    ]);
     const exported = await service.exportUserData('u1');
     expect(exported.profile).toMatchObject({ id: 'u1', email: 'a@b.co' });
+    expect(sessionsRepo.find).toHaveBeenCalledWith({ where: { userId: 'u1' } });
     expect((exported.sessions as unknown[]).length).toBe(1);
     expect(exported.exportedAt).toBeDefined();
   });

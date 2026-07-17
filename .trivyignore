@@ -1,0 +1,9 @@
+# Accepted-risk register for Trivy image scans (ci.yml gate + image-scan.yml gate).
+#
+# Every entry MUST carry: the CVE id, why it is accepted (not exploitable here /
+# no fix released / mitigation in place), an owner, and an expiry date — re-justify
+# or remove it when the date passes. Unexplained entries are a review reject.
+# Entries only silence the FAILING gates; the full report and SARIF still show them.
+#
+# Format (one per line):
+#   CVE-2026-XXXXX  # <owner> <YYYY-MM-DD expiry>: <why this is acceptable>

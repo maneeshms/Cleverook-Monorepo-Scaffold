@@ -21,7 +21,7 @@ once — and `scripts/init.mjs` strips it down to just what your project needs.
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Two ORMs**       | `apps/api` (TypeORM, full reference) + `apps/api-prisma` (Prisma, compact). Pick per project at init.                                                                           |
 | **Two frontends**  | `apps/web` (Vite) + `apps/web-next` (Next.js) — Docker + Railway wiring references.                                                                                             |
-| **Auth**           | 15-min access JWT + rotating opaque hashed refresh with reuse detection; progressive lockout; RBAC.                                                                             |
+| **Auth**           | Reusable `libs/auth` engine — 15-min access JWT + rotating opaque hashed refresh with reuse detection; progressive lockout; RBAC; extend via subclass hooks.                    |
 | **Layered config** | `process.env → config/{NODE_ENV}.json → config/default.json → code default`, validated at boot. Secrets never in JSON.                                                          |
 | **Security**       | helmet, strict CORS, validated DTOs, parameterized queries, audit/alert logging, OWASP e2e + a 49-check runtime scanner (baseline 49/49).                                       |
 | **Scale**          | Stateless apps, Redis-backed throttling + BullMQ queue, health/readiness probes, graceful shutdown, Prometheus metrics.                                                         |
@@ -47,6 +47,7 @@ Full walkthrough: **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**.
 - [CONFIGURATION](docs/CONFIGURATION.md) — the layered config scheme
 - [DATABASE](docs/DATABASE.md) — local / self-hosted / Supabase, migrations
 - [TESTING](docs/TESTING.md) — unit, e2e, coverage, the OWASP scanner
+- [AUTH](docs/AUTH.md) — the reusable auth library + how to extend it
 - [SECURITY](docs/SECURITY.md) — threat→control map + scanner baseline
 - [COMPLIANCE](docs/COMPLIANCE.md) — SOC 2 / GDPR / ISO 27001 control map + `--with-compliance`
 - [PUSH_NOTIFICATIONS](docs/PUSH_NOTIFICATIONS.md) — Android/iOS/Web device push via FCM

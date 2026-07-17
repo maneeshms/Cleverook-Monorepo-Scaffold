@@ -5,8 +5,9 @@ When a change touches auth, validation, crypto, data exposure, file handling, or
 any endpoint, this file governs. If a requirement here conflicts with
 convenience, security wins — or you stop and flag it.
 
-The reference implementation lives in `apps/api` (auth, users, tasks). Mirror its
-patterns; don't invent new ones.
+The auth engine lives in `libs/auth` (`@clevrook/auth` — extended, never forked;
+see `docs/AUTH.md`); the reference app wiring is `apps/api` (users, tasks).
+Mirror these patterns; don't invent new ones.
 
 ---
 
@@ -35,7 +36,7 @@ patterns; don't invent new ones.
   invalidates the old one.
 - **Reuse detection:** presenting an already-rotated refresh token means theft →
   revoke the entire session family and emit a **CRITICAL security alert**
-  (`logger.alert`). This is implemented in `TokenService`; preserve it.
+  (`logger.alert`). This is implemented in `libs/auth` `TokenService`; preserve it.
 - **Lockout:** progressive delay/lock after repeated failed logins (counter +
   `locked_until` on the user). Login uses a constant-time compare and a dummy
   bcrypt hash on unknown users to avoid timing/enumeration leaks.
@@ -59,7 +60,7 @@ patterns; don't invent new ones.
 ## 4. Input validation & injection
 
 - Global `ValidationPipe` with **`whitelist: true` + `forbidNonWhitelisted: true`**
-  + `transform: true`. Unknown properties are rejected (mass-assignment defense).
+  - `transform: true`. Unknown properties are rejected (mass-assignment defense).
 - Every request body/query is a **DTO with `class-validator` decorators**. No manual
   validation in controllers. DTOs bound sizes (`@MaxLength`, `@Max`) — pagination
   `limit` is capped (≤100).
@@ -92,7 +93,12 @@ patterns; don't invent new ones.
   traces or internals** in production responses.
 - **DTOs never expose entities.** Response shapes omit `passwordHash`,
   `refreshTokenHash`, internal flags. Use explicit response DTOs / serialization.
-- GDPR: `users` supports export + soft-delete; don't hard-delete audited data.
+- GDPR is handled by `@clevrook/compliance` (`/privacy/export`, `/privacy/erase`,
+  consent, retention). New personal data must be registered with the
+  `PersonalDataRegistry` or export/erasure silently go incomplete — recipe in
+  `recipes.md`, non-negotiables in `compliance.md`. The audit trail is
+  **append-only and hash-chained**: never add an update/delete path to it, and
+  never put PII in audit metadata.
 
 ## 7. File uploads (when added)
 
@@ -104,7 +110,7 @@ patterns; don't invent new ones.
 ## 8. Dependencies & supply chain
 
 - Exact-pinned deps; lockfiles committed. Docker build runs `npm audit
-  --audit-level=critical` and fails on criticals. `security.yml` audits weekly +
+--audit-level=critical` and fails on criticals. `security.yml` audits weekly +
   runs gitleaks + dependency-review.
 - CodeQL (`security-and-quality`) runs on push/PR/weekly.
 
@@ -120,4 +126,6 @@ patterns; don't invent new ones.
 `any` · direct `process.env` · missing DTO validation · missing `@Public()`/guard ·
 identity from request body · raw SQL concatenation · `synchronize: true` · secret in
 code/JSON/log · CORS `*` with credentials · entity returned to client · stack trace
-in response · endpoint without a test · `console.log` in app code.
+in response · endpoint without a test · `console.log` in app code · update/delete
+path on `audit_log` · PII in audit metadata · personal data stored without a
+`PersonalDataContributor`.

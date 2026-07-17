@@ -1,16 +1,13 @@
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { AuditAction, AuditStatus } from '@clevrook/logger';
-// clevscaffold:messaging:start
-import { MessageType } from '@clevrook/messaging';
-// clevscaffold:messaging:end
-import { AuthService } from './auth.service';
-import { User } from '../users/entities/user.entity';
+import { AuthService, RequestContext } from './auth.service';
+import { AuthUserRecord } from '../interfaces/auth-user-store.interface';
 
-describe('AuthService', () => {
-  let service: AuthService;
+describe('AuthService (base)', () => {
   let users: {
     findByEmail: jest.Mock;
+    findById: jest.Mock;
     create: jest.Mock;
     isLocked: jest.Mock;
     recordFailedLogin: jest.Mock;
@@ -23,26 +20,30 @@ describe('AuthService', () => {
     revokeAllForUser: jest.Mock;
   };
   let logger: { auditAuth: jest.Mock; alertSecurity: jest.Mock; error: jest.Mock };
-  // clevscaffold:messaging:start
-  let messaging: { dispatch: jest.Mock };
-  // clevscaffold:messaging:end
+  let service: AuthService;
 
   const tokenPair = { accessToken: 'a', refreshToken: 'r', expiresIn: '15m' };
+  const options = { accessSecret: 's'.repeat(40), bcryptRounds: 4, maxLoginAttempts: 5 };
 
-  const makeUser = (overrides: Partial<User> = {}): User =>
+  const makeUser = (overrides: Partial<AuthUserRecord> = {}): AuthUserRecord =>
     ({
       id: 'u1',
       email: 'a@b.co',
       displayName: 'Alex',
+      role: 'USER',
       passwordHash: bcrypt.hashSync('Str0ng!Pass', 4),
       failedLoginAttempts: 0,
       lockedUntil: null,
       ...overrides,
-    }) as User;
+    }) as AuthUserRecord;
+
+  const construct = (Cls: typeof AuthService = AuthService) =>
+    new Cls(users as never, tokens as never, options as never, logger as never);
 
   beforeEach(() => {
     users = {
       findByEmail: jest.fn().mockResolvedValue(null),
+      findById: jest.fn(),
       create: jest.fn().mockImplementation(async (data) => makeUser(data)),
       isLocked: jest.fn().mockReturnValue(false),
       recordFailedLogin: jest.fn(),
@@ -55,21 +56,7 @@ describe('AuthService', () => {
       revokeAllForUser: jest.fn(),
     };
     logger = { auditAuth: jest.fn(), alertSecurity: jest.fn(), error: jest.fn() };
-    // clevscaffold:messaging:start
-    messaging = { dispatch: jest.fn().mockResolvedValue(undefined) };
-    // clevscaffold:messaging:end
-    const config = {
-      get: (key: string) => ({ 'app.bcryptRounds': 4 })[key],
-    };
-    service = new AuthService(
-      users as never,
-      tokens as never,
-      config as never,
-      logger as never,
-      // clevscaffold:messaging:start
-      messaging as never,
-      // clevscaffold:messaging:end
-    );
+    service = construct();
   });
 
   describe('register', () => {
@@ -99,43 +86,70 @@ describe('AuthService', () => {
       await expect(service.register(dto)).rejects.toThrow(ConflictException);
       expect(users.create).not.toHaveBeenCalled();
     });
+  });
 
-    // clevscaffold:messaging:start
-    // Welcome-email behaviour lives in its own block so init.mjs can strip it
-    // wholesale when the messaging capability is not selected.
-    describe('welcome email (messaging)', () => {
-      it('dispatches a WELCOME message on register', async () => {
-        await service.register(dto);
-        expect(messaging.dispatch).toHaveBeenCalledWith(
-          expect.objectContaining({
-            messageType: MessageType.WELCOME,
-            recipient: { email: 'a@b.co' },
-          }),
-        );
-      });
+  describe('extension hooks (the subclass contract)', () => {
+    const dto = { email: 'a@b.co', password: 'Str0ng!Pass' };
 
-      it('passes bare-greeting variables when there is no display name', async () => {
-        await service.register({ email: 'a@b.co', password: 'Str0ng!Pass' });
-        expect(messaging.dispatch).toHaveBeenCalledWith(
-          expect.objectContaining({
-            variables: expect.objectContaining({ displayName: '', displayNameComma: '!' }),
-          }),
-        );
-      });
-
-      it('never fails signup because the welcome email failed', async () => {
-        messaging.dispatch.mockRejectedValue(new Error('provider down'));
-        await expect(service.register(dto)).resolves.toBe(tokenPair);
-        // flush the microtask queue so the .catch handler runs
-        await new Promise(process.nextTick);
-        expect(logger.error).toHaveBeenCalledWith(
-          expect.stringContaining('Welcome email dispatch failed'),
-          undefined,
-          'Auth',
-        );
-      });
+    it('onRegistered receives the created user and the request context', async () => {
+      const seen: unknown[] = [];
+      class Extended extends AuthService {
+        protected override async onRegistered(u: AuthUserRecord, ctx: RequestContext) {
+          seen.push([u.id, ctx.ipAddress]);
+        }
+      }
+      await construct(Extended as never).register(dto, { ipAddress: '4.4.4.4' });
+      expect(seen).toEqual([['u1', '4.4.4.4']]);
     });
-    // clevscaffold:messaging:end
+
+    it('a throwing onRegistered never fails the signup — logged instead', async () => {
+      class Broken extends AuthService {
+        protected override async onRegistered() {
+          throw new Error('side effect down');
+        }
+      }
+      await expect(construct(Broken as never).register(dto)).resolves.toBe(tokenPair);
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('onRegistered hook failed'),
+        undefined,
+        'Auth',
+      );
+    });
+
+    it('onLoggedIn fires after a successful login, never on failure', async () => {
+      const calls: string[] = [];
+      class Extended extends AuthService {
+        protected override async onLoggedIn(u: AuthUserRecord) {
+          calls.push(u.id);
+        }
+      }
+      const extended = construct(Extended as never);
+      users.findByEmail.mockResolvedValue(makeUser());
+      await extended.login({ email: 'a@b.co', password: 'Str0ng!Pass' });
+      expect(calls).toEqual(['u1']);
+
+      await expect(extended.login({ email: 'a@b.co', password: 'wrong' })).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(calls).toEqual(['u1']); // unchanged
+    });
+
+    it('a throwing onLoggedIn never fails the login — logged instead', async () => {
+      class Broken extends AuthService {
+        protected override async onLoggedIn() {
+          throw new Error('analytics down');
+        }
+      }
+      users.findByEmail.mockResolvedValue(makeUser());
+      await expect(
+        construct(Broken as never).login({ email: 'a@b.co', password: 'Str0ng!Pass' }),
+      ).resolves.toBe(tokenPair);
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('onLoggedIn hook failed'),
+        undefined,
+        'Auth',
+      );
+    });
   });
 
   describe('login', () => {
@@ -176,12 +190,12 @@ describe('AuthService', () => {
       expect(users.recordFailedLogin).not.toHaveBeenCalled();
     });
 
-    it('counts failed attempts on a bad password', async () => {
+    it('counts failed attempts with the configured threshold on a bad password', async () => {
       users.findByEmail.mockResolvedValue(makeUser());
       await expect(service.login({ ...dto, password: 'wrong' })).rejects.toThrow(
         UnauthorizedException,
       );
-      expect(users.recordFailedLogin).toHaveBeenCalled();
+      expect(users.recordFailedLogin).toHaveBeenCalledWith(expect.anything(), 5);
       expect(logger.alertSecurity).not.toHaveBeenCalled();
     });
 

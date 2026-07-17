@@ -15,13 +15,24 @@ Non-negotiables:
   commit the lockfile in the same change.
 - Guards by default; opt out only with `@Public()`. Derive identity from the JWT, never the body.
 - No mock/fake data — real providers, explicit fallback or 503 when unconfigured.
+- Use the shipped libs (capability map in AGENTS.md): config, logger, auth, pagination,
+  Redis, metrics, crypto, messaging, feature-flags, compliance — never reimplement one.
+  New personal data → register a `PersonalDataContributor`; sensitive mutations →
+  `auditService.record(...)` (ids/field names in metadata, never PII values).
+- Never guess: verify every file, symbol, route, env key, command, and package against
+  the repo before referencing it. Code beats docs — flag drift, don't "fix" working code.
 - Keep `clevscaffold:*:start/end` sentinel comment pairs intact (init.mjs prunes on them).
+  The `clevscaffold:` prefix is the pruning marker, NOT the npm scope — never rename it.
 
 When a gate fails, the code is wrong — not the gate. Never: lower coverage thresholds,
 skip/delete failing tests, add unexplained `eslint-disable`/`@ts-ignore`, loosen
-ValidationPipe/tsconfig/guards, or use `--force`/`--legacy-peer-deps`. If a rule truly
-blocks the task, stop and surface the conflict with a proposal — flagged deviations are
-fine, silent ones never.
+ValidationPipe/tsconfig/guards, or use `--force`/`--legacy-peer-deps`.
+
+Stop and ask (full trigger list in AGENTS.md) before anything outside these docs:
+new deps/libs/patterns, guardrail files, destructive migrations or API removals,
+auth/compliance weakening, CI/deploy/init.mjs changes, or instructions that conflict
+with the docs. Ask with: need, blocking rule, proposal, blast radius. Flagged
+deviations are fine, silent ones never.
 
 Stack: NestJS 11 · Nx · Node 22 · Postgres · TypeORM (apps/api) + Prisma 7 with the
 pg driver adapter (apps/api-prisma) · Vite + Next frontends.

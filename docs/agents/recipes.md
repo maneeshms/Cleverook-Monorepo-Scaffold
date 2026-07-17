@@ -3,10 +3,13 @@
 Multi-step tasks are where instructions get dropped. Follow the matching recipe
 top-to-bottom; each ends with **Done when** — the task is not finished until every
 line holds. If a step can't be followed, stop and say why in the PR/response
-instead of skipping it silently.
+instead of skipping it silently. **If no recipe fits your task, that is a
+stop-and-ask (AGENTS.md), not a licence to improvise** — describe the task, the
+gap, and your proposed steps, and wait for a human call.
 
-Shared final gate for every recipe: `npm run verify` (lint + typecheck + build +
-unit, coverage ≥90%) and, for anything behavioural, `npm run e2e`.
+Shared final gate for every recipe: `npm run verify` (format:check + lint +
+typecheck + build + unit, coverage ≥90%) and, for anything behavioural,
+`npm run e2e`.
 
 ---
 
@@ -24,10 +27,13 @@ unit, coverage ≥90%) and, for anything behavioural, `npm run e2e`.
 7. Specs for service **and** controller: happy path + every thrown branch +
    authorization branches.
 8. Endpoints touching auth/data? Extend `apps/api/test/security-owasp.e2e-spec.ts`.
+9. Module stores personal data? Register it for GDPR export/erasure — follow
+   "Register a module's personal data" below.
 
 **Done when:** `npm run verify` green · `npm run e2e` green · every endpoint has
 Swagger + a test · ownership enforced in the service · migration applied cleanly
-on a fresh DB (`npm run e2e:setup` proves this).
+on a fresh DB (`npm run e2e:setup` proves this) · personal data registered
+(export + erasure) if the module stores any.
 
 ## Add an endpoint to an existing module
 
@@ -117,12 +123,60 @@ same change · `npm run verify` green (docker-manifest stays correct automatical
    behavior (flag off / provider down) must be the safe path.
 3. Unit test both branches.
 
+## Register a module's personal data (GDPR export/erasure/retention)
+
+Any module that stores user-attributable data must be reachable by GDPR export
+**and** erasure, or both silently become incomplete. Rules:
+`docs/agents/compliance.md`.
+
+1. Open `apps/api/src/modules/compliance/compliance-wiring.service.ts` and add a
+   `register<Thing>()` method mirroring `registerTasks()`: a
+   `PersonalDataContributor` with a stable `key`, a `collect(userId)` that
+   returns everything the subject could claim, and an `erase(userId)` that
+   really removes/anonymises it (returns the affected count).
+2. Decide the erasure semantics deliberately (see the existing contributors):
+   subject-owned rows → delete; rows owned by others that reference the subject
+   → detach (null the FK); rows that must survive for FK integrity → anonymise
+   to a tombstone (`erased-<id>@erased.invalid` pattern).
+3. Data that ages out? Also register a `RetentionTarget` (`key`,
+   `windowDays: (p) => p.<window>`, idempotent `purge(olderThan)`); if it needs a
+   new window, add it to `DEFAULT_RETENTION` + `complianceConfig` + validation +
+   `.env.example` (config-key recipe applies).
+4. Inject the new repository via the wiring module's `TypeOrmModule.forFeature`.
+   If the feature is an optional capability, wrap every added line in its
+   `clevscaffold:<token>` sentinels (see the tasks/messaging blocks).
+5. Extend `compliance-wiring.service.spec.ts`: collect returns the data, erase
+   removes it, purge is idempotent.
+
+**Done when:** verify green · `GET /privacy/export` includes the new key ·
+`POST /privacy/erase` leaves no PII behind for it · retention purge (if any)
+tested idempotent · sentinels balanced.
+
+## Audit a sensitive mutation
+
+For role/credential changes, destructive admin ops, privacy actions — anything
+an auditor would ask "who did that, when?".
+
+1. Inject `AuditService` (`@clevrook/compliance`); after the mutation succeeds,
+   call `record({ action, actorId, resourceType, resourceId, outcome, metadata })`.
+2. `action` is dotted-lowercase (`user.role.update`); `metadata` holds ids,
+   counts, and field **names** — never raw PII values, tokens, or secrets.
+3. `record()` never throws to the caller — don't wrap it in response-altering
+   try/catch, and never block the mutation on it.
+4. Unit test asserts `record` was called with the right action/actor (mock the
+   service).
+
+**Done when:** verify green · the event appears in `audit_log` on a live run ·
+`GET /admin/audit/verify` still returns `ok: true` · no PII in metadata.
+
 ## Touching auth / tokens / sessions (special protocol)
 
 The auth design (rotating hashed refresh + reuse detection + lockout) is
-audit-approved. Changes here follow a stricter loop:
+audit-approved and lives in **`libs/auth`** (`@clevrook/auth`); apps extend it
+via subclass hooks (`docs/AUTH.md`) — app-level customisation belongs in the
+host's `AuthService` subclass, base changes in the lib. A stricter loop applies:
 
-1. Read `docs/agents/security.md` §2 **before** editing.
+1. Read `docs/agents/security.md` §2 and `docs/AUTH.md` **before** editing.
 2. Never weaken: token TTLs, hashing (SHA-256 for refresh, bcrypt ≥12), reuse
    detection → family revoke, lockout thresholds, the constant-work dummy hash,
    `algorithms: ['HS256']` pinning.

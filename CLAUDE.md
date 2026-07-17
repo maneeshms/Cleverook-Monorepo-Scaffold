@@ -14,6 +14,8 @@ Read the topic doc that matches your task (all under `docs/agents/`):
   config key, dependency; the special protocol for touching auth.
 - **security.md** — any auth, validation, crypto, data-exposure, or endpoint
   change. Security is the top priority; when unsure, read it.
+- **compliance.md** — the audit trail, GDPR export/erasure, consent, retention
+  (`libs/compliance`); also whenever a module stores personal data.
 - **architecture.md** — adding a lib/app, lib boundaries, workspaces, lean Docker.
 - **conventions.md** — naming, types, Swagger, commits, style.
 - **testing.md** — writing tests, the ≥90% coverage floor, e2e, the scanner.
@@ -29,10 +31,22 @@ Read the topic doc that matches your task (all under `docs/agents/`):
   deps in the package that imports them (never the root).
 - Guards by default; derive identity from the JWT, never the request body.
   BOLA-safe 404s in services (see nestjs.md §3).
+- **Use the shipped libs** (capability map in AGENTS.md) — config, logger, auth,
+  pagination, Redis, metrics, crypto, messaging, flags, compliance. Reimplementing
+  one is a defect. New personal data → register a `PersonalDataContributor`;
+  sensitive mutations → `auditService.record(...)` (no PII in metadata).
+- **Never guess** — verify every file, symbol, route, env key, command, and
+  package against the repo before referencing it; if the docs and code disagree,
+  the code wins and you flag the drift.
 - **When a gate fails, the code is wrong — not the gate.** Never lower coverage,
   skip/delete tests, add unexplained `eslint-disable`/`@ts-ignore`, loosen
   ValidationPipe/tsconfig, or use `--force`/`--legacy-peer-deps` to get green.
-- If a rule genuinely blocks the task: stop and surface the conflict with a
-  proposal — a flagged deviation is fine, a silent one never is.
+- **Stop and ask** (full trigger list in AGENTS.md) before anything outside these
+  docs: new deps/libs/patterns, guardrail files, destructive migrations or API
+  removals, auth/compliance weakening, CI/deploy/init changes, or conflicting
+  instructions. Ask with: need, blocking rule, proposal, blast radius. A flagged
+  pause is fine; a silent deviation never is.
 - Keep `clevscaffold:*:start/end` sentinel comment pairs intact — `init.mjs`
-  prunes on them; breaking a pair breaks generated projects.
+  prunes on them; breaking a pair breaks generated projects. The `clevscaffold:`
+  prefix is the pruning marker, **not** the npm scope — never rename it to
+  `clevrook`.

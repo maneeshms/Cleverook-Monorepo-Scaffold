@@ -1,19 +1,25 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHash, randomBytes } from 'crypto';
 import { IsNull, LessThan, Repository } from 'typeorm';
 import { parseDurationMs } from '@clevrook/common';
 import { AlertSeverity, LoggerService } from '@clevrook/logger';
-import { User } from '../../users/entities/user.entity';
 import { UserSession } from '../entities/user-session.entity';
+import { AUTH_OPTIONS, AUTH_DEFAULTS, AuthModuleOptions } from '../auth.options';
+import {
+  AUTH_USER_STORE,
+  AuthUserRecord,
+  AuthUserStore,
+} from '../interfaces/auth-user-store.interface';
 
 export interface AccessTokenPayload {
   sub: string;
   email: string;
   role: string;
   sessionId: string;
+  /** Subclasses may add claims via buildAccessPayload — keep them non-sensitive. */
+  [claim: string]: unknown;
 }
 
 export interface TokenPair {
@@ -22,54 +28,71 @@ export interface TokenPair {
   expiresIn: string;
 }
 
-interface SessionContext {
+export interface SessionContext {
   userAgent?: string | null;
   ipAddress?: string | null;
 }
 
+/**
+ * Session + token mechanics: opaque SHA-256-hashed rotating refresh tokens with
+ * reuse detection (audit-approved — see docs/agents/security.md §2; never weaken).
+ *
+ * Extension points for host subclasses (swap in via standard Nest DI —
+ * `{ provide: TokenService, useClass: MyTokenService }`):
+ *   - `buildAccessPayload` to add custom (non-sensitive) JWT claims;
+ *   - `refreshExpiryDate` / `generateRefreshToken` for policy tweaks.
+ */
 @Injectable()
 export class TokenService {
   constructor(
-    private readonly jwt: JwtService,
-    private readonly config: ConfigService,
+    protected readonly jwt: JwtService,
+    @Inject(AUTH_OPTIONS)
+    protected readonly options: AuthModuleOptions,
     @InjectRepository(UserSession)
-    private readonly sessions: Repository<UserSession>,
-    private readonly logger: LoggerService,
+    protected readonly sessions: Repository<UserSession>,
+    @Inject(AUTH_USER_STORE)
+    protected readonly users: AuthUserStore,
+    protected readonly logger: LoggerService,
   ) {}
 
-  private hash(token: string): string {
+  protected hash(token: string): string {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  private generateRefreshToken(): string {
+  protected generateRefreshToken(): string {
     // Opaque, high-entropy. Not a JWT — it's only ever compared by hash.
     return randomBytes(48).toString('base64url');
   }
 
-  private signAccessToken(user: User, sessionId: string): string {
-    const payload: AccessTokenPayload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-      sessionId,
-    };
-    return this.jwt.sign(payload, {
-      secret: this.config.get<string>('jwt.accessSecret'),
+  protected get accessTtl(): string {
+    return this.options.accessTtl ?? AUTH_DEFAULTS.accessTtl;
+  }
+
+  /** Override to add custom claims. Never include secrets or PII beyond email. */
+  protected buildAccessPayload(user: AuthUserRecord, sessionId: string): AccessTokenPayload {
+    return { sub: user.id, email: user.email, role: user.role, sessionId };
+  }
+
+  protected signAccessToken(user: AuthUserRecord, sessionId: string): string {
+    return this.jwt.sign(this.buildAccessPayload(user, sessionId), {
+      secret: this.options.accessSecret,
       // jsonwebtoken's types (via @nestjs/jwt 11) narrow expiresIn to
-      // `number | ms.StringValue`; our TTL comes from config as a plain string.
-      expiresIn: (this.config.get<string>('jwt.accessTtl') ?? '15m') as JwtSignOptions['expiresIn'],
+      // `number | ms.StringValue`; our TTL comes from options as a plain string.
+      expiresIn: this.accessTtl as JwtSignOptions['expiresIn'],
     });
   }
 
-  private refreshExpiryDate(): Date {
-    // Mirror JWT_REFRESH_TTL (default 30d) for the DB session row. parseDurationMs
+  protected refreshExpiryDate(): Date {
+    // Mirror the refresh TTL (default 30d) for the DB session row. parseDurationMs
     // honours the unit, so '12h' is 12 hours — not 12 days.
-    const ttl = this.config.get<string>('jwt.refreshTtl');
-    return new Date(Date.now() + parseDurationMs(ttl, 30 * 86_400_000));
+    return new Date(
+      Date.now() +
+        parseDurationMs(this.options.refreshTtl ?? AUTH_DEFAULTS.refreshTtl, 30 * 86_400_000),
+    );
   }
 
   /** Create a brand-new session (login / register) and return the token pair. */
-  async issueForNewSession(user: User, ctx: SessionContext = {}): Promise<TokenPair> {
+  async issueForNewSession(user: AuthUserRecord, ctx: SessionContext = {}): Promise<TokenPair> {
     const refreshToken = this.generateRefreshToken();
     const session = await this.sessions.save(
       this.sessions.create({
@@ -85,7 +108,7 @@ export class TokenService {
     return {
       accessToken: this.signAccessToken(user, session.id),
       refreshToken,
-      expiresIn: this.config.get<string>('jwt.accessTtl') ?? '15m',
+      expiresIn: this.accessTtl,
     };
   }
 
@@ -104,7 +127,6 @@ export class TokenService {
 
     const session = await this.sessions.findOne({
       where: { refreshTokenHash: presentedHash },
-      relations: { user: true },
       order: { createdAt: 'DESC' },
     });
 
@@ -129,6 +151,14 @@ export class TokenService {
       throw new UnauthorizedException('Session expired');
     }
 
+    // The session row carries only userId — resolve the user through the host's
+    // store (no entity relation; the user may have been deleted meanwhile).
+    const user = await this.users.findById(session.userId);
+    if (!user) {
+      await this.sessions.update(session.id, { revokedAt: new Date() });
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
     // Revoke the presented session and chain a fresh one (keeps the audit trail).
     await this.sessions.update(session.id, { revokedAt: new Date() });
 
@@ -145,9 +175,9 @@ export class TokenService {
     );
 
     return {
-      accessToken: this.signAccessToken(session.user, newSession.id),
+      accessToken: this.signAccessToken(user, newSession.id),
       refreshToken: newToken,
-      expiresIn: this.config.get<string>('jwt.accessTtl') ?? '15m',
+      expiresIn: this.accessTtl,
     };
   }
 
@@ -159,7 +189,12 @@ export class TokenService {
     await this.sessions.update({ userId, revokedAt: IsNull() }, { revokedAt: new Date() });
   }
 
-  /** Housekeeping: purge expired/revoked sessions. Wire to a scheduled job later. */
+  /** All session rows for a user — for GDPR export / "my devices" style views. */
+  listSessionsForUser(userId: string): Promise<UserSession[]> {
+    return this.sessions.find({ where: { userId }, order: { createdAt: 'DESC' } });
+  }
+
+  /** Housekeeping: purge expired sessions (wired to the hourly cleanup cron). */
   async purgeExpired(): Promise<void> {
     await this.sessions.delete({ expiresAt: LessThan(new Date()) });
   }

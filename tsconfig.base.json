@@ -20,6 +20,7 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
+      "@clevrook/auth": ["libs/auth/src/index.ts"],
       "@clevrook/common": ["libs/common/src/index.ts"],
       "@clevrook/common/*": ["libs/common/src/*"],
       "@clevrook/config": ["libs/config/src/index.ts"],

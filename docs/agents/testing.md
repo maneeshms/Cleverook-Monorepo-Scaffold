@@ -53,7 +53,7 @@ locally to see the per-file report. `nx test <project> --watch` while iterating.
 ## Definition of done (backend change)
 
 ```
-npm run verify   # lint + typecheck + build + unit (coverage ≥90%) in one command
+npm run verify   # format:check + lint + typecheck + build + unit (coverage ≥90%)
 npm run e2e      # when logic/endpoints changed
 ```
 

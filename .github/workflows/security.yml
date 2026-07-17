@@ -17,7 +17,7 @@ jobs:
   # ── npm audit (workspace + each self-contained frontend) ────────────────────
   audit:
     name: npm audit (${{ matrix.dir }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:
@@ -51,13 +51,17 @@ jobs:
   # license for organization repos, the binary does not. Version pinned via env.
   gitleaks:
     name: gitleaks (secret scan)
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     env:
       GITLEAKS_VERSION: 8.21.2
-      # SHA-256 of gitleaks_${VERSION}_linux_x64.tar.gz (from the release
-      # checksums.txt). Bump this whenever GITLEAKS_VERSION changes — a mismatch
-      # fails the build instead of silently running a tampered/swapped binary.
-      GITLEAKS_SHA256: 5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba
+      # SHA-256 per platform archive (from the release checksums.txt) — the job
+      # picks the one matching the runner OS/arch, so it runs on GitHub-hosted
+      # Linux and self-hosted macs alike. Bump ALL of them whenever
+      # GITLEAKS_VERSION changes — a mismatch fails the build instead of silently
+      # running a tampered/swapped binary.
+      GITLEAKS_SHA256_LINUX_X64: 5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba
+      GITLEAKS_SHA256_DARWIN_X64: 5b42c6e4b1fd693eaeb2b5b7faa5f17a1434299d4deb2de63d4b2efd7c753128
+      GITLEAKS_SHA256_DARWIN_ARM64: cad3de5dc9a4d5447d967a70a4d49499c557f04db028274cc324f9ff983f6502
     steps:
       - uses: actions/checkout@v7
         with:
@@ -65,11 +69,18 @@ jobs:
       - name: Run gitleaks
         run: |
           set -euo pipefail
+          case "$(uname -s)-$(uname -m)" in
+            Linux-x86_64)  suffix=linux_x64;    sha="$GITLEAKS_SHA256_LINUX_X64" ;;
+            Darwin-x86_64) suffix=darwin_x64;   sha="$GITLEAKS_SHA256_DARWIN_X64" ;;
+            Darwin-arm64)  suffix=darwin_arm64; sha="$GITLEAKS_SHA256_DARWIN_ARM64" ;;
+            *) echo "Unsupported runner platform: $(uname -s)-$(uname -m)"; exit 1 ;;
+          esac
           # Download to disk first, then verify BEFORE extracting — piping curl
           # straight into tar would run the archive before any integrity check.
-          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_${suffix}.tar.gz" \
             -o /tmp/gitleaks.tar.gz
-          echo "${GITLEAKS_SHA256}  /tmp/gitleaks.tar.gz" | sha256sum -c -
+          # shasum -a 256 (not sha256sum): present on both Linux and macOS runners.
+          echo "${sha}  /tmp/gitleaks.tar.gz" | shasum -a 256 -c -
           tar -xz -C /tmp -f /tmp/gitleaks.tar.gz gitleaks
           /tmp/gitleaks detect --source . --redact --no-banner --exit-code 1
 
@@ -78,7 +89,7 @@ jobs:
   # public repos). Opt in with repo variable ENABLE_CODE_SCANNING=true once enabled.
   dependency-review:
     name: Dependency review (PRs only)
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     if: github.event_name == 'pull_request' && vars.ENABLE_CODE_SCANNING == 'true'
     steps:
       - uses: actions/checkout@v7

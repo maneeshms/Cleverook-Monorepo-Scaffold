@@ -51,6 +51,8 @@ npm run scan:security
 - `codeql.yml` — CodeQL `security-and-quality` on push/PR + weekly (opt-in).
 - `ci.yml` — the OWASP e2e suite runs as part of the e2e job; Trivy CRITICAL gate +
   SBOM per image.
+- `image-scan.yml` — **daily** Trivy scan of every deployable image rebuilt fresh
+  from `main` (see below).
 
 **Code scanning is opt-in.** CodeQL, PR dependency-review, and Trivy SARIF upload
 require GitHub Advanced Security (free on public repos, paid on private). They run
@@ -68,12 +70,54 @@ the residual low-risk items are tracked in [ROADMAP.md](ROADMAP.md).
 
 ## Supply chain
 
-- **Image scanning:** Trivy scans every built image in CI and fails on CRITICAL.
+- **Image scanning:** Trivy scans every built image in CI and fails on CRITICAL,
+  plus the daily `image-scan.yml` sweep below.
 - **SBOM:** an SPDX SBOM is generated per image for provenance.
 - **Dependabot:** weekly npm (root + both frontends), GitHub Actions, and Docker
   base-image updates, grouped to limit PR noise.
 - **Pre-commit:** husky runs lint-staged (eslint + prettier) and commitlint
   (Conventional Commits) before every commit.
+
+## Continuous vulnerability management (daily image scan)
+
+CI only scans when code changes; images age faster than code. `image-scan.yml`
+therefore **rebuilds every deployable image from `main` daily** (04:30 UTC,
+`pull: true` so today's base layers are scanned, not a stale cache) and runs Trivy
+over OS packages + bundled npm deps.
+
+**The loop is designed so findings cannot be ignored silently:**
+
+1. **Detect** — the gate is _fixable_ CRITICAL/HIGH (minus `.trivyignore` accepted
+   risks). Unfixable CVEs are reported (full-report artifact + optional SARIF) but
+   don't page — there is no action to take until upstream releases a fix.
+2. **Track** — a finding opens **one GitHub issue per app** (label
+   `vulnerability`), refreshed with the current report on every scan while it
+   persists — never duplicated. The workflow run also stays **red** until fixed.
+3. **Fix** (within SLA):
+   | Severity (fixable) | SLA                                       |
+   | ------------------ | ----------------------------------------- |
+   | CRITICAL           | 48 hours                                  |
+   | HIGH               | 7 days                                    |
+   | MEDIUM             | 30 days (batch with routine updates)      |
+   | LOW / unfixable    | best effort; revisit via the daily report |
+4. **Verify** — the next clean scan **auto-closes the issue** with a comment; the
+   workflow goes green. No manual bookkeeping.
+
+**Remediation playbook** (in order of likelihood):
+
+- **npm dependency CVE** → usually already waiting as a Dependabot PR; merge it
+  (minor/patch auto-merge on green). Otherwise bump the exact pin in the owning
+  `package.json` + lockfile.
+- **Base-image / OS package CVE** → bump the `FROM node:22-alpine` / `nginx:alpine`
+  tag if a newer tag carries the fix, or simply **rebuild + redeploy**: `alpine`
+  tags are re-published with patched packages, and `pull: true`/Railway rebuilds
+  pick them up. If the daily scan is clean but production is old, redeploying IS
+  the fix.
+- **No fix released** → if the gate still fails (rare, since it's fixable-only),
+  add a `.trivyignore` entry **with owner, reason, and expiry date** — accepted
+  risks are code-reviewed and time-boxed, never permanent.
+
+Manual run any time: `gh workflow run image-scan.yml`.
 
 ## Compliance (SOC 2 · GDPR · ISO 27001)
 

@@ -55,8 +55,10 @@ import {
   // clevscaffold:metrics:end
 } from '@clevrook/common';
 // clevscaffold:auth:start
-import { AuthModule } from './modules/auth/auth.module';
+import { AuthModule } from '@clevrook/auth';
+import { AppAuthService } from './modules/auth/app-auth.service';
 import { UsersModule } from './modules/users/users.module';
+import { UsersService } from './modules/users/users.service';
 // clevscaffold:auth:end
 // clevscaffold:tasks:start
 import { TasksModule } from './modules/tasks/tasks.module';
@@ -192,7 +194,21 @@ import { HealthModule } from './health/health.module';
     ComplianceWiringModule,
     // clevscaffold:compliance:end
     // clevscaffold:auth:start
-    AuthModule,
+    // Reusable auth engine — config injected from this app's ConfigService; the
+    // app supplies its user store (UsersService) and its AuthService subclass
+    // (AppAuthService: the welcome-email hook). See docs/AUTH.md.
+    AuthModule.forRootAsync({
+      imports: [UsersModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        accessSecret: config.get<string>('jwt.accessSecret') ?? '',
+        accessTtl: config.get<string>('jwt.accessTtl'),
+        refreshTtl: config.get<string>('jwt.refreshTtl'),
+        bcryptRounds: config.get<number>('app.bcryptRounds'),
+      }),
+      userStore: UsersService,
+      authService: AppAuthService,
+    }),
     UsersModule,
     // clevscaffold:auth:end
     // clevscaffold:tasks:start

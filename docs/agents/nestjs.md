@@ -211,6 +211,12 @@ const ttl = process.env.JWT_ACCESS_TTL; // ❌ ESLint blocks this
 - External calls follow the **no-mock rule**: real provider, configurable, and an
   explicit fallback or `503` when unconfigured. Fabricated success values are
   never acceptable — they hide misconfiguration until production.
+- Cross-cutting needs are **always served by the shipped libs** (capability map
+  in AGENTS.md) — messaging for outbound messages, feature-flags for gating,
+  compliance for audit/GDPR. Two compliance hooks apply to feature work:
+  a module storing personal data registers a `PersonalDataContributor`
+  (recipe: "Register a module's personal data"), and sensitive mutations call
+  `auditService.record(...)` with ids/field names only — never PII values.
 
 ## 7. Unit testing NestJS (the shapes that reach 90%)
 
@@ -248,15 +254,17 @@ you add a sensitive route. Details: `docs/agents/testing.md`.
 
 ## 8. Things that look fine but are bugs here
 
-| Looks reasonable                                                             | Why it's wrong here                                                  | Do instead                                         |
-| ---------------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------- |
-| `@UseGuards(JwtAuthGuard)` on a controller                                   | Guards are global; re-adding them hides which routes are `@Public()` | Nothing — it's already guarded                     |
-| `findOne` then `if (task.ownerId !== userId) throw new ForbiddenException()` | 403 confirms the id exists → enumeration                             | BOLA-safe 404 (see §3)                             |
-| `Partial<Entity>` as an update payload                                       | Bypasses validation whitelist → mass assignment                      | Explicit update DTO                                |
-| `JSON.stringify(user)` in a log line                                         | Entities carry hashes/flags                                          | Log ids + named fields                             |
-| `synchronize: true` "just for tests"                                         | Schema drift, and e2e runs real migrations                           | `npm run e2e:setup` migrates                       |
-| `process.env.X ?? 'default'` in a service                                    | Bypasses validation + layering                                       | Config namespace + JSON default                    |
-| Returning the entity from register/login                                     | Leaks `passwordHash`                                                 | Response DTO / explicit field pick                 |
-| `catch (e) { return null }`                                                  | Swallows real failures into fake success                             | Let it throw; filter normalizes                    |
-| Free-form `@Query('page') page: number`                                      | No validation, no cap                                                | Query DTO extending `PaginationQueryDto`           |
-| `npm install some-lib` at the root                                           | Root is tooling-only; dep belongs to the package that imports it     | Add to that package's `package.json`, exact-pinned |
+| Looks reasonable                                                             | Why it's wrong here                                                  | Do instead                                          |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------- | --------------------------------------------------- |
+| `@UseGuards(JwtAuthGuard)` on a controller                                   | Guards are global; re-adding them hides which routes are `@Public()` | Nothing — it's already guarded                      |
+| `findOne` then `if (task.ownerId !== userId) throw new ForbiddenException()` | 403 confirms the id exists → enumeration                             | BOLA-safe 404 (see §3)                              |
+| `Partial<Entity>` as an update payload                                       | Bypasses validation whitelist → mass assignment                      | Explicit update DTO                                 |
+| `JSON.stringify(user)` in a log line                                         | Entities carry hashes/flags                                          | Log ids + named fields                              |
+| `synchronize: true` "just for tests"                                         | Schema drift, and e2e runs real migrations                           | `npm run e2e:setup` migrates                        |
+| `process.env.X ?? 'default'` in a service                                    | Bypasses validation + layering                                       | Config namespace + JSON default                     |
+| Returning the entity from register/login                                     | Leaks `passwordHash`                                                 | Response DTO / explicit field pick                  |
+| `catch (e) { return null }`                                                  | Swallows real failures into fake success                             | Let it throw; filter normalizes                     |
+| Free-form `@Query('page') page: number`                                      | No validation, no cap                                                | Query DTO extending `PaginationQueryDto`            |
+| `npm install some-lib` at the root                                           | Root is tooling-only; dep belongs to the package that imports it     | Add to that package's `package.json`, exact-pinned  |
+| A hand-rolled `*_history`/audit table for "who did what"                     | Mutable + un-chained — worthless as audit evidence                   | `AuditService.record(...)` (`@clevrook/compliance`) |
+| `softDelete()` as the answer to a GDPR erasure request                       | PII survives — Art. 17 requires erasure/anonymisation                | Contributor `erase()` (see compliance recipe)       |

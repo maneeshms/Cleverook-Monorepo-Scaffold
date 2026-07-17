@@ -36,6 +36,9 @@ project's stack. Deployed on Railway. Full standards:
 - Flag endpoints missing `@ApiTags`/`@ApiOperation`/`@ApiResponse`, or not under `/api/v1`.
 - Flag thrown errors that aren't NestJS `HttpException` subclasses.
 - Flag business logic or authorization implemented in controllers instead of services.
+- Flag reimplementation of a shipped lib capability (logging, pagination, Redis clients,
+  metrics registries, crypto, outbound messaging, feature gating, audit tables) —
+  the `libs/` version must be used (capability map in AGENTS.md).
 
 ## Security (top priority — see docs/agents/security.md)
 
@@ -53,6 +56,23 @@ project's stack. Deployed on Railway. Full standards:
 - Flag secrets placed in `config/*.json` (they belong in env only).
 - Flag GitHub Actions hardcoding credentials instead of `${{ secrets.* }}`, or third-party
   actions pinned to a mutable tag when a SHA is warranted.
+
+## Compliance (audit trail · GDPR · consent · retention — see docs/agents/compliance.md)
+
+- Flag any update or delete path added to `AuditLog`/`audit_log` (the retention purge
+  is the only exception) — the trail is append-only.
+- Flag changes to the audit hash-chain (`payload()`, `computeChainHash`, `verifyChain`)
+  that don't keep write and verify paths in sync, or that add DB-generated fields
+  (e.g. `sequence`) to the hash.
+- Flag PII, tokens, or secret values in audit `metadata` — ids, counts, and field
+  names only.
+- Flag GDPR erasure implemented as a bare soft delete that leaves email/name behind
+  (Art. 17 requires anonymisation/tombstone or hard delete).
+- Flag new modules/entities storing user-attributable data without a matching
+  `PersonalDataContributor` registration (and `RetentionTarget` if the data ages out).
+- Flag `libs/compliance` importing a feature module (must stay registry-driven), or
+  retention windows defaulted to `0`/keep-forever without justification.
+- Flag hand-rolled audit/history tables where `AuditService.record(...)` should be used.
 
 ## Testing
 

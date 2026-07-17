@@ -9,9 +9,12 @@ libs/common   (ORM-free)  ──imported by everything
 libs/config   (loader + validation + typed namespaces)
 libs/logger   (Winston: log + audit + alert)
 libs/database (TypeORM only: DatabaseModule, data-source, BaseEntity, migrations)
+libs/auth     (depends on common+database+logger; TypeORM-coupled; source-only lib)
 libs/feature-flags(depends on common+database+logger; TypeORM-coupled; source-only lib)
 libs/messaging(depends on database; TypeORM-coupled; source-only lib)
-apps/api           → common, config, logger, database, feature-flags, messaging (TypeORM)
+libs/compliance(depends on common+database+logger; TypeORM-coupled; source-only lib)
+apps/api           → common, config, logger, database, auth, feature-flags,
+                     messaging, compliance                         (TypeORM)
 apps/api-prisma    → common, config, logger                        (Prisma)
 apps/web, web-next → standalone frontends (own package.json/lockfile)
 ```
@@ -20,16 +23,28 @@ apps/web, web-next → standalone frontends (own package.json/lockfile)
 
 - `libs/common` is **ORM-free** — no TypeORM/Prisma imports — so the Prisma app can
   use it. `BaseEntity` lives in `libs/database` (not common) for the same reason.
-- `libs/database`, `libs/feature-flags`, and `libs/messaging` are **TypeORM-coupled**;
-  the Prisma app does not import them. `init.mjs --orm prisma` prunes them.
-- `libs/feature-flags` and `libs/messaging` have **no Nx build target** — they're
-  source-only libs; consuming apps compile them. Adding a build target reintroduces
-  the `rootDir` errors we removed. Keep them source-only.
-- **Config-injected libs:** `feature-flags` and `messaging` read no env/app-config
-  themselves — the host passes runtime options via `forRootAsync({ useFactory })`
-  built from its ConfigService. That's what keeps them portable across projects.
+- `libs/database`, `libs/auth`, `libs/feature-flags`, `libs/messaging`, and
+  `libs/compliance` are **TypeORM-coupled**; the Prisma app does not import them.
+  `init.mjs --orm prisma` prunes them.
+- `libs/auth`, `libs/feature-flags`, `libs/messaging`, and `libs/compliance` have
+  **no Nx build target** — they're source-only libs; consuming apps compile them.
+  Adding a build target reintroduces the `rootDir` errors we removed. Keep them
+  source-only.
+- **Config-injected libs:** `auth`, `feature-flags`, `messaging`, and `compliance`
+  read no env/app-config themselves — the host passes runtime options via
+  `forRootAsync({ useFactory })` built from its ConfigService. That's what keeps
+  them portable across projects.
+- **Port pattern (auth):** `libs/auth` sees users only through its
+  `AUTH_USER_STORE` port — the host's `UsersService` implements `AuthUserStore`
+  and keeps full ownership of the users table/schema. Hosts extend flows by
+  subclassing `AuthService`/`TokenService` (`docs/AUTH.md`), never by forking.
+- **Registry pattern (compliance):** `libs/compliance` never imports feature
+  modules. Features push themselves in at boot — the api's
+  `modules/compliance/compliance-wiring.service.ts` registers each module's
+  `PersonalDataContributor` / `RetentionTarget` on the runtime registries. Extend
+  the wiring service; never add a feature import to the lib.
 - **Apps never import other apps.** Shared code goes in a lib.
-- Path aliases: `@clevrook/{common,config,logger,database,feature-flags,messaging}`.
+- Path aliases: `@clevrook/{common,config,logger,database,auth,feature-flags,messaging,compliance}`.
 
 ## Package layout (npm workspaces)
 
@@ -79,7 +94,8 @@ Per key, first hit wins:
   writes file values into `process.env` for keys not already set, runs the
   class-validator `validateEnv` on the merged result (fail-fast at boot), then the
   `registerAs` namespaces (`app`, `database`, `jwt`, `throttle`, `messaging`,
-  `metrics`) read typed values. Apps just use `ConfigService` — no new ceremony.
+  `metrics`, `featureFlags`, `compliance`) read typed values. Apps just use
+  `ConfigService` — no new ceremony.
 - **Secrets are rejected in JSON** (`SECRET_KEY_PATTERN`). They belong in the env
   only. See `docs/CONFIGURATION.md` for the full scheme + examples.
 - Wire-up: `createEnvValidator({ configDir, require })` passed to
@@ -98,9 +114,11 @@ Per key, first hit wins:
 - **Messaging:** channels/providers/routing/templates + queue fan-out. Resend email
   with console-email fallback (no provider key ⇒ logged, not sent). IN_APP channel
   writes through a host-provided `IN_APP_SINK` (the api's `NotificationsService`).
-  PUSH channel: FCM HTTP v1 (Android/iOS/Web, zero-dep OAuth) over the
-  `device_tokens` registry — per-user fan-out, dead-token auto-prune,
-  `console-push` fallback when unconfigured. See `docs/PUSH_NOTIFICATIONS.md`.
+- **Compliance:** append-only HMAC hash-chained audit trail (`AuditService` +
+  `verifyChain`), GDPR export/erasure (`DataSubjectService` over the
+  `PersonalDataRegistry`), consent ledger, retention cron. `/privacy/*` +
+  `/admin/audit/verify` routes. Rules: `docs/agents/compliance.md`;
+  framework mapping: `docs/COMPLIANCE.md`.
 
 ## How to extend
 
@@ -118,3 +136,6 @@ Per key, first hit wins:
 - **Add config:** add the key to the app's `config/*.json` (non-secret) or
   `.env.example` (secret), a validation rule in `libs/config`, and read it via a
   namespace — never `process.env` directly.
+- **Add a module that stores personal data:** also register a
+  `PersonalDataContributor` (+ `RetentionTarget` if the data ages out) in the
+  compliance wiring service — recipe in `docs/agents/recipes.md`.

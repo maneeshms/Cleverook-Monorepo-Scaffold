@@ -31,6 +31,9 @@ see [`nestjs.md`](nestjs.md); for step-by-step task recipes, [`recipes.md`](reci
   read config through `ConfigService` / typed namespaces. ESLint enforces this.
 - Prefer pure functions and constructor DI. No hidden singletons.
 - Prettier owns formatting — don't hand-format; run `npm run format`.
+  `format:check` is gated in `npm run verify` and CI; generated files that drift
+  (e.g. `next-env.d.ts`, Prisma migrations) are excluded via `.prettierignore` —
+  extend that file rather than committing formatter churn on generated output.
 
 ## NestJS
 
@@ -56,5 +59,7 @@ see [`nestjs.md`](nestjs.md); for step-by-step task recipes, [`recipes.md`](reci
 
 - **Conventional Commits:** `<type>(<scope>): <description>`
   (`feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `build`, `ci`).
+  commitlint (husky) enforces this — the subject must be lower-case (an acronym
+  like "SOC 2" in the subject is rejected; rephrase, e.g. `feat(compliance): …`).
 - Keep PRs focused (~≤400 lines diff); split larger work.
 - Every behavioural change includes tests (see `testing.md`) and passes all CI gates.

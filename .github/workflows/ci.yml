@@ -19,7 +19,7 @@ jobs:
   # ── Lint · typecheck · build · unit tests (with the 90% coverage gate) ──────
   verify:
     name: Lint + build + unit (coverage ≥90%)
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
@@ -41,34 +41,39 @@ jobs:
       # this step fails the build if any project drops below the floor.
       - run: npm run test
 
-  # ── e2e against a real Postgres service container ────────────────────────────
+  # ── e2e against a real, disposable Postgres container ────────────────────────
+  # Started with `docker run` (not a `services:` container) so the job also works
+  # on self-hosted macOS runners — service containers are Linux-only. Port 55432
+  # keeps a self-hosted run from colliding with a developer's local Postgres.
   e2e:
-    name: e2e (Postgres service)
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+    name: e2e (disposable Postgres)
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     env:
-      # Coordinates of the throwaway Postgres service above (not secrets).
-      E2E_PG_BASE_URL: postgresql://postgres:postgres@localhost:5432
-      E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/clevscaffold_test
+      # Coordinates of the throwaway Postgres container below (not secrets).
+      E2E_PG_PORT: '55432'
+      E2E_PG_BASE_URL: postgresql://postgres:postgres@localhost:55432
+      E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:55432/clevscaffold_test
       # clevscaffold:prisma:start
-      E2E_PRISMA_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/clevscaffold_prisma_test
+      E2E_PRISMA_DATABASE_URL: postgresql://postgres:postgres@localhost:55432/clevscaffold_prisma_test
       # clevscaffold:prisma:end
-      E2E_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      E2E_ADMIN_URL: postgresql://postgres:postgres@localhost:55432/postgres
     steps:
       - uses: actions/checkout@v7
+      - name: Start disposable Postgres
+        run: |
+          set -euo pipefail
+          docker rm -f ci-e2e-postgres 2>/dev/null || true
+          docker run -d --name ci-e2e-postgres \
+            -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres \
+            -p "${E2E_PG_PORT}:5432" postgres:16-alpine
+          for i in $(seq 1 30); do
+            if docker exec ci-e2e-postgres pg_isready -U postgres >/dev/null 2>&1; then
+              sleep 2 # ride out the initdb-triggered restart, then re-check
+              docker exec ci-e2e-postgres pg_isready -U postgres && exit 0
+            fi
+            sleep 2
+          done
+          echo 'Postgres did not become ready in time' && exit 1
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
@@ -85,11 +90,15 @@ jobs:
       # Creates + migrates the disposable test databases (per configured ORM).
       - run: npm run e2e:setup
       - run: npm run e2e
+      # Self-hosted runners persist between jobs — never leave the container behind.
+      - name: Stop disposable Postgres
+        if: always()
+        run: docker rm -f ci-e2e-postgres 2>/dev/null || true
 
   # ── Docker build + vulnerability scan + SBOM for every deployable app ────────
   docker:
     name: Docker build + scan (${{ matrix.app }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     permissions:
       contents: read
       actions: read # required by upload-sarif to read workflow run metadata
@@ -132,6 +141,8 @@ jobs:
           severity: CRITICAL
           exit-code: '1'
           ignore-unfixed: true
+          # Accepted risks (reason + expiry required per entry) — see .trivyignore.
+          trivyignores: .trivyignore
       # SARIF upload needs code scanning (GitHub Advanced Security; free on public
       # repos). Opt in by setting the repo variable ENABLE_CODE_SCANNING=true once
       # it's available — the CRITICAL gate above already runs everywhere. Skipped
