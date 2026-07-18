@@ -2,7 +2,7 @@
 # Build context = repo root (do NOT set a Railway Root Directory).
 
 # ---- build ----
-FROM node:22-alpine AS builder
+FROM node:26-alpine AS builder
 WORKDIR /app
 COPY apps/web/package.json apps/web/package-lock.json ./
 RUN npm ci
