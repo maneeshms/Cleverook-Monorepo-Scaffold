@@ -1,9 +1,9 @@
 # ClevScaffold — Agent Guide
 
 Enterprise-grade, clone-and-go scaffold for Cleverook backends. NestJS 11 · Nx
-monorepo · TypeScript · Node 22 · PostgreSQL · **two ORMs** (TypeORM + Prisma) ·
-two frontends (Vite + Next.js) · Expo React Native mobile app · Railway. Built
-for high-traffic products.
+monorepo · TypeScript · Node 22 · PostgreSQL · TypeORM · two frontends (Vite +
+Next.js) · Expo React Native mobile app · Railway. Built for high-traffic
+products.
 
 **This file is canonical for all agents (Claude, Cursor, Copilot).** The topic
 docs in `docs/agents/` go deeper — read the one that matches your task before you
@@ -77,19 +77,19 @@ actually asked for.
 
 ## What enforces what (know where the machine has your back)
 
-| Rule                       | Enforced by                                                                                                                       | If it fires                                          |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Coverage ≥ 90%             | jest preset `coverageThreshold` + CI                                                                                              | write real tests — see below for what you may NOT do |
-| No `process.env`           | ESLint `no-restricted-syntax` (allowlist: `libs/config`, `main.ts`, `app.module.ts`, `data-source.ts`, seeds, `prisma.config.ts`) | use a config namespace                               |
-| No `any`, return types     | ESLint + `tsc --noEmit`                                                                                                           | fix the types                                        |
-| No `console.*` in app code | ESLint                                                                                                                            | use `LoggerService`                                  |
-| Secrets in JSON config     | config loader throws at boot (`SECRET_KEY_PATTERN`)                                                                               | move to env                                          |
-| Secrets in git             | gitleaks (CI)                                                                                                                     | rotate + purge, never just delete                    |
-| Exact pins                 | `.npmrc save-exact` + review                                                                                                      | pin manually if a range slips in                     |
-| Validation whitelist       | global `ValidationPipe` (`forbidNonWhitelisted`)                                                                                  | fix the DTO, don't loosen the pipe                   |
-| Commit format              | commitlint (husky)                                                                                                                | Conventional Commits                                 |
-| Formatting                 | prettier (lint-staged)                                                                                                            | let it run; don't hand-format                        |
-| OWASP behaviour            | `security-owasp.e2e-spec.ts` + `npm run scan:security`                                                                            | fix the code, keep the baseline                      |
+| Rule                       | Enforced by                                                                                                   | If it fires                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Coverage ≥ 90%             | jest preset `coverageThreshold` + CI                                                                          | write real tests — see below for what you may NOT do |
+| No `process.env`           | ESLint `no-restricted-syntax` (allowlist: `libs/config`, `main.ts`, `app.module.ts`, `data-source.ts`, seeds) | use a config namespace                               |
+| No `any`, return types     | ESLint + `tsc --noEmit`                                                                                       | fix the types                                        |
+| No `console.*` in app code | ESLint                                                                                                        | use `LoggerService`                                  |
+| Secrets in JSON config     | config loader throws at boot (`SECRET_KEY_PATTERN`)                                                           | move to env                                          |
+| Secrets in git             | gitleaks (CI)                                                                                                 | rotate + purge, never just delete                    |
+| Exact pins                 | `.npmrc save-exact` + review                                                                                  | pin manually if a range slips in                     |
+| Validation whitelist       | global `ValidationPipe` (`forbidNonWhitelisted`)                                                              | fix the DTO, don't loosen the pipe                   |
+| Commit format              | commitlint (husky)                                                                                            | Conventional Commits                                 |
+| Formatting                 | prettier (lint-staged)                                                                                        | let it run; don't hand-format                        |
+| OWASP behaviour            | `security-owasp.e2e-spec.ts` + `npm run scan:security`                                                        | fix the code, keep the baseline                      |
 
 Everything **not** in this table (BOLA-safe 404s, thin controllers, migration
 discipline, response DTOs…) is enforced only by you and review — those deserve
@@ -197,7 +197,6 @@ Two standing obligations that come with the libs:
 ```
 apps/
   api/          NestJS + TypeORM — FULL reference (one example per feature)
-  api-prisma/   NestJS + Prisma 7 (pg driver adapter) — compact reference
   web/          React + Vite     — wiring reference (Dockerfile/nginx/railway)
   web-next/     Next.js          — wiring reference (standalone Docker/railway)
   mobile/       Expo React Native — wiring reference (SecureStore auth, tasks,
@@ -231,8 +230,8 @@ root lockfile. Frontends and the mobile app stay standalone (own package.json +
 lockfile).
 
 **Dependency direction:** `common` is ORM-free and imported everywhere;
-`database`/`auth`/`feature-flags`/`messaging`/`compliance` are TypeORM-coupled (the
-Prisma app never imports them); apps import libs, never other apps. Full rules:
+`database`/`auth`/`feature-flags`/`messaging`/`compliance` are TypeORM-coupled;
+apps import libs, never other apps. Full rules:
 `docs/agents/architecture.md`.
 
 ## Commands
@@ -241,16 +240,14 @@ Prisma app never imports them); apps import libs, never other apps. Full rules:
 npm ci                       # install (exact, from lockfile)
 npm run doctor               # preflight: node/.env/docker/postgres-port checks
 npm run verify               # format:check + lint + typecheck + build + unit
-npm run dev:api              # serve TypeORM api (watch)     :3000  /api/v1
-npm run dev:api-prisma       # serve Prisma api (watch)      :3010  /api/v1
+npm run dev:api              # serve the api (watch)         :3000  /api/v1
 npm run dev:web              # Vite dev server               :5173
 npm run dev:web-next         # Next dev server               :3005
 npm run dev:mobile           # Expo dev server (Metro; scan QR with Expo Go)
 npm run db:up / db:down      # local Postgres + Redis (docker compose)
-npm run e2e:setup && npm run e2e   # create+migrate test DBs, run e2e
+npm run e2e:setup && npm run e2e   # create+migrate test DB, run e2e
 npm run migration:run        # TypeORM migrations
-npm run seed:api             # TypeORM admin seed (idempotent)
-npm run prisma:generate / prisma:migrate / prisma:seed
+npm run seed:api             # admin seed (idempotent)
 npm run scan:security        # OWASP runtime scan against a live api
 ```
 
@@ -296,7 +293,7 @@ Run through this list; if any line fails, you are not done:
 - [ ] New endpoints: DTO-validated, Swagger-decorated, guarded (or explicitly
       `@Public()`), ownership checked in the service, OWASP e2e extended if sensitive
 - [ ] No new `any`, `process.env`, `console.*`, unpinned dep, or secret anywhere
-- [ ] Schema changes are migrations (with working `down()` / committed Prisma dir)
+- [ ] Schema changes are TypeORM migrations (with a working `down()`)
 - [ ] New env keys: validated in `libs/config` + documented (`.env.example`/JSON)
 - [ ] Sentinel pairs (`clevscaffold:*:start/end`) intact and balanced
 - [ ] Used the shipped libs (capability map above) — no parallel reimplementation
@@ -312,13 +309,14 @@ Run through this list; if any line fails, you are not done:
 
 ## Init & pruning (do not break)
 
-`scripts/init.mjs` tailors a clone (`--orm`, `--frontend`, `--mobile`, `--scope`,
+`scripts/init.mjs` tailors a clone (`--frontend`, `--mobile`, `--scope`,
 `--name`).
 It prunes by directory manifests **and sentinel-marked blocks** — comments like
-`clevscaffold:typeorm:start` / `clevscaffold:prisma:start` in `.env.example`,
-`app.module.ts`, `scripts/e2e-setup.mjs`, and workflow/config files. **Keep
-sentinel pairs intact and balanced** when editing those files, or partial pruning
-breaks generated projects.
+`clevscaffold:auth:start` / `clevscaffold:vite:start` in `.env.example`,
+`app.module.ts`, and workflow/config files. **Keep sentinel pairs intact and
+balanced** when editing those files, or partial pruning breaks generated
+projects. (TypeORM is the sole ORM and is always present — there is no `--orm`
+choice.)
 
 The manifests + pruning helpers live in **`scripts/scaffold-manifest.mjs`**,
 shared by `init.mjs` and the evolution tools that STAY in generated projects:
@@ -337,19 +335,19 @@ authoring checklist is in `docs/EVOLVING.md`.
 emits a **bare, bootable core** (config + logger + database + health + throttler;
 Redis optional) and you opt capabilities back in à la carte:
 
-| Flag                   | Adds                                                                                     |
-| ---------------------- | ---------------------------------------------------------------------------------------- |
-| `--with-auth`          | JWT auth + users (+ `InitUsersAndSessions` migration)                                    |
-| `--with-messaging`     | messaging engine + notifications sink (**implies auth** — notifications FK→users)        |
-| `--with-realtime`      | socket.io realtime channel (`libs/realtime`; **implies auth** — JWT handshake)           |
-| `--with-feature-flags` | `@clevrook/feature-flags` module                                                         |
-| `--with-metrics`       | Prometheus `/metrics` endpoint                                                           |
-| `--with-compliance`    | audit trail + GDPR export/erasure + consent + retention (**implies auth**; TypeORM-only) |
+| Flag                   | Adds                                                                              |
+| ---------------------- | --------------------------------------------------------------------------------- |
+| `--with-auth`          | JWT auth + users (+ `InitUsersAndSessions` migration)                             |
+| `--with-messaging`     | messaging engine + notifications sink (**implies auth** — notifications FK→users) |
+| `--with-realtime`      | socket.io realtime channel (`libs/realtime`; **implies auth** — JWT handshake)    |
+| `--with-feature-flags` | `@clevrook/feature-flags` module                                                  |
+| `--with-metrics`       | Prometheus `/metrics` endpoint                                                    |
+| `--with-compliance`    | audit trail + GDPR export/erasure + consent + retention (**implies auth**)        |
 
 Capabilities are `clevscaffold:<token>:start/end` blocks (tokens `auth`, `messaging`,
 `featureflags`, `metrics`, `compliance`, `tasks` — single lowercase words; the
 marker regex is `[a-z]+`) across `app.module.ts`, `main.ts`, `auth.service.ts(+spec)`,
-`schema.prisma`, `.env.example`, and the compliance wiring files. The `tasks` demo
+`.env.example`, and the compliance wiring files. The `tasks` demo
 is reference-only (always dropped in `--minimal`, never re-addable). Each capability
 also maps to module dirs + migrations + a lib path/dep in the `CAPABILITIES`
 manifest. **JWT secrets are optional in the shared env class** and enforced per-app

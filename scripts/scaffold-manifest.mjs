@@ -59,22 +59,7 @@ export const COMPONENTS = {
       `${OLD_SCOPE}/messaging`,
       `${OLD_SCOPE}/realtime`,
     ],
-    sentinel: 'typeorm',
     dockerApps: ['api'],
-  },
-  prisma: {
-    dirs: ['apps/api-prisma', 'prisma.config.ts'],
-    scripts: [
-      'dev:api-prisma',
-      'prisma:generate',
-      'prisma:migrate',
-      'prisma:deploy',
-      'prisma:seed',
-      'prisma:studio',
-    ],
-    tsPaths: [],
-    sentinel: 'prisma',
-    dockerApps: ['api-prisma'],
   },
   vite: {
     dirs: ['apps/web'],
@@ -123,19 +108,10 @@ export const MIGRATIONS_DIR = 'libs/database/src/migrations';
 export const CAPABILITIES = {
   auth: {
     flag: 'with-auth',
-    dirs: [
-      'libs/auth',
-      'apps/api/src/modules/auth',
-      'apps/api/src/modules/users',
-      'apps/api-prisma/src/modules/auth',
-      'apps/api-prisma/src/modules/users',
-      'apps/api-prisma/prisma/migrations/20260711222513_init',
-    ],
-    files: ['apps/api-prisma/prisma/seed.ts'],
+    dirs: ['libs/auth', 'apps/api/src/modules/auth', 'apps/api/src/modules/users'],
     migrations: ['1750000000000-InitUsersAndSessions.ts'],
     tsPaths: [`${OLD_SCOPE}/auth`],
     pkgDeps: [{ file: 'apps/api/package.json', dep: `${OLD_SCOPE}/auth` }],
-    scripts: ['prisma:seed'],
   },
   messaging: {
     flag: 'with-messaging',
@@ -190,8 +166,6 @@ export const CAP_SENTINEL_FILES = [
   'apps/api/src/modules/compliance/compliance-wiring.service.ts',
   'apps/api/src/modules/compliance/compliance-wiring.service.spec.ts',
   'apps/api/src/modules/compliance/compliance-wiring.module.ts',
-  'apps/api-prisma/src/app.module.ts',
-  'apps/api-prisma/prisma/schema.prisma',
   '.env.example',
 ];
 
@@ -206,7 +180,6 @@ export const TEXT_EXT = new Set([
   '.mdc',
   '.yml',
   '.yaml',
-  '.prisma',
   '.conf',
   '.template',
   '.example',
@@ -404,7 +377,7 @@ export const RENAME_APP_SKIP_FILES = new Set([
  * rewritable references:
  *
  *   - `apps/<from>` path references in all text files (boundary-safe: `api`
- *     never bleeds into `api-prisma`)
+ *     never bleeds into `api-worker`)
  *   - bare Nx names (`nx build <from>`, root `dev:<from>` script, project.json
  *     name, jest displayName, CI `app:` matrices)
  *   - the app package name (`@scope/<from>` → `@scope/<to>`)

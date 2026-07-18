@@ -66,18 +66,6 @@ not 403.
 **Done when:** fresh-DB migrate passes (e2e:setup) · `down()` reverses `up()` ·
 hot columns indexed.
 
-## Change the Prisma schema
-
-1. Edit `apps/api-prisma/prisma/schema.prisma` (`PascalCase` model, `@@map` to
-   snake_case; **no `url` in the datasource** — Prisma 7 reads it from
-   `prisma.config.ts`).
-2. `npm run prisma:migrate` (dev) — commit the generated migration directory.
-3. `npm run prisma:generate`, then fix type fallout.
-4. Update `prisma/seed.ts` if the model participates in seeding.
-
-**Done when:** verify green · e2e green (`clevscaffold_prisma_test` migrates from
-scratch) · migration directory committed.
-
 ## Add a config key
 
 1. Decide: secret or not? **Secret** → `.env.example` (placeholder + comment)
@@ -187,8 +175,6 @@ host's `AuthService` subclass, base changes in the lib. A stricter loop applies:
    `algorithms: ['HS256']` pinning.
 3. Every change extends `security-owasp.e2e-spec.ts` and keeps
    `npm run scan:security` at its passing baseline against a local serve.
-4. Both apps (`api`, `api-prisma`) stay behaviorally in sync for shared auth
-   surface.
 
 **Done when:** OWASP e2e green · scanner baseline intact · audit events
 (`logger.audit`) still emitted for register/login/logout/lockout/reuse.

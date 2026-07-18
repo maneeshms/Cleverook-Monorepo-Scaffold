@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /**
- * Idempotent seed for the TypeORM app (parity with `npm run prisma:seed`):
- * one admin account for local exploration.
+ * Idempotent seed for the API: one admin account for local exploration.
  *
  * Run:  npm run seed:api        (after `npm run migration:run`)
  * Env:  DATABASE_URL            (default: local compose Postgres)

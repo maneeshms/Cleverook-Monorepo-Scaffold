@@ -4,5 +4,4 @@ coverage
 .nx
 .next
 apps/web-next/next-env.d.ts
-apps/*/prisma/migrations
 package-lock.json

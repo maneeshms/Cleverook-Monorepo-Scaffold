@@ -10,8 +10,7 @@
   },
   "workspaces": [
     "libs/*",
-    "apps/api",
-    "apps/api-prisma"
+    "apps/api"
   ],
   "scripts": {
     "nx": "nx",
@@ -35,12 +34,6 @@
     "migration:create": "typeorm-ts-node-commonjs migration:create",
     "migration:run": "typeorm-ts-node-commonjs migration:run -d libs/database/src/data-source.ts",
     "migration:revert": "typeorm-ts-node-commonjs migration:revert -d libs/database/src/data-source.ts",
-    "dev:api-prisma": "nx serve api-prisma",
-    "prisma:generate": "prisma generate --schema apps/api-prisma/prisma/schema.prisma",
-    "prisma:migrate": "prisma migrate dev --schema apps/api-prisma/prisma/schema.prisma",
-    "prisma:deploy": "prisma migrate deploy --schema apps/api-prisma/prisma/schema.prisma",
-    "prisma:seed": "ts-node apps/api-prisma/prisma/seed.ts",
-    "prisma:studio": "prisma studio --schema apps/api-prisma/prisma/schema.prisma",
     "prepare": "husky || true",
     "verify": "npm run format:check && npm run lint && npm run typecheck && npm run build && npm run test",
     "doctor": "node scripts/doctor.mjs",

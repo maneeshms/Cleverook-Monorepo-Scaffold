@@ -12,9 +12,9 @@ export enum NodeEnv {
  * env > env-file JSON > default JSON). Validation runs once at boot;
  * a malformed value crashes the app immediately rather than failing later.
  *
- * App-specific hard requirements (e.g. DATABASE_URL for the TypeORM app,
- * PRISMA_DATABASE_URL for the Prisma app) are enforced via the `require`
- * option of createEnvValidator, so one shared class serves every app.
+ * App-specific hard requirements (e.g. DATABASE_URL for the API, JWT secrets
+ * when auth is included) are enforced via the `require` option of
+ * createEnvValidator, so one shared class serves every app.
  */
 export class EnvironmentVariables {
   @IsEnum(NodeEnv)
@@ -40,10 +40,6 @@ export class EnvironmentVariables {
   @IsNumber()
   @IsOptional()
   DATABASE_POOL_MAX = 20;
-
-  @IsString()
-  @IsOptional()
-  PRISMA_DATABASE_URL?: string;
 
   // ── Secrets (environment only — the loader rejects them in JSON layers) ──
   // Optional in the shared class so a core/no-auth app boots without them; apps

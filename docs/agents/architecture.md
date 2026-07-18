@@ -16,7 +16,6 @@ libs/realtime (depends on logger only; ORM-free socket.io channel; source-only l
 libs/compliance(depends on common+database+logger; TypeORM-coupled; source-only lib)
 apps/api           → common, config, logger, database, auth, feature-flags,
                      messaging, realtime, compliance               (TypeORM)
-apps/api-prisma    → common, config, logger                        (Prisma)
 apps/web, web-next → standalone frontends (own package.json/lockfile)
 apps/mobile        → standalone Expo React Native app (own package.json/lockfile,
                      no Docker — ships via EAS/app stores; see docs/MOBILE.md)
@@ -24,12 +23,11 @@ apps/mobile        → standalone Expo React Native app (own package.json/lockfi
 
 **Rules:**
 
-- `libs/common` is **ORM-free** — no TypeORM/Prisma imports — so the Prisma app can
-  use it. `BaseEntity` lives in `libs/database` (not common) for the same reason.
+- `libs/common` is **ORM-free** — no ORM imports — so any context can use it.
+  `BaseEntity` lives in `libs/database` (not common) for the same reason.
 - `libs/database`, `libs/auth`, `libs/feature-flags`, `libs/messaging`, and
-  `libs/compliance` are **TypeORM-coupled**; the Prisma app does not import them.
-  `init.mjs --orm prisma` prunes them (`libs/realtime` is ORM-free but wired
-  only in the TypeORM app, so it rides the same pruning).
+  `libs/compliance` are **TypeORM-coupled** (`libs/realtime` is ORM-free but
+  wired only in the API).
 - `libs/auth`, `libs/feature-flags`, `libs/messaging`, `libs/realtime`, and
   `libs/compliance` have
   **no Nx build target** — they're source-only libs; consuming apps compile them.
@@ -55,15 +53,14 @@ apps/mobile        → standalone Expo React Native app (own package.json/lockfi
 ## Package layout (npm workspaces)
 
 **Every project owns its own `package.json`** — there is no giant root dependency
-list. The root is a thin workspace root (`"workspaces": ["libs/*", "apps/api",
-"apps/api-prisma"]`) holding only shared build/test tooling (nx, typescript,
-eslint, prettier, jest, husky) and orchestration scripts.
+list. The root is a thin workspace root (`"workspaces": ["libs/*", "apps/api"]`)
+holding only shared build/test tooling (nx, typescript, eslint, prettier, jest,
+husky) and orchestration scripts.
 
 - **Each lib** (`libs/*/package.json`) declares exactly the npm deps its source
   imports, plus its `@clevrook/*` workspace deps.
 - **Each backend app** declares its own deps + the workspace libs it uses. So
-  `apps/api` lists TypeORM/messaging deps; `apps/api-prisma` lists Prisma — neither
-  carries the other's.
+  `apps/api` lists its TypeORM/messaging deps directly.
 - **One root lockfile** (`package-lock.json`) — npm workspaces hoists a single,
   deduplicated `node_modules`. That's deliberate: deterministic installs + one
   security-audit surface. Per-project _manifests_, single lockfile.
@@ -81,9 +78,8 @@ npm deps are needed. `scripts/docker-manifest.mjs` walks an app's package.json,
 follows `@clevrook/*` into each lib, and flattens the external dependency
 closure into a self-contained `package.json` in the app's `dist`. The Docker
 runtime stage `npm install --omit=dev` from that — so `apps/api` images ship
-TypeORM/BullMQ/OpenFeature (no Prisma) and `apps/api-prisma` images ship Prisma
-(no TypeORM/messaging/OpenFeature). Keep app/lib deps accurate and this stays
-correct automatically.
+only TypeORM/BullMQ/OpenFeature and the libs it actually imports. Keep app/lib
+deps accurate and this stays correct automatically.
 
 ## Layered configuration (`libs/config`)
 
@@ -135,12 +131,10 @@ Per key, first hit wins:
   `app.module.ts`. Guards apply by default; mark `@Public()` only if truly public.
   Follow `modules/tasks` as the canonical example (pagination, ownership, cache,
   messaging hook).
-- **Add a migration (TypeORM):** hand-write under `libs/database/src/migrations/`
+- **Add a migration:** hand-write under `libs/database/src/migrations/`
   (timestamp-prefixed); use the enum `DO $$…$$` guard. `npm run migration:run`.
-- **Add a Prisma field:** edit `apps/api-prisma/prisma/schema.prisma`, then
-  `npm run prisma:migrate`. Keep `@@map`/snake_case.
 - **Add a lib:** `nx g @nx/js:lib <name>` under `libs/`; respect the ORM-free rule
-  for anything both apps consume. Add the `@clevrook/<name>` path alias.
+  for anything used outside the API. Add the `@clevrook/<name>` path alias.
 - **Add config:** add the key to the app's `config/*.json` (non-secret) or
   `.env.example` (secret), a validation rule in `libs/config`, and read it via a
   namespace — never `process.env` directly.

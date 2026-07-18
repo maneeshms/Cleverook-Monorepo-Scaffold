@@ -80,10 +80,8 @@ npm run db:up && npm run e2e:setup && npm run e2e
 
 ## Migrations
 
-- **TypeORM:** author under `libs/database/src/migrations/` (timestamp prefix, enum
+- Author under `libs/database/src/migrations/` (timestamp prefix, enum
   `DO $$…$$` guard). Apply: `npm run migration:run`. Never enable `synchronize`.
-- **Prisma:** edit `apps/api-prisma/prisma/schema.prisma` → `npm run prisma:migrate`
-  (dev) / `npm run prisma:deploy` (prod/CI). Commit the generated migration.
 - Migrations run **before** app start in the Docker CMD and on Railway deploy.
 
 ## Deployment (Railway)
@@ -100,7 +98,7 @@ npm run db:up && npm run e2e:setup && npm run e2e
 ```
 node scripts/init.mjs            # interactive
 node scripts/init.mjs --yes --name my-app --scope @myco \
-     --orm typeorm|prisma|both --frontend vite|next|both|none
+     --frontend vite|next|both|none
 # minimal core + à-la-carte capabilities:
 node scripts/init.mjs --yes --minimal \
      --with-auth --with-messaging --with-feature-flags --with-metrics --with-compliance

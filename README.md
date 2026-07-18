@@ -6,7 +6,7 @@ first-class support for AI coding agents. Clone it, run `init`, and start shippi
 
 ```
 NestJS 11 · Nx · TypeScript · Node 22 · PostgreSQL 16
-TypeORM ⟷ Prisma  ·  Vite ⟷ Next.js  ·  Redis (optional)  ·  Railway
+TypeORM  ·  Vite ⟷ Next.js  ·  Redis (optional)  ·  Railway
 ```
 
 ## Why
@@ -19,7 +19,7 @@ once — and `scripts/init.mjs` strips it down to just what your project needs.
 
 | Area               | What you get                                                                                                                                                                    |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Two ORMs**       | `apps/api` (TypeORM, full reference) + `apps/api-prisma` (Prisma, compact). Pick per project at init.                                                                           |
+| **API**            | `apps/api` — NestJS + TypeORM full reference (one worked example per feature).                                                                                                  |
 | **Two frontends**  | `apps/web` (Vite) + `apps/web-next` (Next.js) — Docker + Railway wiring references.                                                                                             |
 | **Mobile**         | `apps/mobile` (Expo React Native) — keychain-backed auth, tasks demo, FCM push-device registration; ships via EAS/app stores.                                                   |
 | **Auth**           | Reusable `libs/auth` engine — 15-min access JWT + rotating opaque hashed refresh with reuse detection; progressive lockout; RBAC; extend via subclass hooks.                    |
@@ -35,7 +35,7 @@ once — and `scripts/init.mjs` strips it down to just what your project needs.
 
 ```bash
 git clone <this-repo> my-app && cd my-app
-node scripts/init.mjs --yes --name my-app --scope @myco --orm typeorm --frontend next
+node scripts/init.mjs --yes --name my-app --scope @myco --frontend next
 cp .env.example .env          # add real JWT secrets (openssl rand -base64 48)
 npm ci && npm run db:up && npm run migration:run
 npm run dev:api               # http://localhost:3000/api/v1  (Swagger: /api/docs)
@@ -67,18 +67,18 @@ Full walkthrough: **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**.
 
 ```bash
 npm run doctor               # preflight checks (node, .env, docker, ports)
-npm run dev:api | dev:api-prisma | dev:web | dev:web-next | dev:mobile
+npm run dev:api | dev:web | dev:web-next | dev:mobile
 npm run db:up | db:down
 npm run verify               # lint + typecheck + build + test in one go
 npm run e2e:setup && npm run e2e
-npm run migration:run | seed:api | prisma:migrate | prisma:seed
+npm run migration:run | seed:api
 npm run scan:security
 ```
 
 ## Tailoring
 
 `node scripts/init.mjs` (interactive) or with flags: `--name`, `--scope`,
-`--orm typeorm|prisma|both`, `--frontend vite|next|both|none`, `--mobile expo|none`,
+`--frontend vite|next|both|none`, `--mobile expo|none`,
 `--yes`. It prunes unused apps/libs, renames the scope, **names every kept app
 after your project** (`my-app` → `apps/my-app-api`, `apps/my-app-web`, … —
 Dockerfile, railway.json, and CI matrices included), and verifies the result

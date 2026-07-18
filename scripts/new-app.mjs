@@ -21,8 +21,7 @@
  *
  * Notes:
  *   - `--type api` produces a TypeORM core app (requires libs/database in this
- *     project). A Prisma variant is not generated yet — copy apps/api-prisma
- *     manually if you need one.
+ *     project).
  *   - New backend apps share DATABASE_URL and the shared migrations in
  *     libs/database. Point them at their own database via env/config when the
  *     service needs isolation.
@@ -115,8 +114,7 @@ async function main() {
 
   if (type === 'api' && !existsSync(path.join(ROOT, 'libs/database'))) {
     throw new Error(
-      '--type api needs the TypeORM stack (libs/database) — this project was generated without it. ' +
-        'A Prisma app generator is not available yet; copy apps/api-prisma manually.',
+      '--type api needs the TypeORM stack (libs/database), which is missing from this project.',
     );
   }
 

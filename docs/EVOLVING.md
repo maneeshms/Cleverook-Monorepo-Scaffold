@@ -59,8 +59,7 @@ see `docs/agents/recipes.md`), then:
 npm run migration:run && npm run verify
 ```
 
-`tasks` is the reference-only demo and can't be added. Capabilities other than
-`metrics` are TypeORM-coupled — a Prisma-only project can't take them.
+`tasks` is the reference-only demo and can't be added.
 
 ## Create a new app (custom name)
 
@@ -80,8 +79,7 @@ What you get:
   the same way `apps/api` does, or keep it lean. It joins the npm workspaces and
   the root `typecheck`. It **shares `DATABASE_URL` and `libs/database`
   migrations**; give it its own database via env/config when the service needs
-  isolation. (A Prisma app generator doesn't exist yet — copy `apps/api-prisma`
-  manually if you need one.)
+  isolation.
 - **`--type vite` / `--type next`** — a standalone web client (own lockfile)
   reduced to the health landing page, with the Docker/nginx or standalone-output
   wiring intact.
@@ -109,7 +107,7 @@ node scripts/rename-app.mjs --from my-app-api --to billing
 ```
 
 Moves the directory and rewrites every hardcoded reference (boundary-safe —
-renaming `x-api` never touches `x-api-prisma`): paths in Dockerfile/railway/
+renaming `x-api` never touches `x-api-worker`): paths in Dockerfile/railway/
 tsconfig/workflows/docs, bare Nx names (`nx build <app>`, CI `app:` matrices,
 project.json, jest displayName), the `dev:<app>` script, and the package name.
 `.clevscaffold.json`'s `appRenames` map is updated so `add.mjs` keeps landing

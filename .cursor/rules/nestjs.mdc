@@ -1,6 +1,6 @@
 ---
 description: NestJS backend shapes — controllers, services, DTOs, ORM
-globs: apps/api/**/*.ts,apps/api-prisma/**/*.ts,libs/**/*.ts
+globs: apps/api/**/*.ts,libs/**/*.ts
 ---
 
 Full playbook with code: [docs/agents/nestjs.md](../../docs/agents/nestjs.md).
@@ -9,7 +9,7 @@ Mirror `apps/api/src/modules/tasks` — the canonical module. Don't invent new
 patterns when an existing one fits; if none fits, flag it explicitly.
 
 - Controllers: bind validated DTO → delegate to service → return. Never inject a
-  repository/PrismaService; identity from `@CurrentUser()` (JWT), never the body;
+  repository directly; identity from `@CurrentUser()` (JWT), never the body;
   id params via `ParseUUIDPipe`; Swagger (`@ApiTags`/`@ApiOperation`) on every endpoint.
   Guards are global — don't re-add `@UseGuards(JwtAuthGuard)`.
 - Services own logic + authorization. Ownership re-checked on EVERY read/write with
@@ -22,9 +22,6 @@ patterns when an existing one fits; if none fits, flag it explicitly.
 - TypeORM: query builder with bound parameters only (no string interpolation);
   migrations-only schema (never `synchronize`); enum guard `DO $$ … duplicate_object …$$`;
   index columns your queries filter on; entities extend `BaseEntity`.
-- Prisma 7: no `url` in schema.prisma (connection via `@prisma/adapter-pg` in
-  PrismaService; migrations read `PRISMA_DATABASE_URL` from prisma.config.ts);
-  raw SQL only as tagged `$queryRaw` templates.
 - Config via typed namespaces (`config.get<T>('ns.key')`); log via `LoggerService`
   (`audit()` for privileged actions, `alert()` for security events); RedisService is
   null-safe — code must be correct with Redis absent.

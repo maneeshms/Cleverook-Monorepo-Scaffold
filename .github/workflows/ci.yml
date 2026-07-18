@@ -27,12 +27,6 @@ jobs:
           node-version-file: .nvmrc # single source of truth for the Node version
           cache: npm
       - run: npm ci
-      # clevscaffold:prisma:start
-      # Generate the Prisma client before typecheck/build/test — the api-prisma
-      # sources import types from @prisma/client that only exist post-generate.
-      - name: Generate Prisma client
-        run: npm run prisma:generate
-      # clevscaffold:prisma:end
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
@@ -53,9 +47,6 @@ jobs:
       E2E_PG_PORT: '55432'
       E2E_PG_BASE_URL: postgresql://postgres:postgres@localhost:55432
       E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:55432/clevscaffold_test
-      # clevscaffold:prisma:start
-      E2E_PRISMA_DATABASE_URL: postgresql://postgres:postgres@localhost:55432/clevscaffold_prisma_test
-      # clevscaffold:prisma:end
       E2E_ADMIN_URL: postgresql://postgres:postgres@localhost:55432/postgres
     steps:
       - uses: actions/checkout@v7
@@ -84,10 +75,7 @@ jobs:
           echo "JWT_ACCESS_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
           echo "JWT_REFRESH_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
       - run: npm ci
-      # clevscaffold:prisma:start
-      - run: npm run prisma:generate
-      # clevscaffold:prisma:end
-      # Creates + migrates the disposable test databases (per configured ORM).
+      # Creates + migrates the disposable test database.
       - run: npm run e2e:setup
       - run: npm run e2e
       # Self-hosted runners persist between jobs — never leave the container behind.
@@ -106,7 +94,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [api, api-prisma, web, web-next]
+        app: [api, web, web-next]
     steps:
       - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4

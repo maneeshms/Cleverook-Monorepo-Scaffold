@@ -14,8 +14,8 @@ statements) and by CI — a drop below the floor fails the build. It is not opti
 ## Unit tests
 
 - Co-locate `foo.service.spec.ts` next to `foo.service.ts` (never a `__tests__/` dir).
-- Mock all I/O: repositories, `PrismaService`, Redis, HTTP, the clock. No real
-  network or database in unit tests.
+- Mock all I/O: repositories, Redis, HTTP, the clock. No real network or
+  database in unit tests.
 - Descriptive names — `it('locks the account after 5 failed logins')`, never
   `it('works')`.
 - Cover branches, not just the happy path: error cases, guards, ownership checks,
@@ -29,10 +29,9 @@ locally to see the per-file report. `nx test <project> --watch` while iterating.
 ## e2e tests
 
 1. `npm run db:up` — local Postgres + Redis via docker compose.
-2. `npm run e2e:setup` — creates + migrates the disposable DBs
-   (`clevscaffold_test` for TypeORM, `clevscaffold_prisma_test` for Prisma).
-   Override with `E2E_DATABASE_URL` / `E2E_PRISMA_DATABASE_URL` in CI.
-3. `npm run e2e` — runs both apps' e2e suites (`--parallel=1`).
+2. `npm run e2e:setup` — creates + migrates the disposable DB
+   (`clevscaffold_test`). Override with `E2E_DATABASE_URL` in CI.
+3. `npm run e2e` — runs the e2e suites (`--parallel=1`).
 
 - e2e helpers truncate tables between suites (`apps/api/test/helpers`). Keep tests
   independent — no ordering assumptions.
