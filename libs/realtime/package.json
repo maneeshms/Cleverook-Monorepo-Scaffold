@@ -1,0 +1,17 @@
+{
+  "name": "@clevrook/realtime",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@clevrook/logger": "*",
+    "@nestjs/common": "11.1.28",
+    "@nestjs/jwt": "11.0.2",
+    "@nestjs/platform-socket.io": "11.1.28",
+    "@nestjs/websockets": "11.1.28",
+    "@socket.io/redis-adapter": "8.3.0",
+    "ioredis": "5.11.1",
+    "socket.io": "4.8.3"
+  }
+}

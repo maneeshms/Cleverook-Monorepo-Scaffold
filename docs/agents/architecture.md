@@ -12,9 +12,10 @@ libs/database (TypeORM only: DatabaseModule, data-source, BaseEntity, migrations
 libs/auth     (depends on common+database+logger; TypeORM-coupled; source-only lib)
 libs/feature-flags(depends on common+database+logger; TypeORM-coupled; source-only lib)
 libs/messaging(depends on database; TypeORM-coupled; source-only lib)
+libs/realtime (depends on logger only; ORM-free socket.io channel; source-only lib)
 libs/compliance(depends on common+database+logger; TypeORM-coupled; source-only lib)
 apps/api           → common, config, logger, database, auth, feature-flags,
-                     messaging, compliance                         (TypeORM)
+                     messaging, realtime, compliance               (TypeORM)
 apps/api-prisma    → common, config, logger                        (Prisma)
 apps/web, web-next → standalone frontends (own package.json/lockfile)
 apps/mobile        → standalone Expo React Native app (own package.json/lockfile,
@@ -27,12 +28,15 @@ apps/mobile        → standalone Expo React Native app (own package.json/lockfi
   use it. `BaseEntity` lives in `libs/database` (not common) for the same reason.
 - `libs/database`, `libs/auth`, `libs/feature-flags`, `libs/messaging`, and
   `libs/compliance` are **TypeORM-coupled**; the Prisma app does not import them.
-  `init.mjs --orm prisma` prunes them.
-- `libs/auth`, `libs/feature-flags`, `libs/messaging`, and `libs/compliance` have
+  `init.mjs --orm prisma` prunes them (`libs/realtime` is ORM-free but wired
+  only in the TypeORM app, so it rides the same pruning).
+- `libs/auth`, `libs/feature-flags`, `libs/messaging`, `libs/realtime`, and
+  `libs/compliance` have
   **no Nx build target** — they're source-only libs; consuming apps compile them.
   Adding a build target reintroduces the `rootDir` errors we removed. Keep them
   source-only.
-- **Config-injected libs:** `auth`, `feature-flags`, `messaging`, and `compliance`
+- **Config-injected libs:** `auth`, `feature-flags`, `messaging`, `realtime`, and
+  `compliance`
   read no env/app-config themselves — the host passes runtime options via
   `forRootAsync({ useFactory })` built from its ConfigService. That's what keeps
   them portable across projects.
@@ -46,7 +50,7 @@ apps/mobile        → standalone Expo React Native app (own package.json/lockfi
   `PersonalDataContributor` / `RetentionTarget` on the runtime registries. Extend
   the wiring service; never add a feature import to the lib.
 - **Apps never import other apps.** Shared code goes in a lib.
-- Path aliases: `@clevrook/{common,config,logger,database,auth,feature-flags,messaging,compliance}`.
+- Path aliases: `@clevrook/{common,config,logger,database,auth,feature-flags,messaging,realtime,compliance}`.
 
 ## Package layout (npm workspaces)
 

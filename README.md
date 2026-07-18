@@ -28,6 +28,7 @@ once — and `scripts/init.mjs` strips it down to just what your project needs.
 | **Scale**          | Stateless apps, Redis-backed throttling + BullMQ queue, health/readiness probes, graceful shutdown, Prometheus metrics.                                                         |
 | **Quality gates**  | Unit coverage floor **≥ 90%** (enforced), full e2e, ESLint 9 flat config, CI for build/test/e2e/docker/security (CodeQL + dependency-review opt-in via `ENABLE_CODE_SCANNING`). |
 | **Messaging**      | Omnichannel `libs/messaging` (channels/providers/routing/templates/queue), Resend email, FCM device push (Android/iOS/Web) with token registry + auto-prune, in-app sink.       |
+| **Realtime**       | `libs/realtime` — authenticated socket.io channel (JWT handshake, per-user rooms, Redis-adapter multi-instance fan-out); in-app notifications push live.                        |
 | **Agent-ready**    | `AGENTS.md` canonical + `docs/agents/*` topic docs + adapters for Claude, Cursor, and Copilot.                                                                                  |
 
 ## Quick start
@@ -53,6 +54,7 @@ Full walkthrough: **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**.
 - [SECURITY](docs/SECURITY.md) — threat→control map + scanner baseline
 - [COMPLIANCE](docs/COMPLIANCE.md) — SOC 2 / GDPR / ISO 27001 control map + `--with-compliance`
 - [PUSH_NOTIFICATIONS](docs/PUSH_NOTIFICATIONS.md) — Android/iOS/Web device push via FCM
+- [REALTIME](docs/REALTIME.md) — the socket.io channel: handshake auth, rooms, scaling
 - [MOBILE](docs/MOBILE.md) — the Expo React Native app: run, tokens, push, EAS
 - [DEPLOYMENT](docs/DEPLOYMENT.md) — Railway, per app
 - [SCALING](docs/SCALING.md) — horizontal scale-out checklist

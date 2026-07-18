@@ -105,7 +105,7 @@ documented in `.env.example` or JSON · no direct `process.env` reads added.
 **Done when:** exact pin in the right package.json · lockfile committed in the
 same change · `npm run verify` green (docker-manifest stays correct automatically).
 
-## Send something (email / in-app) from a feature
+## Send something (email / in-app / live socket) from a feature
 
 1. Inject `MessagingService`; call `dispatch({ type: MessageType.X, userId, payload })`
    — see `TasksService.notifyAssignment`.
@@ -115,6 +115,11 @@ same change · `npm run verify` green (docker-manifest stays correct automatical
    through the user's request (unless delivery IS the feature).
 4. Unit test asserts `dispatch` was called with the right type/payload — mock the
    service; never send in tests.
+5. In-app messages already push live to connected sockets (the IN_APP sink emits
+   via `@clevrook/realtime` after saving) — don't emit a second time. For a
+   live-only event of your own, inject `RealtimeService` and
+   `emitToUser(userId, event, payload)`; persist a durable row first if the
+   event must survive the user being offline. See `docs/REALTIME.md`.
 
 ## Gate a feature behind a flag
 

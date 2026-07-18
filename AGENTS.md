@@ -158,6 +158,7 @@ version is a defect even when it works. Before writing any of these, use:
 | Encrypting stored credentials            | `SecretCipher` (`@clevrook/common`)                                                                                                               | hand-rolled crypto, plaintext                     |
 | Entities / schema changes                | `BaseEntity` + hand-written migrations (`@clevrook/database`)                                                                                     | `synchronize`, per-app data sources               |
 | Email / in-app / any outbound message    | `MessagingService.dispatch(...)` (`@clevrook/messaging`)                                                                                          | nodemailer/fetch inside a feature service         |
+| Live push to connected clients           | `RealtimeService.emitToUser(...)` (`@clevrook/realtime`) — persist the durable row first                                                          | new ws/socket.io servers, polling endpoints       |
 | Feature gating                           | `FeatureFlagsService.isEnabled(...)` (`@clevrook/feature-flags`)                                                                                  | env-var if-checks                                 |
 | Audit trail · GDPR · consent · retention | `AuditService` / `PersonalDataRegistry` / `RetentionRegistry` etc. (`@clevrook/compliance`)                                                       | bespoke audit tables, soft-delete-as-erasure      |
 | Request correlation                      | correlation-id middleware, already global (`@clevrook/common`)                                                                                    | new header conventions                            |
@@ -193,6 +194,8 @@ libs/
                 source-only lib; swap providers without touching call sites
   messaging/    Omnichannel engine (channels/providers/routing/templates/queue)
                 — source-only lib (no build target; apps compile it)
+  realtime/     Authenticated socket.io channel (JWT handshake, per-user rooms,
+                Redis-adapter fan-out) — config-injected, source-only lib
   compliance/   Audit trail (append-only, HMAC hash-chained) + GDPR export/
                 erasure + consent ledger + retention cron — TypeORM-coupled,
                 config-injected, source-only lib
@@ -311,6 +314,7 @@ Redis optional) and you opt capabilities back in à la carte:
 | ---------------------- | ---------------------------------------------------------------------------------------- |
 | `--with-auth`          | JWT auth + users (+ `InitUsersAndSessions` migration)                                    |
 | `--with-messaging`     | messaging engine + notifications sink (**implies auth** — notifications FK→users)        |
+| `--with-realtime`      | socket.io realtime channel (`libs/realtime`; **implies auth** — JWT handshake)           |
 | `--with-feature-flags` | `@clevrook/feature-flags` module                                                         |
 | `--with-metrics`       | Prometheus `/metrics` endpoint                                                           |
 | `--with-compliance`    | audit trail + GDPR export/erasure + consent + retention (**implies auth**; TypeORM-only) |

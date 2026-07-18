@@ -28,7 +28,7 @@ origin recorded in `.clevscaffold.json`, or explicitly:
 ```bash
 node scripts/add.mjs messaging                # implies auth if missing
 node scripts/add.mjs compliance --from ../ClevScaffold
-# capabilities: auth · messaging · feature-flags · metrics · compliance
+# capabilities: auth · messaging · realtime · feature-flags · metrics · compliance
 ```
 
 What it does automatically: copies the capability's `libs/*` + app modules +

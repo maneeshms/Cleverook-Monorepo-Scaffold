@@ -40,6 +40,9 @@ import { LoggerModule } from '@clevrook/logger';
 // clevscaffold:messaging:start
 import { MessagingModule } from '@clevrook/messaging';
 // clevscaffold:messaging:end
+// clevscaffold:realtime:start
+import { RealtimeModule } from '@clevrook/realtime';
+// clevscaffold:realtime:end
 import {
   AllExceptionsFilter,
   LoggingInterceptor,
@@ -164,6 +167,20 @@ import { HealthModule } from './health/health.module';
     }),
     NotificationsModule,
     // clevscaffold:messaging:end
+    // clevscaffold:realtime:start
+    // Authenticated socket.io channel — clients connect with their access JWT
+    // (HS256-verified against the same secret as the REST API) and join a
+    // per-user room; features emit via RealtimeService. Redis adapter when
+    // REDIS_URL is set (multi-instance fan-out), in-memory otherwise. See
+    // docs/REALTIME.md.
+    RealtimeModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        accessSecret: config.get<string>('jwt.accessSecret') ?? '',
+        redisUrl: config.get<string>('REDIS_URL') ?? null,
+      }),
+    }),
+    // clevscaffold:realtime:end
     // clevscaffold:featureflags:start
     // OpenFeature-backed feature flags — config injected from this app's
     // ConfigService so the lib stays env-agnostic. Swap FEATURE_FLAG_PROVIDER

@@ -32,6 +32,7 @@
  *   --minimal            core-only app; add capabilities with --with-* below
  *   --with-auth          include JWT auth + users (needed by messaging)
  *   --with-messaging     include the messaging engine + notifications (implies auth)
+ *   --with-realtime      include the socket.io realtime channel (implies auth)
  *   --with-feature-flags include the OpenFeature feature-flags module
  *   --with-metrics       include the Prometheus /metrics endpoint
  *   --with-compliance    include the compliance toolkit (audit trail, GDPR
@@ -92,6 +93,7 @@ function parseArgs(argv) {
       'minimal',
       'with-auth',
       'with-messaging',
+      'with-realtime',
       'with-feature-flags',
       'with-metrics',
       'with-compliance',
@@ -138,6 +140,7 @@ async function main() {
   const withCap = {
     auth: flags.has('with-auth'),
     messaging: flags.has('with-messaging'),
+    realtime: flags.has('with-realtime'),
     featureflags: flags.has('with-feature-flags'),
     metrics: flags.has('with-metrics'),
     compliance: flags.has('with-compliance'),
@@ -160,7 +163,7 @@ async function main() {
       const picked = (
         await prompt(
           rl,
-          'Capabilities [auth,messaging,feature-flags,metrics,compliance] (comma-sep, blank=none)',
+          'Capabilities [auth,messaging,realtime,feature-flags,metrics,compliance] (comma-sep, blank=none)',
           '',
         )
       ).toLowerCase();
@@ -172,6 +175,7 @@ async function main() {
       );
       if (set.has('auth')) withCap.auth = true;
       if (set.has('messaging')) withCap.messaging = true;
+      if (set.has('realtime')) withCap.realtime = true;
       if (set.has('feature-flags') || set.has('featureflags')) withCap.featureflags = true;
       if (set.has('metrics')) withCap.metrics = true;
       if (set.has('compliance')) withCap.compliance = true;
@@ -217,6 +221,10 @@ async function main() {
       caps.add('messaging');
       caps.add('auth'); // notifications FK → users
     }
+    if (withCap.realtime) {
+      caps.add('realtime');
+      caps.add('auth'); // the socket handshake verifies the access JWT
+    }
     if (withCap.featureflags) caps.add('featureflags');
     if (withCap.metrics) caps.add('metrics');
     if (withCap.compliance) {
@@ -228,6 +236,7 @@ async function main() {
   // Capabilities that live only in the TypeORM app vanish when it is removed.
   if (remove.includes('typeorm')) {
     caps.delete('messaging');
+    caps.delete('realtime');
     caps.delete('featureflags');
     caps.delete('compliance');
     caps.delete('tasks');

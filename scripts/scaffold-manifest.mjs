@@ -40,6 +40,7 @@ export const COMPONENTS = {
       'libs/auth',
       'libs/feature-flags',
       'libs/messaging',
+      'libs/realtime',
       'scripts/seed-api.mjs',
     ],
     scripts: [
@@ -55,6 +56,7 @@ export const COMPONENTS = {
       `${OLD_SCOPE}/auth`,
       `${OLD_SCOPE}/feature-flags`,
       `${OLD_SCOPE}/messaging`,
+      `${OLD_SCOPE}/realtime`,
     ],
     sentinel: 'typeorm',
     dockerApps: ['api'],
@@ -107,7 +109,15 @@ export const COMPONENTS = {
 // deletes its module dirs / migrations / lib path aliases / package deps.
 // `tasks` is a reference-only demo — always dropped in a minimal app, never
 // re-addable. Tokens are single lowercase words (marker-cleanup regex is [a-z]+).
-export const ALL_CAPS = ['auth', 'messaging', 'featureflags', 'metrics', 'compliance', 'tasks'];
+export const ALL_CAPS = [
+  'auth',
+  'messaging',
+  'realtime',
+  'featureflags',
+  'metrics',
+  'compliance',
+  'tasks',
+];
 export const MIGRATIONS_DIR = 'libs/database/src/migrations';
 export const CAPABILITIES = {
   auth: {
@@ -138,6 +148,13 @@ export const CAPABILITIES = {
     tsPaths: [`${OLD_SCOPE}/messaging`],
     pkgDeps: [{ file: 'apps/api/package.json', dep: `${OLD_SCOPE}/messaging` }],
   },
+  realtime: {
+    flag: 'with-realtime',
+    requires: ['auth'], // the socket handshake verifies the access JWT
+    dirs: ['libs/realtime'],
+    tsPaths: [`${OLD_SCOPE}/realtime`],
+    pkgDeps: [{ file: 'apps/api/package.json', dep: `${OLD_SCOPE}/realtime` }],
+  },
   featureflags: {
     flag: 'with-feature-flags',
     dirs: ['libs/feature-flags'],
@@ -164,6 +181,9 @@ export const CAP_SENTINEL_FILES = [
   'apps/api/src/main.ts',
   'apps/api/src/modules/auth/app-auth.service.ts',
   'apps/api/src/modules/auth/app-auth.service.spec.ts',
+  // The in-app sink carries realtime sentinels (live socket emit on deliver).
+  'apps/api/src/modules/notifications/notifications.service.ts',
+  'apps/api/src/modules/notifications/notifications.service.spec.ts',
   // Compliance wiring carries internal tasks/messaging sentinels (it registers
   // those modules' personal data) — prune them when those capabilities are off.
   'apps/api/src/modules/compliance/compliance-wiring.service.ts',

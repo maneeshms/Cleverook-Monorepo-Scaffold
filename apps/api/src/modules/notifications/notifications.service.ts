@@ -3,6 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { paginate, Paginated, PaginationQueryDto } from '@clevrook/common';
 import { InAppMessage, InAppSink } from '@clevrook/messaging';
+// clevscaffold:realtime:start
+import { RealtimeService } from '@clevrook/realtime';
+// clevscaffold:realtime:end
 import { Notification } from './entities/notification.entity';
 
 /**
@@ -14,6 +17,9 @@ export class NotificationsService implements InAppSink {
   constructor(
     @InjectRepository(Notification)
     private readonly notifications: Repository<Notification>,
+    // clevscaffold:realtime:start
+    private readonly realtime: RealtimeService,
+    // clevscaffold:realtime:end
   ) {}
 
   /** InAppSink contract — called by the messaging engine's in-app provider. */
@@ -27,6 +33,17 @@ export class NotificationsService implements InAppSink {
         payload: message.payload ?? null,
       }),
     );
+    // clevscaffold:realtime:start
+    // Live push to the user's connected sockets — best-effort by design: the
+    // notification row above is the durable record, the socket emit is UX.
+    this.realtime.emitToUser(saved.userId, 'notification', {
+      id: saved.id,
+      type: saved.type,
+      title: saved.title,
+      body: saved.body,
+      createdAt: saved.createdAt,
+    });
+    // clevscaffold:realtime:end
     return saved.id;
   }
 

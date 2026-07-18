@@ -47,6 +47,7 @@ node scripts/init.mjs --yes --name my-app --orm typeorm --frontend none \
 | ---------------------- | -------------------------------------------------------- |
 | `--with-auth`          | JWT auth + users                                         |
 | `--with-messaging`     | messaging engine + notifications (implies `--with-auth`) |
+| `--with-realtime`      | socket.io realtime channel (implies `--with-auth`)       |
 | `--with-feature-flags` | OpenFeature feature-flags module                         |
 | `--with-metrics`       | Prometheus `/metrics` endpoint                           |
 

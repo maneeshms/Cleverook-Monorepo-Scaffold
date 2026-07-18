@@ -5,6 +5,9 @@ import { Notification } from './entities/notification.entity';
 describe('NotificationsService', () => {
   let service: NotificationsService;
   let repo: Record<string, jest.Mock>;
+  // clevscaffold:realtime:start
+  let realtime: { emitToUser: jest.Mock };
+  // clevscaffold:realtime:end
 
   const notification = (overrides: Partial<Notification> = {}): Notification =>
     ({
@@ -27,7 +30,15 @@ describe('NotificationsService', () => {
       count: jest.fn().mockResolvedValue(2),
       update: jest.fn().mockResolvedValue({ affected: 3 }),
     };
-    service = new NotificationsService(repo as never);
+    // clevscaffold:realtime:start
+    realtime = { emitToUser: jest.fn().mockReturnValue(true) };
+    // clevscaffold:realtime:end
+    service = new NotificationsService(
+      repo as never,
+      // clevscaffold:realtime:start
+      realtime as never,
+      // clevscaffold:realtime:end
+    );
   });
 
   it('deliver (InAppSink) persists the message and returns the row id', async () => {
@@ -43,6 +54,17 @@ describe('NotificationsService', () => {
       expect.objectContaining({ userId: 'u9', title: 'New task: Ship it' }),
     );
   });
+
+  // clevscaffold:realtime:start
+  it('deliver pushes the saved notification to the user over the realtime channel', async () => {
+    await service.deliver({ userId: 'u9', title: 'Live one', type: 'TASK_ASSIGNED' });
+    expect(realtime.emitToUser).toHaveBeenCalledWith(
+      'u9',
+      'notification',
+      expect.objectContaining({ id: 'n1', title: 'Live one', type: 'TASK_ASSIGNED' }),
+    );
+  });
+  // clevscaffold:realtime:end
 
   it('deliver defaults optional fields to null', async () => {
     await service.deliver({ userId: 'u9', title: 'Bare' });

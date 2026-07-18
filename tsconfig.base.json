@@ -33,6 +33,8 @@
       "@clevrook/feature-flags/*": ["libs/feature-flags/src/*"],
       "@clevrook/messaging": ["libs/messaging/src/index.ts"],
       "@clevrook/messaging/*": ["libs/messaging/src/*"],
+      "@clevrook/realtime": ["libs/realtime/src/index.ts"],
+      "@clevrook/realtime/*": ["libs/realtime/src/*"],
       "@clevrook/compliance": ["libs/compliance/src/index.ts"],
       "@clevrook/compliance/*": ["libs/compliance/src/*"]
     }
