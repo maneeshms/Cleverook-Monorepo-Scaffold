@@ -58,8 +58,8 @@ def curl(method, path, headers=None, body=None, base=BASE, raw=False, timeout=15
         body_str = parts[0].strip()
         try:
             code = int(parts[1].strip())
-        except Exception:
-            pass
+        except ValueError:
+            pass  # malformed status marker -> keep code 0 (treated as no response)
     else:
         body_str = out.strip()
     if raw:
@@ -326,7 +326,7 @@ check("I-05", "CORS does not blindly reflect arbitrary origin",
 # ══════════════════════════════════════════════════════════════════════════════
 section("BLOCK J - Rate Limiting / DoS  [OWASP A07, API4]")
 _codes = []
-for _i in range(12):
+for _ in range(12):
     _, _c = curl('POST', '/auth/login', body={"email": f"rl_{_ts}@scan.local", "password": "Wrong!9"})
     _codes.append(_c)
 check("J-01", "Auth endpoint rate-limits burst -> 429 seen", 429 in _codes, f"codes={_codes}", sev="MEDIUM")
