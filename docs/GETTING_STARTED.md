@@ -1,12 +1,23 @@
 # Getting Started
 
-Clone → tailor → run in about 10 minutes.
+Clone → tailor → run in about 10 minutes. Follow the steps top to bottom; each
+one says what you should see before moving on.
 
 ## Prerequisites
 
 - **Node 22** (`.nvmrc` pins it — `nvm use`)
 - **Docker** (local Postgres + Redis)
 - **Python 3** (only for `npm run scan:security`)
+
+### New to this stack? 60-second glossary
+
+| Term              | Meaning here                                                                                       |
+| ----------------- | -------------------------------------------------------------------------------------------------- |
+| **Monorepo / Nx** | One repository holding several apps + shared libraries; `nx` builds/tests/serves each by name.     |
+| **ORM**           | The layer mapping TypeScript classes to database tables — TypeORM or Prisma, you pick one at init. |
+| **Migration**     | A versioned script that changes the database schema — the _only_ way schema changes happen here.   |
+| **Capability**    | An optional feature block (auth, messaging, realtime, …) you include at init or add later.         |
+| **Workspace**     | Each app/lib owns its `package.json`; one root lockfile ties the backends together.                |
 
 ## 1. Clone & tailor
 
@@ -22,10 +33,21 @@ node scripts/init.mjs --yes --name my-app --scope @myco \
   --orm typeorm --frontend next --mobile expo   # --mobile none to skip the Expo app
 ```
 
-`init.mjs` prunes the parts you didn't pick, renames the `@clevrook` scope,
-removes itself and the init-matrix workflow, regenerates the lockfile, and runs a
-build + test to prove the result is green. (Skip this step if you want to explore
-the full scaffold with both ORMs and both frontends.)
+What `init.mjs` does, in order:
+
+1. keeps only the ORM / frontend / mobile you picked, deletes the rest;
+2. renames the `@clevrook` package scope to yours;
+3. **names every kept app after your project** — `--name my-app` gives you
+   `apps/my-app-api`, `apps/my-app-web`, `apps/my-app-mobile`, and updates every
+   file that mentions them (Dockerfile, `railway.json`, CI matrices, docs);
+4. regenerates the lockfile, runs a build + test, and removes itself.
+
+**You should see:** a summary listing your apps and choices, then a green
+build + test. If a step fails, init stops and prints the error — re-clone and
+retry rather than patching a half-tailored copy.
+
+Skip this step to explore the full scaffold (both ORMs, both frontends). Rename
+any app later with `node scripts/rename-app.mjs` (see [EVOLVING.md](EVOLVING.md)).
 
 ### Minimal app (bare kickstart)
 
@@ -85,6 +107,9 @@ npm run seed:api       # optional: idempotent admin account (admin@example.com)
 npm run prisma:generate && npm run prisma:migrate && npm run prisma:seed
 ```
 
+**You should see:** `doctor` prints every check green, and `migration:run` ends
+with each migration marked "executed successfully".
+
 > **Port 5432 taken?** (a host Postgres is common) — set `POSTGRES_PORT=5433`
 > before `db:up`; compose, the e2e setup, and `npm run doctor` all honor it.
 > `doctor` diagnoses the collision explicitly if you hit it.
@@ -99,11 +124,12 @@ npm run dev:web-next     # Next frontend → http://localhost:3005
 npm run dev:mobile       # Expo (Metro)  → scan the QR with Expo Go; see docs/MOBILE.md
 ```
 
-Check it's alive:
+**You should see:** each dev server logs its URL when ready. Check the API is
+alive:
 
 ```bash
 curl http://localhost:3000/api/v1/health
-# Swagger UI: http://localhost:3000/api/docs
+# → {"status":"ok", ...}     Swagger UI: http://localhost:3000/api/docs
 ```
 
 ## 5. Verify everything

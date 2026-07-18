@@ -3,8 +3,10 @@
  * ClevScaffold initializer — tailors a fresh clone to one project.
  *
  * Zero dependencies. Prunes the ORM(s) and frontend(s) you don't want, renames
- * the @clevrook scope, removes itself + the init-matrix workflow, regenerates
- * the lockfile, and verifies the result builds + tests green.
+ * the @clevrook scope, renames every kept app to `<name>-<app>` (dir, Dockerfile,
+ * railway.json, CI matrices — your name everywhere, no generic "api"/"web" in
+ * deploys), removes itself + the init-matrix workflow, regenerates the lockfile,
+ * and verifies the result builds + tests green.
  *
  * Generated projects can EVOLVE later: init writes `.clevscaffold.json`
  * (scaffold origin + your choices) and keeps `scripts/add.mjs` (enable a
@@ -55,6 +57,7 @@ import {
   CAPABILITIES,
   CAP_SENTINEL_FILES,
   RENAME_SKIP_FILES,
+  renameApp,
   walkTextFiles,
   rmrf as rmrfAt,
   readJson as readJsonAt,
@@ -358,7 +361,50 @@ async function main() {
   }
   console.log(`  renamed ${OLD_SCOPE} → ${scope} in ${renamed} file(s)`);
 
-  // 6b. Record the choices + scaffold provenance so scripts/add.mjs and
+  // 6b. YOUR name everywhere: each kept app is renamed `<name>-<app>` (dir,
+  //     Dockerfile paths/CMD, railway.json, project.json, CI matrices, docs) —
+  //     no generic "api"/"web" leaking into images and deploys. Recorded in
+  //     appRenames so add.mjs maps pristine capability paths later.
+  const appRenames = {};
+  for (const original of Object.keys(COMPONENTS)
+    .filter((c) => keep.has(c))
+    .flatMap((c) => COMPONENTS[c].dirs.filter((d) => d.startsWith('apps/')))
+    .map((d) => d.slice('apps/'.length))) {
+    const target =
+      name === original || name.endsWith(`-${original}`) ? name : `${name}-${original}`;
+    if (target === original || existsSync(path.join(ROOT, `apps/${target}`))) continue;
+    renameApp(ROOT, original, target);
+    appRenames[original] = target;
+  }
+
+  // 6c. Product branding in the kept client apps (titles, mobile identifiers).
+  for (const rel of [
+    `apps/${appRenames.web ?? 'web'}/index.html`,
+    `apps/${appRenames.web ?? 'web'}/src/App.tsx`,
+    `apps/${appRenames['web-next'] ?? 'web-next'}/src/app/layout.tsx`,
+    `apps/${appRenames['web-next'] ?? 'web-next'}/src/app/page.tsx`,
+    `apps/${appRenames.mobile ?? 'mobile'}/App.tsx`,
+  ]) {
+    const full = path.join(ROOT, rel);
+    if (!existsSync(full)) continue;
+    const before = readFileSync(full, 'utf8');
+    if (before.includes('ClevScaffold')) {
+      writeFileSync(full, before.split('ClevScaffold').join(name));
+    }
+  }
+  const mobileAppJson = `apps/${appRenames.mobile ?? 'mobile'}/app.json`;
+  if (existsSync(path.join(ROOT, mobileAppJson))) {
+    const appJson = readJson(mobileAppJson);
+    appJson.expo.name = name;
+    appJson.expo.slug = `${name}-mobile`;
+    const id = `com.${name.replace(/-/g, '')}.mobile`;
+    if (appJson.expo.ios) appJson.expo.ios.bundleIdentifier = id;
+    if (appJson.expo.android) appJson.expo.android.package = id;
+    writeJson(mobileAppJson, appJson);
+    console.log(`  branded mobile app (${id})`);
+  }
+
+  // 6d. Record the choices + scaffold provenance so scripts/add.mjs and
   //     scripts/new-app.mjs (which stay in the project) can evolve it later.
   writeJson('.clevscaffold.json', {
     scaffoldOrigin: origin,
@@ -371,6 +417,7 @@ async function main() {
     mobile,
     minimal,
     capabilities: [...caps].filter((c) => c !== 'tasks').sort(),
+    appRenames,
   });
   console.log('  wrote .clevscaffold.json (used by scripts/add.mjs + scripts/new-app.mjs)');
 
@@ -406,6 +453,13 @@ async function main() {
 
   const summary = minimal ? `minimal (${[...caps].join(', ') || 'core only'})` : 'full reference';
   console.log(`\n✅  ${name} is ready — ${summary}. See docs/GETTING_STARTED.md.`);
+  if (Object.keys(appRenames).length) {
+    console.log(
+      `    Apps: ${Object.entries(appRenames)
+        .map(([, t]) => `apps/${t} (npm run dev:${t})`)
+        .join(' · ')}`,
+    );
+  }
   console.log(
     '    Evolve later: node scripts/add.mjs <capability> · node scripts/new-app.mjs (docs/EVOLVING.md)',
   );

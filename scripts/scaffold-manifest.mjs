@@ -19,6 +19,7 @@ import {
   readFileSync,
   writeFileSync,
   readdirSync,
+  renameSync,
   cpSync,
   mkdtempSync,
 } from 'node:fs';
@@ -381,6 +382,88 @@ export function renameScope(root, fromScope, toScope, skipFiles = RENAME_SKIP_FI
     renamed++;
   }
   return renamed;
+}
+
+// ── App renaming (init.mjs applies it at generation; rename-app.mjs later) ──
+
+// Files the rename walk must never rewrite: lockfiles (regenerated) and the
+// evolution machinery itself (its manifests must keep pristine-scaffold names).
+export const RENAME_APP_SKIP_FILES = new Set([
+  'package-lock.json',
+  'init.mjs',
+  'scaffold-manifest.mjs',
+  'add.mjs',
+  'new-app.mjs',
+  'rename-app.mjs',
+]);
+
+/**
+ * Rename an app directory and EVERY hardcoded reference to it — the scaffold's
+ * per-app files (Dockerfile COPY/CMD, railway.json, project.json commands,
+ * workflow matrices, docs) deliberately carry concrete paths and are treated as
+ * rewritable references:
+ *
+ *   - `apps/<from>` path references in all text files (boundary-safe: `api`
+ *     never bleeds into `api-prisma`)
+ *   - bare Nx names (`nx build <from>`, root `dev:<from>` script, project.json
+ *     name, jest displayName, CI `app:` matrices)
+ *   - the app package name (`@scope/<from>` → `@scope/<to>`)
+ */
+export function renameApp(root, from, to) {
+  const pathRe = new RegExp(`apps/${from}(?![\\w-])`, 'g');
+  const nxRe = new RegExp(`\\b(nx (?:build|serve|dev|test|e2e|lint)) ${from}(?![\\w-])`, 'g');
+
+  for (const file of walkTextFiles(root)) {
+    if (RENAME_APP_SKIP_FILES.has(path.basename(file))) continue;
+    const before = readFileSync(file, 'utf8');
+    const after = before.replace(pathRe, `apps/${to}`).replace(nxRe, `$1 ${to}`);
+    if (after !== before) writeFileSync(file, after);
+  }
+
+  renameSync(path.join(root, `apps/${from}`), path.join(root, `apps/${to}`));
+
+  const projPath = `apps/${to}/project.json`;
+  if (existsSync(path.join(root, projPath))) {
+    const proj = readJson(root, projPath);
+    if (proj.name === from) proj.name = to;
+    writeJson(root, projPath, proj);
+  }
+  const jestConfig = path.join(root, `apps/${to}/jest.config.ts`);
+  if (existsSync(jestConfig)) {
+    writeFileSync(
+      jestConfig,
+      readFileSync(jestConfig, 'utf8').replace(`displayName: '${from}'`, `displayName: '${to}'`),
+    );
+  }
+  const appPkgPath = `apps/${to}/package.json`;
+  if (existsSync(path.join(root, appPkgPath))) {
+    const appPkg = readJson(root, appPkgPath);
+    appPkg.name = appPkg.name.includes('/') ? appPkg.name.replace(`/${from}`, `/${to}`) : to;
+    writeJson(root, appPkgPath, appPkg);
+  }
+
+  const rootPkg = readJson(root, 'package.json');
+  for (const [key, value] of Object.entries({ ...rootPkg.scripts })) {
+    const newKey = key === `dev:${from}` ? `dev:${to}` : key;
+    const newValue = value.replace(nxRe, `$1 ${to}`);
+    if (newKey !== key) delete rootPkg.scripts[key];
+    rootPkg.scripts[newKey] = newValue;
+  }
+  writeJson(root, 'package.json', rootPkg);
+
+  for (const wf of ['.github/workflows/ci.yml', '.github/workflows/image-scan.yml']) {
+    const values = readArrayLiteral(root, wf, 'app');
+    if (values?.includes(from)) {
+      rewriteArrayLiteral(
+        root,
+        wf,
+        'app',
+        values.map((v) => (v === from ? to : v)),
+      );
+    }
+  }
+
+  console.log(`  renamed app ${from} → ${to}`);
 }
 
 // ── Pristine scaffold fetching (add.mjs / new-app.mjs) ──────────────────────

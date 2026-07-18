@@ -9,6 +9,13 @@ The canonical guide is [`AGENTS.md`](../AGENTS.md); deep topic docs live in
 [`docs/agents/`](../docs/agents) — read **`nestjs.md`** before writing backend code
 (exact controller/service/DTO/ORM shapes, with examples) and **`recipes.md`** for
 any multi-step task. Mirror `apps/api/src/modules/tasks`, the canonical module.
+
+**Scope first: do the task, the whole task, and nothing but the task.** Touch
+only the files the task requires — no drive-by refactors, renames, dependency
+bumps, or "improvements while you're here". A defect outside the task gets
+reported, not fixed; an ambiguous ask gets the smallest reasonable reading,
+stated explicitly — or a question.
+
 The top 14 rules:
 
 1. **Every code change ships with tests; coverage must stay ≥ 90%** (jest enforces it).

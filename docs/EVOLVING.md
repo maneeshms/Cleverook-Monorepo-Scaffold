@@ -1,16 +1,26 @@
 # Evolving a generated project
 
-`init.mjs` is one-shot — but the project it generates is not frozen. Init writes
-**`.clevscaffold.json`** (which scaffold you came from: origin URL + commit, and
-what you picked) and leaves two tools behind:
+At init you picked pieces — an ORM, frontends, capabilities. **None of those
+choices are final.** Init writes **`.clevscaffold.json`** (which scaffold you
+came from: origin URL + commit, and what you picked) and leaves three tools in
+your project so you can change your mind later without hand-copying code:
 
-| Tool                  | Purpose                                                        |
-| --------------------- | -------------------------------------------------------------- |
-| `scripts/add.mjs`     | Enable a capability you skipped at init (auth, messaging, …)   |
-| `scripts/new-app.mjs` | Create a new app with a custom name (api / vite / next / expo) |
+| Tool                     | Purpose                                                        |
+| ------------------------ | -------------------------------------------------------------- |
+| `scripts/add.mjs`        | Enable a capability you skipped at init (auth, messaging, …)   |
+| `scripts/new-app.mjs`    | Create a new app with a custom name (api / vite / next / expo) |
+| `scripts/rename-app.mjs` | Rename an existing app everywhere (Dockerfile, railway, CI, …) |
 
-Both fetch a **pristine scaffold copy** as their source of truth — from the
-origin recorded in `.clevscaffold.json`, or explicitly:
+> Naming starts correct: init derives each kept app's name from your project
+> name (`<name>-api`, `<name>-web`, `<name>-mobile`) and rewrites every
+> hardcoded reference — Dockerfile paths/CMD, `railway.json`, CI + image-scan
+> matrices, project.json, docs — so nothing generic like "api" leaks into your
+> images and deploys.
+
+`add.mjs` and `new-app.mjs` never copy from your (possibly edited) project —
+they download a **fresh, untouched copy of the scaffold** and copy from that,
+so local changes can't corrupt what gets pulled in. The source is the origin
+recorded in `.clevscaffold.json`, or explicitly:
 
 ```bash
 --from ../ClevScaffold                 # a local clone (fastest, works offline)
@@ -26,6 +36,7 @@ origin recorded in `.clevscaffold.json`, or explicitly:
 ## Enable a capability later
 
 ```bash
+node scripts/add.mjs --list                   # installed vs available
 node scripts/add.mjs messaging                # implies auth if missing
 node scripts/add.mjs compliance --from ../ClevScaffold
 # capabilities: auth · messaging · realtime · feature-flags · metrics · compliance
@@ -90,6 +101,49 @@ Afterwards:
 npm run dev:<name>
 npx nx build <name> && npx nx lint <name>
 ```
+
+## Rename an app
+
+```bash
+node scripts/rename-app.mjs --from my-app-api --to billing
+```
+
+Moves the directory and rewrites every hardcoded reference (boundary-safe —
+renaming `x-api` never touches `x-api-prisma`): paths in Dockerfile/railway/
+tsconfig/workflows/docs, bare Nx names (`nx build <app>`, CI `app:` matrices,
+project.json, jest displayName), the `dev:<app>` script, and the package name.
+`.clevscaffold.json`'s `appRenames` map is updated so `add.mjs` keeps landing
+capability files in the right directory. Commit the result as one unit.
+
+## How FUTURE scaffold libs reach existing projects
+
+The scaffold keeps growing. The delivery contract:
+
+1. **Every new scaffold lib ships as a capability** — an entry in
+   `scripts/scaffold-manifest.mjs` (`CAPABILITIES` + `ALL_CAPS`, sentinels in
+   the shared files, dirs/migrations/tsPaths/pkgDeps) plus a `--with-*` init
+   flag. That single registration makes it: selectable at init, prunable by
+   `--minimal`, and **installable into already-generated projects** by
+   `add.mjs`.
+2. **Existing projects discover and pull new capabilities** without upgrading
+   anything else:
+
+   ```bash
+   node scripts/add.mjs --list --ref main     # what does the scaffold have now?
+   node scripts/add.mjs realtime --ref main   # pull one that postdates my project
+   ```
+
+   `add.mjs` reads the capability manifest **from the fetched scaffold**, not
+   your local copy — your project doesn't need to know a capability exists for
+   it to be installable. Caveat: a newer capability may assume newer shared
+   libs (`common`/`logger`/…); review the wiring guide and diff, and treat a
+   large drift as a signal to diff those libs too.
+
+3. **Authoring checklist** (scaffold repo, enforced by the init-matrix +
+   evolve CI jobs): manifest entry · sentinel blocks balanced in every shared
+   file · migration files if any · docs page + capability-table rows · both
+   init smokes (kept + pruned) green · `add.mjs <cap>` on a minimal clone
+   produces a working wiring guide.
 
 ## Rules for agents
 

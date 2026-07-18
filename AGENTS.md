@@ -21,6 +21,27 @@ anything not covered by a rule, a recipe, or an existing pattern is a
 
 ---
 
+## Scope — the task defines the boundary
+
+Do the task, the whole task, and **nothing but the task**. Going "off track" is
+a failure mode even when every individual change is good:
+
+- **Touch only the files the task requires.** No drive-by refactors, renames,
+  formatting sweeps, dependency bumps, doc rewrites, or "improvements while
+  you're here." Finish the task, then _propose_ follow-ups as a list — never
+  bundle them into the diff.
+- **Ambiguous request → smallest reasonable reading**, stated explicitly — or
+  ask. Never pick the bigger interpretation because it seems more useful.
+- **Defect spotted outside the task → report it, don't fix it.** The only
+  exception is a defect that blocks the task itself — and that's a
+  stop-and-ask, not a green light.
+- **Mid-task discoveries don't expand scope.** New requirements come from the
+  human, not from what you found along the way.
+
+An unrequested change is a defect even when the code is better: it breaks the
+reviewer's expectations, bloats the diff, and buries the change that was
+actually asked for.
+
 ## Golden rules (never violate — each exists for a reason)
 
 1. **Tests ship with every code change.** Coverage stays **≥ 90%** (branches,
@@ -284,6 +305,8 @@ Run through this list; if any line fails, you are not done:
 - [ ] Every file/symbol/route/env key you referenced was verified to exist —
       nothing asserted from memory
 - [ ] Nothing from the "lines you may never cross" list happened
+- [ ] The diff contains **only** what the task asked for — side-discoveries were
+      reported, not fixed; follow-ups proposed, not bundled
 - [ ] Anything outside these docs was **asked about first**, and any deviation is
       **explicitly flagged**, not buried
 
@@ -300,11 +323,15 @@ breaks generated projects.
 The manifests + pruning helpers live in **`scripts/scaffold-manifest.mjs`**,
 shared by `init.mjs` and the evolution tools that STAY in generated projects:
 `scripts/add.mjs` (enable a capability later — copies from a pristine scaffold,
-writes a `docs/wiring-<cap>.md` guide) and `scripts/new-app.mjs` (new
-api/vite/next/expo app with a custom name, auto-registered). Init records its
-choices in `.clevscaffold.json`. When you add/change a capability or component,
-update `scaffold-manifest.mjs` — all three tools read it. Details:
-`docs/EVOLVING.md`.
+writes a `docs/wiring-<cap>.md` guide; `--list` shows installed vs available),
+`scripts/new-app.mjs` (new api/vite/next/expo app with a custom name,
+auto-registered), and `scripts/rename-app.mjs` (rename an app everywhere).
+Init records its choices + `appRenames` in `.clevscaffold.json` and names every
+kept app `<name>-<app>` — hardcoded app references (Dockerfile, railway.json,
+matrices) are _rewritable by design_; keep them mechanical, never clever.
+**Every new lib MUST ship as a capability** (manifest entry + sentinels +
+`--with-*` flag) so existing projects can adopt it via `add.mjs` — the
+authoring checklist is in `docs/EVOLVING.md`.
 
 **The apps are reference/sample apps.** By default init keeps them whole. `--minimal`
 emits a **bare, bootable core** (config + logger + database + health + throttler;

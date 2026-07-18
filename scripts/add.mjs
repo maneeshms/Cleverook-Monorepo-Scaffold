@@ -13,11 +13,19 @@
  * Usage:
  *   node scripts/add.mjs <capability…> [--from <path|git-url>] [--ref <sha|branch>]
  *                        [--no-install]
- *   capabilities: auth · messaging · feature-flags · metrics · compliance
+ *   node scripts/add.mjs --list        # installed vs available (incl. capabilities
+ *                                      # the scaffold gained AFTER this project was
+ *                                      # generated — combine with --ref main)
  *
  * Examples:
  *   node scripts/add.mjs messaging                      # fetch from recorded origin
  *   node scripts/add.mjs compliance --from ../ClevScaffold
+ *   node scripts/add.mjs realtime --ref main            # a capability newer than
+ *                                                       # this project's pin
+ *
+ * Renamed apps (scripts/rename-app.mjs) are handled transparently: the
+ * `appRenames` map in .clevscaffold.json redirects pristine `apps/api/…` paths
+ * into the renamed directory.
  *
  * Zero dependencies. Idempotent: already-present capabilities are skipped.
  */
@@ -41,24 +49,38 @@ function parseArgs(argv) {
   const out = { caps: [], opts: {}, flags: new Set() };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--no-install') out.flags.add('no-install');
+    if (a === '--no-install' || a === '--list') out.flags.add(a.slice(2));
     else if (a.startsWith('--')) out.opts[a.slice(2)] = argv[++i];
     else out.caps.push(ALIASES[a] ?? a);
   }
   return out;
 }
 
+/**
+ * Map a pristine-scaffold path to this project's layout: apps renamed with
+ * scripts/rename-app.mjs are recorded in .clevscaffold.json `appRenames`
+ * (original → current), and capability files must land in the renamed dirs.
+ */
+function localRel(rel, manifest) {
+  for (const [original, current] of Object.entries(manifest.appRenames ?? {})) {
+    if (rel === `apps/${original}` || rel.startsWith(`apps/${original}/`)) {
+      return `apps/${current}${rel.slice(`apps/${original}`.length)}`;
+    }
+  }
+  return rel;
+}
+
 /** Copy src (file or dir) from pristine into the project, skipping artifacts. */
-function copyIn(pristine, rel) {
+function copyIn(pristine, rel, destRel = rel) {
   const src = path.join(pristine, rel);
-  const dest = path.join(ROOT, rel);
+  const dest = path.join(ROOT, destRel);
   if (!existsSync(src)) return false;
   cpSync(src, dest, {
     recursive: true,
     filter: (s) =>
       !['node_modules', 'dist', 'coverage', '.expo', '.next'].includes(path.basename(s)),
   });
-  console.log(`  copied ${rel}`);
+  console.log(`  copied ${rel}${destRel !== rel ? ` → ${destRel}` : ''}`);
   return true;
 }
 
@@ -70,10 +92,10 @@ function appliesLocally(rel) {
 
 async function main() {
   const { caps: requested, opts, flags } = parseArgs(process.argv.slice(2));
-  if (requested.length === 0) {
+  if (requested.length === 0 && !flags.has('list')) {
     console.error(
       'usage: node scripts/add.mjs <capability…> [--from <path|git-url>] [--ref <sha>] [--no-install]\n' +
-        '  capabilities: auth · messaging · feature-flags · metrics · compliance',
+        '       node scripts/add.mjs --list   # installed vs available capabilities',
     );
     process.exit(2);
   }
@@ -96,6 +118,21 @@ async function main() {
       pathToFileURL(path.join(pristine, 'scripts/scaffold-manifest.mjs')).href
     );
     const selectable = pm.ALL_CAPS.filter((c) => c !== 'tasks');
+
+    if (flags.has('list')) {
+      console.log('\nCapabilities (this project vs the fetched scaffold):\n');
+      for (const c of selectable) {
+        const req = pm.CAPABILITIES[c].requires?.length
+          ? `  (requires ${pm.CAPABILITIES[c].requires.join(', ')})`
+          : '';
+        console.log(`  ${(present.has(c) ? '● installed' : '○ available').padEnd(13)} ${c}${req}`);
+      }
+      console.log(
+        '\nBy default the scaffold is pinned to the commit this project was generated' +
+          '\nfrom — pass `--ref main` to list/pull capabilities added to the scaffold since.',
+      );
+      return;
+    }
 
     for (const c of requested) {
       if (!selectable.includes(c)) {
@@ -141,16 +178,18 @@ async function main() {
     for (const c of adding) {
       const cap = pm.CAPABILITIES[c];
       for (const d of cap.dirs ?? []) {
-        if (!appliesLocally(d)) continue;
-        if (existsSync(path.join(ROOT, d))) {
-          console.log(`  skip: ${d} already exists`);
+        const dest = localRel(d, manifest);
+        if (!appliesLocally(dest)) continue;
+        if (existsSync(path.join(ROOT, dest))) {
+          console.log(`  skip: ${dest} already exists`);
           continue;
         }
-        if (copyIn(pristine, d)) copiedRoots.push(d);
+        if (copyIn(pristine, d, dest)) copiedRoots.push(dest);
       }
       for (const f of cap.files ?? []) {
-        if (appliesLocally(f) && !existsSync(path.join(ROOT, f)) && copyIn(pristine, f))
-          copiedRoots.push(f);
+        const dest = localRel(f, manifest);
+        if (appliesLocally(dest) && !existsSync(path.join(ROOT, dest)) && copyIn(pristine, f, dest))
+          copiedRoots.push(dest);
       }
       for (const m of cap.migrations ?? []) {
         const rel = `${pm.MIGRATIONS_DIR}/${m}`;
@@ -192,15 +231,16 @@ async function main() {
         }
       }
       for (const pd of cap.pkgDeps ?? []) {
-        if (!existsSync(path.join(ROOT, pd.file))) continue;
-        const appPkg = readJson(ROOT, pd.file);
+        const pdFile = localRel(pd.file, manifest);
+        if (!existsSync(path.join(ROOT, pdFile))) continue;
+        const appPkg = readJson(ROOT, pdFile);
         const dep = pd.dep.replace(pm.OLD_SCOPE, manifest.scope);
         appPkg.dependencies = { ...appPkg.dependencies, [dep]: '*' };
         appPkg.dependencies = Object.fromEntries(
           Object.entries(appPkg.dependencies).sort(([a], [b]) => a.localeCompare(b)),
         );
-        writeJson(ROOT, pd.file, appPkg);
-        console.log(`  added ${dep} to ${pd.file}`);
+        writeJson(ROOT, pdFile, appPkg);
+        console.log(`  added ${dep} to ${pdFile}`);
       }
       for (const s of cap.scripts ?? []) {
         if (pristinePkg.scripts?.[s] && !rootPkg.scripts?.[s]) {
@@ -235,11 +275,12 @@ async function main() {
     const wiringDocs = [];
     for (const c of adding) {
       const sections = [];
-      for (const rel of pm.CAP_SENTINEL_FILES) {
-        if (rel === '.env.example') continue; // handled automatically above
+      for (const pristineRel of pm.CAP_SENTINEL_FILES) {
+        if (pristineRel === '.env.example') continue; // handled automatically above
+        const rel = localRel(pristineRel, manifest);
         if (!existsSync(path.join(ROOT, rel))) continue;
         if ([...copiedSet].some((r) => rel === r || rel.startsWith(`${r}/`))) continue;
-        const blocks = extractSentinelBlocks(pristine, rel, c);
+        const blocks = extractSentinelBlocks(pristine, pristineRel, c);
         if (blocks.length === 0) continue;
         const clean = blocks
           .map((b) =>

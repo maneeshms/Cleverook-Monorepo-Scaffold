@@ -6,6 +6,11 @@ alwaysApply: true
 Canonical guide: [AGENTS.md](../../AGENTS.md). Topic docs in `docs/agents/` —
 `nestjs.md` for any backend code, `recipes.md` for any multi-step task.
 
+Scope: do the task, the whole task, and nothing but the task. Touch only the
+files the task requires — no drive-by refactors, renames, dep bumps, or
+"improvements while you're here". Defect outside the task → report, don't fix.
+Ambiguous ask → smallest reasonable reading, stated — or ask.
+
 Non-negotiables:
 - Ship tests with every code change; keep coverage ≥ 90% (jest enforces it).
   Prove done with `npm run verify` (plus `npm run e2e` for backend behaviour).

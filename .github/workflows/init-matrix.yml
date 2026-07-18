@@ -66,14 +66,23 @@ jobs:
           node scripts/init.mjs --yes --name demo-app --scope @demo \
             --orm typeorm --frontend none --mobile none \
             --minimal --with-auth --no-install
-      - name: add.mjs — enable messaging from the pristine checkout
+      - name: add.mjs — enable messaging (lands in the init-renamed app dir)
         working-directory: /tmp/gen
         run: |
           set -euo pipefail
           node scripts/add.mjs messaging --from "$GITHUB_WORKSPACE" --no-install
           test -f docs/wiring-messaging.md
           test -d libs/messaging
+          test -d apps/demo-app-api/src/modules/notifications
           grep -q '"messaging"' .clevscaffold.json
+      - name: rename-app.mjs — rename the API app again, chained through appRenames
+        working-directory: /tmp/gen
+        run: |
+          set -euo pipefail
+          node scripts/rename-app.mjs --from demo-app-api --to core-api --no-install
+          test -d apps/core-api
+          grep -q '"api": "core-api"' .clevscaffold.json
+          ! grep -rq 'apps/demo-app-api' apps/core-api/Dockerfile
       - name: new-app.mjs — create a backend + a web app with custom names
         working-directory: /tmp/gen
         run: |
