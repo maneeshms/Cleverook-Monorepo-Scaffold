@@ -102,10 +102,11 @@ updates:
   # clevscaffold:next:end
 
   # clevscaffold:expo:start
-  # Expo React Native app (own lockfile). No typescript/eslint major pin here —
-  # eslint-config-expo owns that toolchain and moves with the Expo SDK, but every
-  # major still lands in the isolated major-updates PR. Prefer `npx expo install`
-  # (SDK-compatible versions) when bumping expo-* packages manually.
+  # Expo React Native app (own lockfile). eslint-config-expo owns the
+  # typescript/eslint toolchain and pins it to the current Expo SDK, so their
+  # majors are ignored here (same as the root block) — a bump breaks mobile lint
+  # and can't merge. Move them via `npx expo install` when the SDK advances.
+  # Other majors still land in the isolated major-updates PR for review.
   - package-ecosystem: npm
     directory: '/apps/mobile'
     schedule:
@@ -118,6 +119,15 @@ updates:
       major-updates:
         patterns: ['*']
         update-types: ['major']
+    ignore:
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'eslint'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@eslint/js'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'typescript-eslint'
+        update-types: ['version-update:semver-major']
   # clevscaffold:expo:end
 
   # GitHub Actions — bump (and, once SHA-pinned, re-pin) third-party actions.
