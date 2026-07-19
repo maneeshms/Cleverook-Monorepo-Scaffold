@@ -1,9 +1,9 @@
 # GitHub Copilot Instructions
 
 You are assisting on a **ClevScaffold**-based enterprise NestJS (11) + Nx monorepo,
-Node 22, PostgreSQL. The ORM (TypeORM and/or Prisma) and frontend (Vite and/or
-Next.js) are chosen per project at generation time — check the actual `apps/*`
-directories and [`AGENTS.md`](../AGENTS.md) for this project's stack. Deployed on Railway.
+Node 22, PostgreSQL, TypeORM. The frontend (Vite and/or Next.js) is chosen per
+project at generation time — check the actual `apps/*` directories and
+[`AGENTS.md`](../AGENTS.md) for this project's stack. Deployed on Railway.
 
 The canonical guide is [`AGENTS.md`](../AGENTS.md); deep topic docs live in
 [`docs/agents/`](../docs/agents) — read **`nestjs.md`** before writing backend code
@@ -30,7 +30,7 @@ The top 14 rules:
    both return 404 — never a 403 that confirms the id exists).
 8. **Validated DTOs** on every body/query; global `ValidationPipe` whitelist +
    forbidNonWhitelisted. Controllers stay thin — logic + authorization in services;
-   never inject a repository/PrismaService into a controller.
+   never inject a repository into a controller.
 9. **Swagger decorators** on every endpoint; routes under `/api/v1`; throw NestJS
    `HttpException` subclasses.
 10. **Parameterized queries only**; migrations-only schema (no `synchronize`).

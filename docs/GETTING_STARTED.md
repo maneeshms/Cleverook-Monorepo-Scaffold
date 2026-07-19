@@ -11,13 +11,13 @@ one says what you should see before moving on.
 
 ### New to this stack? 60-second glossary
 
-| Term              | Meaning here                                                                                       |
-| ----------------- | -------------------------------------------------------------------------------------------------- |
-| **Monorepo / Nx** | One repository holding several apps + shared libraries; `nx` builds/tests/serves each by name.     |
-| **ORM**           | The layer mapping TypeScript classes to database tables — TypeORM or Prisma, you pick one at init. |
-| **Migration**     | A versioned script that changes the database schema — the _only_ way schema changes happen here.   |
-| **Capability**    | An optional feature block (auth, messaging, realtime, …) you include at init or add later.         |
-| **Workspace**     | Each app/lib owns its `package.json`; one root lockfile ties the backends together.                |
+| Term              | Meaning here                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------------ |
+| **Monorepo / Nx** | One repository holding several apps + shared libraries; `nx` builds/tests/serves each by name.   |
+| **ORM**           | The layer mapping TypeScript classes to database tables. This scaffold uses TypeORM.             |
+| **Migration**     | A versioned script that changes the database schema — the _only_ way schema changes happen here. |
+| **Capability**    | An optional feature block (auth, messaging, realtime, …) you include at init or add later.       |
+| **Workspace**     | Each app/lib owns its `package.json`; one root lockfile ties the backends together.              |
 
 ## 1. Clone & tailor
 
@@ -30,7 +30,7 @@ Non-interactive:
 
 ```bash
 node scripts/init.mjs --yes --name my-app --scope @myco \
-  --orm typeorm --frontend next --mobile expo   # --mobile none to skip the Expo app
+  --frontend next --mobile expo   # --mobile none to skip the Expo app
 ```
 
 What `init.mjs` does, in order:
@@ -46,7 +46,7 @@ What `init.mjs` does, in order:
 build + test. If a step fails, init stops and prints the error — re-clone and
 retry rather than patching a half-tailored copy.
 
-Skip this step to explore the full scaffold (both ORMs, both frontends). Rename
+Skip this step to explore the full scaffold (both frontends). Rename
 any app later with `node scripts/rename-app.mjs` (see [EVOLVING.md](EVOLVING.md)).
 
 ### Minimal app (bare kickstart)
@@ -58,10 +58,10 @@ capabilities back in:
 
 ```bash
 # core only — config + logger + database + health + throttler (Redis optional).
-node scripts/init.mjs --yes --name my-app --orm typeorm --frontend none --minimal
+node scripts/init.mjs --yes --name my-app --frontend none --minimal
 
 # core + exactly the features you need:
-node scripts/init.mjs --yes --name my-app --orm typeorm --frontend none \
+node scripts/init.mjs --yes --name my-app --frontend none \
   --minimal --with-auth --with-feature-flags
 ```
 
@@ -103,8 +103,6 @@ npm run doctor         # preflight: node version, .env, docker, postgres ports
 npm run db:up          # Postgres 16 + Redis 7 via docker compose
 npm run migration:run  # TypeORM schema (apps/api)
 npm run seed:api       # optional: idempotent admin account (admin@example.com)
-# If you kept the Prisma app:
-npm run prisma:generate && npm run prisma:migrate && npm run prisma:seed
 ```
 
 **You should see:** `doctor` prints every check green, and `migration:run` ends
@@ -117,8 +115,7 @@ with each migration marked "executed successfully".
 ## 4. Run
 
 ```bash
-npm run dev:api          # TypeORM API   → http://localhost:3000/api/v1
-npm run dev:api-prisma   # Prisma API    → http://localhost:3010/api/v1
+npm run dev:api          # API           → http://localhost:3000/api/v1
 npm run dev:web          # Vite frontend → http://localhost:5173
 npm run dev:web-next     # Next frontend → http://localhost:3005
 npm run dev:mobile       # Expo (Metro)  → scan the QR with Expo Go; see docs/MOBILE.md

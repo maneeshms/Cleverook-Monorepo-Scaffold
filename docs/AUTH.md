@@ -101,9 +101,8 @@ finding, not a customisation.
 
 The `auth` capability (`--with-auth`, default-on) carries `libs/auth`, the app's
 `AppAuthService` + users module, and the `InitUsersAndSessions` migration.
-`--minimal` without auth prunes all of it; `--orm prisma` keeps the Prisma app's
-self-contained auth instead (this library is TypeORM-coupled, like
-messaging/compliance).
+`--minimal` without auth prunes all of it. This library is TypeORM-coupled, like
+messaging/compliance.
 
 See also: [`docs/agents/security.md`](agents/security.md) (the ruleset),
 [`docs/agents/recipes.md`](agents/recipes.md) ("Touching auth" protocol).

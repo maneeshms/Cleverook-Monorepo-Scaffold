@@ -81,7 +81,7 @@ explicit 503/fallback when unconfigured, DTO-validated, ≥90% covered, no mock 
   façade with env|database providers + admin CRUD API; swap to a hosted provider
   (LaunchDarkly etc.) without touching call sites.
 - **Webhooks infrastructure** — signed, retried, dead-lettered outbound events.
-- **Read-replica routing** — read/write split behind the repository/Prisma layer.
+- **Read-replica routing** — read/write split behind the repository layer.
 - **Data retention & GDPR jobs** — scheduled anonymization/purge policies.
 - **Blue/green + canary deploy recipes** and a DB expand/contract migration guide.
 

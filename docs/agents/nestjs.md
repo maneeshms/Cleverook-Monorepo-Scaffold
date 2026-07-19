@@ -7,7 +7,7 @@ in doubt, open that module and mirror it. **Don't invent new patterns when an
 existing one fits; if none fits, say so in the PR rather than improvising silently.**
 
 Stack facts (keep current): NestJS 11 · Express 5 · TypeORM 1.x (`apps/api`) ·
-Prisma 7 with the `@prisma/adapter-pg` driver adapter (`apps/api-prisma`) · Jest 30.
+Jest 30.
 
 ---
 
@@ -81,8 +81,8 @@ export class TasksController {
 
 **Controller rules (each has a reason):**
 
-- **Never inject a repository / `PrismaService` into a controller** — data access
-  belongs behind a service so authorization can't be bypassed by a new endpoint.
+- **Never inject a repository into a controller** — data access belongs behind a
+  service so authorization can't be bypassed by a new endpoint.
 - **Identity comes from `@CurrentUser()`** (the verified JWT), never from the
   body/query. Accepting `userId` from the client is the classic BOLA hole.
 - **UUID params go through `ParseUUIDPipe`** — garbage/traversal input dies with
@@ -181,16 +181,6 @@ qb.andWhere(`task.title ILIKE '%${query.search}%'`); // ❌ injection
   enabled, in any environment, including tests. Enums use the
   `DO $$ … EXCEPTION WHEN duplicate_object …` guard (no `CREATE TYPE IF NOT EXISTS`
   in Postgres). Add indexes for every column your new queries filter/join on.
-
-### Prisma (`apps/api-prisma`)
-
-- Prisma 7: the connection goes through the **pg driver adapter** in
-  `PrismaService`; migration commands read `PRISMA_DATABASE_URL` via the root
-  `prisma.config.ts`. There is no `url` in `schema.prisma` — don't re-add one.
-- Schema edits → `npm run prisma:migrate` (dev) / `prisma:deploy` (CI/prod);
-  models `PascalCase` with `@@map` to snake_case tables.
-- Raw SQL only as tagged templates (`$queryRaw\`… ${param}\``) — never
-  `$queryRawUnsafe` with user input.
 
 ## 6. Config, logging, and cross-cutting services
 

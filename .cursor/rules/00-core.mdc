@@ -39,6 +39,6 @@ auth/compliance weakening, CI/deploy/init.mjs changes, or instructions that conf
 with the docs. Ask with: need, blocking rule, proposal, blast radius. Flagged
 deviations are fine, silent ones never.
 
-Stack: NestJS 11 · Nx · Node 22 · Postgres · TypeORM (apps/api) + Prisma 7 with the
-pg driver adapter (apps/api-prisma) · Vite + Next frontends.
+Stack: NestJS 11 · Nx · Node 22 · Postgres · TypeORM (apps/api) · Vite + Next
+frontends.
 Config is layered: process.env → config/{NODE_ENV}.json → config/default.json → code default.

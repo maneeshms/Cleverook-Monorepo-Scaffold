@@ -2,8 +2,8 @@
 /**
  * ClevScaffold initializer — tailors a fresh clone to one project.
  *
- * Zero dependencies. Prunes the ORM(s) and frontend(s) you don't want, renames
- * the @clevrook scope, renames every kept app to `<name>-<app>` (dir, Dockerfile,
+ * Zero dependencies. Prunes the frontend(s) you don't want, renames the
+ * @clevrook scope, renames every kept app to `<name>-<app>` (dir, Dockerfile,
  * railway.json, CI matrices — your name everywhere, no generic "api"/"web" in
  * deploys), removes itself + the init-matrix workflow, regenerates the lockfile,
  * and verifies the result builds + tests green.
@@ -16,7 +16,7 @@
  * Usage:
  *   node scripts/init.mjs                         # interactive
  *   node scripts/init.mjs --yes --name my-app --scope @myco \
- *        --orm typeorm|prisma|both --frontend vite|next|both|none --mobile expo|none
+ *        --frontend vite|next|both|none --mobile expo|none
  *   node scripts/init.mjs --yes --name my-app --minimal --with-auth   # bare kickstart
  *
  * The default output keeps the full reference apps (auth, users, tasks demo,
@@ -28,7 +28,6 @@
  *   --yes                non-interactive (use defaults / provided flags)
  *   --name <kebab>       workspace + package name
  *   --scope <@x>         npm scope replacing @clevrook (leading @ optional)
- *   --orm <v>            typeorm | prisma | both        (default both)
  *   --frontend <v>       vite | next | both | none       (default both)
  *   --mobile <v>         expo | none                     (default expo)
  *   --minimal            core-only app; add capabilities with --with-* below
@@ -136,7 +135,6 @@ async function main() {
 
   let name = opts.name;
   let scope = opts.scope;
-  let orm = opts.orm;
   let frontend = opts.frontend;
   let mobile = opts.mobile;
   let minimal = flags.has('minimal');
@@ -154,7 +152,6 @@ async function main() {
     console.log('\nClevScaffold initializer\n========================\n');
     name = name ?? (await prompt(rl, 'Project name (kebab-case)', 'my-app'));
     scope = scope ?? (await prompt(rl, 'npm scope', `@${name}`));
-    orm = orm ?? (await prompt(rl, 'ORM [typeorm|prisma|both]', 'both'));
     frontend = frontend ?? (await prompt(rl, 'Frontend [vite|next|both|none]', 'both'));
     mobile = mobile ?? (await prompt(rl, 'Mobile app (Expo React Native) [expo|none]', 'expo'));
     if (!minimal) {
@@ -195,20 +192,17 @@ async function main() {
 
   name = name ?? 'my-app';
   scope = scope ?? `@${name}`;
-  orm = (orm ?? 'both').toLowerCase();
   frontend = (frontend ?? 'both').toLowerCase();
   mobile = (mobile ?? 'expo').toLowerCase();
   if (!scope.startsWith('@')) scope = `@${scope}`;
 
-  if (!['typeorm', 'prisma', 'both'].includes(orm)) throw new Error(`invalid --orm "${orm}"`);
   if (!['vite', 'next', 'both', 'none'].includes(frontend))
     throw new Error(`invalid --frontend "${frontend}"`);
   if (!['expo', 'none'].includes(mobile)) throw new Error(`invalid --mobile "${mobile}"`);
 
-  // Which components to KEEP.
-  const keep = new Set();
-  if (orm === 'typeorm' || orm === 'both') keep.add('typeorm');
-  if (orm === 'prisma' || orm === 'both') keep.add('prisma');
+  // Which components to KEEP. TypeORM (apps/api) is the scaffold's only ORM and
+  // is always present; only frontend + mobile are selectable.
+  const keep = new Set(['typeorm']);
   if (frontend === 'vite' || frontend === 'both') keep.add('vite');
   if (frontend === 'next' || frontend === 'both') keep.add('next');
   if (mobile === 'expo') keep.add('expo');
@@ -236,19 +230,9 @@ async function main() {
     }
     // tasks is reference-only — never added to a minimal app.
   }
-  // Capabilities that live only in the TypeORM app vanish when it is removed.
-  if (remove.includes('typeorm')) {
-    caps.delete('messaging');
-    caps.delete('realtime');
-    caps.delete('featureflags');
-    caps.delete('compliance');
-    caps.delete('tasks');
-  }
   const dropCaps = ALL_CAPS.filter((c) => !caps.has(c));
 
-  console.log(
-    `\nConfiguring: name=${name} scope=${scope} orm=${orm} frontend=${frontend} mobile=${mobile}`,
-  );
+  console.log(`\nConfiguring: name=${name} scope=${scope} frontend=${frontend} mobile=${mobile}`);
   console.log(`Keeping: ${[...keep].join(', ') || '(none)'}`);
   console.log(`Removing: ${remove.join(', ') || '(none)'}`);
   if (minimal) {
@@ -312,20 +296,13 @@ async function main() {
   writeJson('tsconfig.base.json', tsconfig);
   console.log('  updated tsconfig.base.json');
 
-  // 4. Prune ORM sentinel blocks from shared files.
-  const ormSentinelFiles = ['.env.example', 'scripts/e2e-setup.mjs', '.github/workflows/ci.yml'];
-  for (const c of remove) {
-    if (!COMPONENTS[c].sentinel) continue;
-    for (const f of ormSentinelFiles) stripSentinelBlocks(f, COMPONENTS[c].sentinel);
-  }
-
-  // 4b. Prune dropped-capability sentinel blocks from the app + shared files.
+  // 4. Prune dropped-capability sentinel blocks from the app + shared files.
   for (const c of dropCaps) {
     for (const f of CAP_SENTINEL_FILES) stripSentinelBlocks(f, c);
   }
 
-  // 4c. Strip any lingering sentinel markers for kept parts (tidy output).
-  for (const f of [...ormSentinelFiles, ...CAP_SENTINEL_FILES]) {
+  // 4b. Strip any lingering sentinel markers for kept parts (tidy output).
+  for (const f of CAP_SENTINEL_FILES) {
     stripSentinelMarkers(f);
   }
 
@@ -412,7 +389,6 @@ async function main() {
     generatedAt: new Date().toISOString(),
     name,
     scope,
-    orm,
     frontend,
     mobile,
     minimal,

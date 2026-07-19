@@ -23,12 +23,12 @@ Boot the real Nest app against a disposable Postgres DB via `supertest`.
 
 ```bash
 npm run db:up          # Postgres + Redis
-npm run e2e:setup      # create + migrate clevscaffold_test / clevscaffold_prisma_test
+npm run e2e:setup      # create + migrate clevscaffold_test
 npm run e2e            # run all e2e suites (--parallel=1)
 ```
 
 - Suites: `apps/api/test` (health, auth incl. lockout + refresh reuse, tasks incl.
-  pagination/ownership, OWASP) and `apps/api-prisma/test` (health + auth + users).
+  pagination/ownership, OWASP).
 - Tables are truncated between suites; keep tests order-independent.
 - Throttling toggles via `THROTTLE_DISABLED` (per-request `skipIf`) — functional
   suites disable it, the rate-limit suite enables it.

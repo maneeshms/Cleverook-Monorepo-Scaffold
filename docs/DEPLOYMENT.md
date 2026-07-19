@@ -6,20 +6,19 @@ before starting.
 
 ## Per-app services
 
-| App | Port | Health check | Start (CMD) |
-|-----|------|--------------|-------------|
-| `api` (TypeORM) | 3000 | `/api/v1/health` | migrate then `node …/main.js` |
-| `api-prisma` | 3010 | `/api/v1/health` | `prisma migrate deploy` then start |
-| `web` (Vite) | 80 | `/` | nginx serving the build + `/api` proxy |
-| `web-next` | 3005 | `/` | Next standalone server |
+| App             | Port | Health check     | Start (CMD)                            |
+| --------------- | ---- | ---------------- | -------------------------------------- |
+| `api` (TypeORM) | 3000 | `/api/v1/health` | migrate then `node …/main.js`          |
+| `web` (Vite)    | 80   | `/`              | nginx serving the build + `/api` proxy |
+| `web-next`      | 3005 | `/`              | Next standalone server                 |
 
 Create one Railway service per app, each pointing at its `railway.json`
 (`build.dockerfilePath`, `deploy.healthcheckPath`, restart policy).
 
 ## Configuration on Railway
 
-- **Secrets** (`JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `DATABASE_URL` /
-  `PRISMA_DATABASE_URL`, provider keys) → set as **service variables**. Never commit.
+- **Secrets** (`JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `DATABASE_URL`,
+  provider keys) → set as **service variables**. Never commit.
 - **Non-secret, env-specific values** → the baked `config/production.json`. The
   images set `CONFIG_DIR=/app/config` so it's picked up. Set `NODE_ENV=production`.
 - **Database:** provision Postgres (Railway plugin or Supabase). Set

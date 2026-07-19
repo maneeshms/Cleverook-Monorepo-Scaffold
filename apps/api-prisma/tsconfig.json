@@ -1,8 +1,0 @@
-{
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "outDir": "../../dist/apps/api-prisma"
-  },
-  "include": ["src/**/*.ts", "prisma/**/*.ts"],
-  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.spec.json" }]
-}

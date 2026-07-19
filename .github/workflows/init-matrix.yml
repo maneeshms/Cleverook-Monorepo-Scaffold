@@ -1,7 +1,7 @@
 name: Init Matrix
 
-# Verifies the scaffold's promise: EVERY init.mjs combination (orm × frontend)
-# produces a workspace that installs, builds, lints and unit-tests cleanly.
+# Verifies the scaffold's promise: EVERY init.mjs frontend combination produces
+# a workspace that installs, builds, lints and unit-tests cleanly.
 # The Expo mobile app rides the frontend axis instead of doubling the matrix:
 # frontend=none also prunes mobile, every other job keeps it.
 # Runs on demand and weekly so pruning logic never silently rots.
@@ -17,12 +17,11 @@ on:
 
 jobs:
   matrix:
-    name: init --orm ${{ matrix.orm }} --frontend ${{ matrix.frontend }}
+    name: init --frontend ${{ matrix.frontend }}
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:
-        orm: [typeorm, prisma, both]
         frontend: [vite, next, both, none]
     steps:
       - uses: actions/checkout@v7
@@ -36,7 +35,6 @@ jobs:
           node scripts/init.mjs --yes \
             --name demo-app \
             --scope @demo \
-            --orm ${{ matrix.orm }} \
             --frontend ${{ matrix.frontend }} \
             --mobile ${{ matrix.frontend == 'none' && 'none' || 'expo' }} \
             --no-install
@@ -64,7 +62,7 @@ jobs:
           set -euo pipefail
           rm -rf /tmp/gen && cp -R . /tmp/gen && cd /tmp/gen
           node scripts/init.mjs --yes --name demo-app --scope @demo \
-            --orm typeorm --frontend none --mobile none \
+            --frontend none --mobile none \
             --minimal --with-auth --no-install
       - name: add.mjs — enable messaging (lands in the init-renamed app dir)
         working-directory: /tmp/gen

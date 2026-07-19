@@ -1,5 +1,5 @@
 // ORM-free shared kit. Anything TypeORM-specific (BaseEntity, DatabaseModule)
-// lives in @clevrook/database so Prisma apps can consume this lib too.
+// lives in @clevrook/database, keeping this lib usable from any context.
 export * from './enums/role.enum';
 export * from './decorators/public.decorator';
 export * from './decorators/roles.decorator';

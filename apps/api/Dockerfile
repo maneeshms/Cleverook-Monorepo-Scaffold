@@ -11,7 +11,7 @@ RUN npx nx build api
 RUN node scripts/docker-manifest.mjs apps/api dist/apps/api/deploy-package.json
 
 # ---- production ----
-# Ships only api's own dependency closure (no Prisma, no unused libs).
+# Ships only api's own dependency closure (no unused libs).
 FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production

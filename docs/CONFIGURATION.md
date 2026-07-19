@@ -61,7 +61,7 @@ In an app module:
 ```ts
 ConfigModule.forRoot({
   isGlobal: true,
-  ignoreEnvFile: true,               // the loader owns .env
+  ignoreEnvFile: true, // the loader owns .env
   load: [appConfig, databaseConfig, jwtConfig, throttleConfig],
   validate: createEnvValidator({
     configDir: 'apps/api/config',

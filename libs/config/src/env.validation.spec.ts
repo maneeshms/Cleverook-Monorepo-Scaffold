@@ -77,7 +77,6 @@ describe('validateEnv', () => {
   it('keeps optional keys undefined when unset', () => {
     const result = validateEnv({ ...baseEnv });
     expect(result.DATABASE_URL).toBeUndefined();
-    expect(result.PRISMA_DATABASE_URL).toBeUndefined();
     expect(result.REDIS_URL).toBeUndefined();
     expect(result.METRICS_TOKEN).toBeUndefined();
   });

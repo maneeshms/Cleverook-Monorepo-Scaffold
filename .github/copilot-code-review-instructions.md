@@ -1,8 +1,8 @@
 # Copilot Code Review Instructions
 
 You are reviewing code for a **ClevScaffold**-based enterprise NestJS + Nx monorepo
-(Node 22, PostgreSQL). The ORM (TypeORM and/or Prisma) and frontend (Vite and/or
-Next.js) are selected per project — check the actual `apps/*` directories for this
+(Node 22, PostgreSQL, TypeORM). The frontend (Vite and/or
+Next.js) is selected per project — check the actual `apps/*` directories for this
 project's stack. Deployed on Railway. Full standards:
 [`AGENTS.md`](../AGENTS.md) and [`docs/agents/`](../docs/agents) — backend shapes in
 `docs/agents/nestjs.md` (mirror `modules/tasks`). Enforce the rules below on every PR.
@@ -18,20 +18,20 @@ project's stack. Deployed on Railway. Full standards:
   `SCREAMING_SNAKE_CASE`, enums `PascalCase` name + `SCREAMING_SNAKE_CASE` members,
   booleans prefixed `is`/`has`/`can`.
 - Files `kebab-case.ts`; tests `*.spec.ts`; modules `<feature>.module.ts`; DTOs
-  `<action>-<resource>.dto.ts`. Prisma models `PascalCase` singular; migrations `snake_case`.
+  `<action>-<resource>.dto.ts`.
 
 ## Code style
 
 - Flag `any` — suggest `unknown` + narrowing.
 - Flag `console.log`/`console.error` in app code (not `*.spec.ts`) — use `LoggerService`.
 - Flag direct `process.env` outside `libs/config`, `main.ts`, `app.module.ts`,
-  `data-source.ts`, `prisma/seed.ts` — use `ConfigService`.
+  `data-source.ts` — use `ConfigService`.
 - Flag exported functions/methods missing explicit return types; multiple classes per file;
   `@ts-ignore`/`@ts-expect-error` without justification.
 
 ## NestJS
 
-- Flag controllers injecting a repository or `PrismaService` directly.
+- Flag controllers injecting a repository directly.
 - Flag manual validation instead of `class-validator` DTOs; DTOs missing decorators.
 - Flag endpoints missing `@ApiTags`/`@ApiOperation`/`@ApiResponse`, or not under `/api/v1`.
 - Flag thrown errors that aren't NestJS `HttpException` subclasses.

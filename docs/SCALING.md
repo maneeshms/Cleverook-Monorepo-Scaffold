@@ -34,7 +34,7 @@ there.
 
 - Prefer a pooler for many app instances (connection multiplexing).
 - Add indexes for hot query paths; keep migrations reviewed.
-- Read replicas can be introduced behind the repository/Prisma layer without
+- Read replicas can be introduced behind the repository layer without
   touching controllers.
 
 ## Observability at scale

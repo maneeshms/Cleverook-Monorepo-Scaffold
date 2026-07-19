@@ -10,7 +10,6 @@ ClevScaffold (Nx workspace, npm, Node 22)
 │
 ├── apps/
 │   ├── api/          NestJS + TypeORM — full reference API
-│   ├── api-prisma/   NestJS + Prisma  — compact reference API
 │   ├── web/          React + Vite     — frontend wiring reference
 │   └── web-next/     Next.js          — frontend wiring reference
 │
@@ -37,11 +36,10 @@ feature-flags┤  (depends on common + database + logger)
 messaging┘  (depends on database)
 
 api        → common, config, logger, database, feature-flags, messaging
-api-prisma → common, config, logger              (no TypeORM libs)
 web / web-next → standalone (own package.json + lockfile, not workspaces)
 ```
 
-- `common` never imports an ORM, so both API apps can share it. `BaseEntity` lives
+- `common` never imports an ORM, so any context can share it. `BaseEntity` lives
   in `database`, not `common`.
 - `feature-flags` and `messaging` are **source-only libs** (no Nx build target) —
   apps compile them; each takes runtime config via `forRootAsync` from the host.
@@ -54,7 +52,7 @@ dependencies; the root is a thin workspace root with shared build/test tooling
 only. One root lockfile (deterministic installs, one audit surface). Frontends are
 standalone (own package.json + lockfile). Docker images stay lean — each app's
 runtime installs only its own dependency closure via `scripts/docker-manifest.mjs`
-(so the api image has no Prisma, and the api-prisma image has no TypeORM). See
+(the api image ships only the libs it imports). See
 [docs/agents/architecture.md](agents/architecture.md).
 
 ## Request lifecycle (api)
@@ -64,7 +62,7 @@ HTTP ─► helmet ─► correlationId ─► CORS ─► body-limit(1MB)
      ─► ValidationPipe (whitelist + transform)
      ─► Throttle guard ─► JwtAuth guard ─► Roles guard
      ─► Controller (thin) ─► Service (logic + authorization)
-     ─► TypeORM/Prisma (parameterized) ─► DTO out
+     ─► TypeORM (parameterized) ─► DTO out
      ─► HttpExceptionFilter (normalized shape) ─► response (+x-request-id)
    [LoggingInterceptor + HTTP-metrics interceptor wrap the whole thing]
 ```

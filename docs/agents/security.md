@@ -66,9 +66,9 @@ Mirror these patterns; don't invent new ones.
   `limit` is capped (≤100).
 - **Mass assignment:** never bind entities directly; whitelist writable fields via
   DTOs. Fields like `role`, `ownerId` must be rejected on register/update.
-- **SQL injection:** parameterized queries only. TypeORM query builder / repository
-  APIs; Prisma query API or tagged-template `$queryRaw`. **Never** concatenate user
-  input into SQL. Schema changes are **migrations only** (no `synchronize`).
+- **SQL injection:** parameterized queries only — TypeORM query builder /
+  repository APIs. **Never** concatenate user input into SQL. Schema changes are
+  **migrations only** (no `synchronize`).
 - Path params that are ids use `ParseUUIDPipe` (rejects traversal/garbage → 400).
 - No SSTI: user text is stored/returned literally, never evaluated.
 
