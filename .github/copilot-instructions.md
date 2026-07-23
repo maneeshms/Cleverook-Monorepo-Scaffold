@@ -16,7 +16,7 @@ bumps, or "improvements while you're here". A defect outside the task gets
 reported, not fixed; an ambiguous ask gets the smallest reasonable reading,
 stated explicitly — or a question.
 
-The top 14 rules:
+The top 15 rules:
 
 1. **Every code change ships with tests; coverage must stay ≥ 90%** (jest enforces it).
 2. **No secrets** in source, tests, comments, JSON config, or YAML — env only, never logged.
@@ -45,6 +45,13 @@ The top 14 rules:
 14. **Never guess** — only reference files, symbols, routes, env keys, commands,
     and packages verified to exist in this repo. If docs and code disagree, the
     code wins; flag the doc drift.
+15. **All UI is built with the Clevrook Design Kit** — mandatory. Import from
+    `@clevrook/web` (Vite/Next) or `@clevrook/native` (Expo); never hand-roll a
+    component the kit already ships, and never hardcode a color, font size,
+    radius, or spacing value — they come from tokens via components or
+    `useTheme()`. Anything the kit doesn't provide must still read `useTheme()`
+    so it re-themes with everything else. Branding lives only in that app's
+    `src/theme/brand.ts`. See [`docs/DESIGN_SYSTEM.md`](../docs/DESIGN_SYSTEM.md).
 
 **When a gate fails, the code is wrong — not the gate.** Never lower coverage
 thresholds, skip/delete failing tests, add unexplained `eslint-disable`/`@ts-ignore`,

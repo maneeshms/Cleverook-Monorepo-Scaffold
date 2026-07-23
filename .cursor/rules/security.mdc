@@ -15,4 +15,4 @@ Security is the top priority. Full ruleset: [docs/agents/security.md](../../docs
 - Parameterized queries only; migrations-only schema (no `synchronize`). `ParseUUIDPipe` on id params.
 - helmet on; CORS never reflects an arbitrary origin with credentials; 1 MB body cap.
 - Error responses: normalized shape, no stack traces/internals. DTOs never expose entities.
-- Keep the OWASP e2e suite green; `npm run scan:security` must pass (49-check baseline).
+- Keep the OWASP e2e suite green; `pnpm run scan:security` must pass (49-check baseline).

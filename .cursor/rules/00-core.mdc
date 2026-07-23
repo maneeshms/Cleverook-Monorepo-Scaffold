@@ -13,7 +13,7 @@ Ambiguous ask → smallest reasonable reading, stated — or ask.
 
 Non-negotiables:
 - Ship tests with every code change; keep coverage ≥ 90% (jest enforces it).
-  Prove done with `npm run verify` (plus `npm run e2e` for backend behaviour).
+  Prove done with `pnpm run verify` (plus `pnpm run e2e` for backend behaviour).
 - No secrets in code/JSON/logs. No direct `process.env` — use `ConfigService`.
 - No `any` (use `unknown` + narrowing). Explicit return types on exports. One class per file.
 - Exact-pinned dependencies, added to the package that imports them (never the root);
@@ -24,6 +24,10 @@ Non-negotiables:
   Redis, metrics, crypto, messaging, feature-flags, compliance — never reimplement one.
   New personal data → register a `PersonalDataContributor`; sensitive mutations →
   `auditService.record(...)` (ids/field names in metadata, never PII values).
+- All UI is built with the Clevrook Design Kit (`@clevrook/web` / `@clevrook/native`) —
+  mandatory. No hand-rolled components, no hardcoded colors/fonts/radii/spacing; anything
+  outside the kit reads `useTheme()` tokens. Branding only in `src/theme/brand.ts`.
+  See `docs/DESIGN_SYSTEM.md`.
 - Never guess: verify every file, symbol, route, env key, command, and package against
   the repo before referencing it. Code beats docs — flag drift, don't "fix" working code.
 - Keep `clevscaffold:*:start/end` sentinel comment pairs intact (init.mjs prunes on them).

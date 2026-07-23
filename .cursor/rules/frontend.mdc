@@ -3,12 +3,16 @@ description: Frontend & mobile wiring rules (apps/web, apps/web-next, apps/mobil
 globs: apps/web/**,apps/web-next/**,apps/mobile/**
 ---
 
-Full detail: [docs/agents/frontend.md](../../docs/agents/frontend.md) and [docs/MOBILE.md](../../docs/MOBILE.md).
+Full detail: [docs/agents/frontend.md](../../docs/agents/frontend.md), [docs/DESIGN_SYSTEM.md](../../docs/DESIGN_SYSTEM.md) and [docs/MOBILE.md](../../docs/MOBILE.md).
 
+- **ALL UI is built with the Clevrook Design Kit — this is mandatory.** Import components from `@clevrook/web` (Vite/Next) or `@clevrook/native` (Expo); both export the same 37. Hand-rolling a button/input/modal/table is a defect.
+- **Never hardcode a design value** — no hex colors, font sizes, font families, radii, shadows, or spacing numbers. They come from tokens, via components or `useTheme()`.
+- **Anything outside the kit must be compatible with it** — a chart, a map, a third-party widget, a bespoke layout all read `useTheme()` tokens so they re-theme with everything else.
+- Branding lives only in that app's `src/theme/brand.ts` (spread `defaultPrimitives`). Never edit `node_modules/@clevrook/*`. A gap in the kit is a stop-and-ask, not licence for bespoke CSS.
 - The frontends and the Expo mobile app are wiring references, not product UI. Each has its own package.json + lockfile.
 - No tests here (per project direction) — the 90% floor is backend-only.
 - Never store tokens/secrets in localStorage (module memory in the sample; httpOnly-cookie BFF in prod).
 - On mobile: access token in memory, refresh token in expo-secure-store — never AsyncStorage.
 - API base URL from env (`VITE_API_URL` / Next env / `EXPO_PUBLIC_API_URL`); on web prefer same-origin `/api` via the proxy.
-- Don't import `@clevrook/*` backend libs into a frontend or mobile. Keep Dockerfile/railway.json wiring intact (mobile has none — it ships via EAS).
-- Exact-pinned deps + committed lockfile; exception: apps/mobile keeps Expo's `~` ranges on expo-*/react-native — bump via `npx expo install`.
+- Don't import the **backend libs** into a frontend or mobile — they're Node/Nest code. After `init.mjs` those carry YOUR scope (`@myco/logger`) while the design kit keeps `@clevrook` (`@clevrook/web` — required here). Keep Dockerfile/railway.json wiring intact (mobile has none — it ships via EAS).
+- Exact-pinned deps + committed lockfile; exception: apps/mobile keeps Expo's `~` ranges on expo-*/react-native — bump via `pnpm exec expo install`.

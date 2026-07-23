@@ -9,7 +9,7 @@ Full detail: [docs/agents/testing.md](../../docs/agents/testing.md).
 - Unit specs are co-located `*.spec.ts`, mock all I/O (no real network/DB), cover branches
   and error paths, and have descriptive names.
 - e2e (`apps/*/test/**/*.e2e-spec.ts`) boot the real app against a disposable Postgres DB:
-  `npm run db:up && npm run e2e:setup && npm run e2e`. Throttling toggled by `THROTTLE_DISABLED`.
-- Sensitive routes: extend `apps/api/test/security-owasp.e2e-spec.ts` and run `npm run scan:security`.
-- Definition of done: `npm run verify` (+ e2e for logic). When a gate fails, fix the
+  `pnpm run db:up && pnpm run e2e:setup && pnpm run e2e`. Throttling toggled by `THROTTLE_DISABLED`.
+- Sensitive routes: extend `apps/api/test/security-owasp.e2e-spec.ts` and run `pnpm run scan:security`.
+- Definition of done: `pnpm run verify` (+ e2e for logic). When a gate fails, fix the
   code — never lower thresholds, skip tests, or farm coverage with assertion-free tests.
