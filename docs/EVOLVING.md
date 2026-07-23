@@ -46,7 +46,7 @@ What it does automatically: copies the capability's `libs/*` + app modules +
 migrations (scope-renamed, with absent-capability sentinel blocks stripped),
 re-adds tsconfig path aliases, app `package.json` deps, root scripts, and the
 capability's `.env.example` keys, updates `.clevscaffold.json`, and runs
-`npm install`.
+`pnpm install`.
 
 **One manual step remains:** files you already own (`app.module.ts`, `main.ts`,
 …) were sentinel-stripped at init and may have changed since — automatic merges
@@ -56,7 +56,7 @@ providers), mirroring the reference app. Apply it (this is a good agent task —
 see `docs/agents/recipes.md`), then:
 
 ```bash
-npm run migration:run && npm run verify
+pnpm run migration:run && pnpm run verify
 ```
 
 `tasks` is the reference-only demo and can't be added.
@@ -76,7 +76,7 @@ What you get:
   `main.ts`, layered config, logger, `DatabaseModule`, health live/ready,
   throttler (Redis-optional), Dockerfile/railway wiring, health unit + e2e specs.
   No capabilities — wire the shared libs (`@<scope>/auth`, messaging, …) into it
-  the same way `apps/api` does, or keep it lean. It joins the npm workspaces and
+  the same way `apps/api` does, or keep it lean. It joins the pnpm workspaces and
   the root `typecheck`. It **shares `DATABASE_URL` and `libs/database`
   migrations**; give it its own database via env/config when the service needs
   isolation.
@@ -86,7 +86,7 @@ What you get:
 - **`--type expo`** — a standalone Expo app with the health screen, its own
   bundle identifiers derived from your project + app name.
 
-Every type is **auto-registered**: root `dev:<name>` script, npm workspaces
+Every type is **auto-registered**: root `dev:<name>` script, pnpm workspaces
 (backend), tsconfig/eslint excludes (standalone apps), the CI docker + image-scan
 matrices (docker-bearing apps), the security workflow's npm-audit matrix and a
 Dependabot block (standalone apps). If an anchor can't be found (heavily edited
@@ -96,8 +96,8 @@ guessing.
 Afterwards:
 
 ```bash
-npm run dev:<name>
-npx nx build <name> && npx nx lint <name>
+pnpm run dev:<name>
+pnpm exec nx build <name> && pnpm exec nx lint <name>
 ```
 
 ## Rename an app
@@ -148,7 +148,7 @@ The scaffold keeps growing. The delivery contract:
 - **Never hand-copy scaffold code** into a generated project when one of these
   tools covers it — run the tool, then apply its wiring guide.
 - Treat `docs/wiring-<cap>.md` as the task spec: apply it exactly, run
-  `npm run migration:run && npm run verify`, then delete the wiring file.
+  `pnpm run migration:run && pnpm run verify`, then delete the wiring file.
 - Don't edit `.clevscaffold.json` by hand — the tools maintain it.
 - These tools exist in generated projects only (`init.mjs` removes itself but
   keeps them). In the pristine scaffold everything is already present; only

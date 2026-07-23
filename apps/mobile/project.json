@@ -7,7 +7,7 @@
     "dev": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "[ -d node_modules ] || npm ci --no-audit --no-fund; npx expo start",
+        "command": "[ -d node_modules ] || pnpm install --frozen-lockfile; pnpm exec expo start",
         "cwd": "apps/mobile"
       }
     },
@@ -15,14 +15,14 @@
       "executor": "nx:run-commands",
       "outputs": ["{projectRoot}/dist"],
       "options": {
-        "command": "[ -d node_modules ] || npm ci --no-audit --no-fund; npm run typecheck && npm run build",
+        "command": "[ -d node_modules ] || pnpm install --frozen-lockfile; pnpm run typecheck && pnpm run build",
         "cwd": "apps/mobile"
       }
     },
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "[ -d node_modules ] || npm ci --no-audit --no-fund; npm run lint",
+        "command": "[ -d node_modules ] || pnpm install --frozen-lockfile; pnpm run lint",
         "cwd": "apps/mobile"
       }
     }

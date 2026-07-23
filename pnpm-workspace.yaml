@@ -1,0 +1,32 @@
+# pnpm workspace — the BACKEND only.
+#
+# `apps/web`, `apps/web-next`, and `apps/mobile` are deliberately absent: each
+# client app owns its own package.json AND pnpm-lock.yaml so it installs, builds,
+# and deploys standalone (its Dockerfile copies only that directory). See
+# docs/agents/architecture.md. Adding them here would break those Docker builds.
+#
+# scripts/new-app.mjs appends backend apps to this list automatically.
+packages:
+  - 'libs/*'
+  - 'apps/api'
+
+# Postinstall scripts are BLOCKED by default (pnpm's supply-chain default, and a
+# real improvement over npm, which runs every one of them silently). Each entry
+# below is a deliberate decision — add a package here only with a reason.
+#
+# When a dependency bump introduces a new script, pnpm fails the install and
+# names it. That prompt is the point: decide, don't blanket-allow.
+allowBuilds:
+  # Build tooling we cannot run without — nx ships platform-native binaries.
+  nx: true
+  # nx's file watcher (native). Without it the nx daemon degrades to polling.
+  '@parcel/watcher': true
+  # Native module resolver used by the eslint import plugin.
+  unrs-resolver: true
+  # Optional native msgpack accelerator — pure-JS fallback is correct, just
+  # slower, and it is not on any hot path here.
+  msgpackr-extract: false
+  # Pulled in transitively; this repo compiles no Less.
+  less: false
+  # Analytics/telemetry postinstall. Denied on principle.
+  '@scarf/scarf': false

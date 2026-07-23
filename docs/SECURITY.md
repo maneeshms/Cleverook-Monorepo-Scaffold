@@ -20,7 +20,7 @@ humans) must follow when writing code are in
 | API7 Improper Inventory               | Versioned `/api/v1`; normalized error shape without internals                                                                                           |
 | API9 Business Logic                   | Ownership + tier checks in services; huge/negative pagination bounded                                                                                   |
 | Secrets exposure                      | No secrets in code/JSON/logs; loader rejects secret keys in JSON; gitleaks in CI                                                                        |
-| Supply chain                          | Exact-pinned deps; `npm audit` gate (Docker + CI); CodeQL; dependency-review                                                                            |
+| Supply chain                          | Exact-pinned deps; `pnpm audit` gate (Docker + CI); CodeQL; dependency-review                                                                           |
 
 ## Layered defenses
 
@@ -33,20 +33,20 @@ humans) must follow when writing code are in
 
 ## Runtime scanner baseline
 
-`scripts/security_scan.py` (run via `npm run scan:security`) probes a live API with
+`scripts/security_scan.py` (run via `pnpm run scan:security`) probes a live API with
 49 black-box checks across the OWASP blocks above. **Baseline: 49/49 passing**
 (34 HIGH, 8 MEDIUM, 6 LOW, 1 INFO), zero failures. It self-provisions test users,
 cleans them up, and exits non-zero on any HIGH/MEDIUM failure — wire it into
 release verification. Re-run after any auth/validation/endpoint change:
 
 ```bash
-npx nx serve api                 # http://localhost:3000/api/v1
-npm run scan:security
+pnpm exec nx serve api                 # http://localhost:3000/api/v1
+pnpm run scan:security
 ```
 
 ## CI security jobs
 
-- `security.yml` — npm audit (root + each frontend, block on CRITICAL), gitleaks
+- `security.yml` — pnpm audit (root + each frontend, block on CRITICAL), gitleaks
   (license-free binary), dependency-review (PRs, opt-in).
 - `codeql.yml` — CodeQL `security-and-quality` on push/PR + weekly (opt-in).
 - `ci.yml` — the OWASP e2e suite runs as part of the e2e job; Trivy CRITICAL gate +

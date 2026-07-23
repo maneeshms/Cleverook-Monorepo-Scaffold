@@ -9,8 +9,8 @@ workspaces — and has **no tests** (the 90% coverage floor is backend-only).
 ## Run it
 
 ```bash
-npm run dev:mobile          # from the repo root (Metro dev server + QR code)
-# or: cd apps/mobile && npm ci && npx expo start
+pnpm run dev:mobile          # from the repo root (Metro dev server + QR code)
+# or: cd apps/mobile && pnpm install --frozen-lockfile && pnpm exec expo start
 ```
 
 Scan the QR with the **Expo Go** app (Android/iOS) or press `a`/`i` for an
@@ -47,7 +47,7 @@ server side). Honest platform status:
 - **Android** — works in a **dev build** with Firebase wired in: put
   `google-services.json` in `apps/mobile`, reference it via
   `expo.android.googleServicesFile` in `app.json`, then
-  `npx expo run:android` (or an EAS build). `expo-notifications` then returns a
+  `pnpm exec expo run:android` (or an EAS build). `expo-notifications` then returns a
   real FCM registration token, which is exactly what the API's FCM v1 channel
   sends to. **Expo Go cannot receive remote push** (SDK 53+) — the sample logs
   and skips there.
@@ -63,21 +63,21 @@ server side). Honest platform status:
 
 ```bash
 cd apps/mobile
-npm run typecheck    # tsc --noEmit
-npm run lint         # expo lint (eslint-config-expo)
-npm run build        # expo export (Metro-bundles android + ios — no native SDKs needed)
+pnpm run typecheck    # tsc --noEmit
+pnpm run lint         # expo lint (eslint-config-expo)
+pnpm run build        # expo export (Metro-bundles android + ios — no native SDKs needed)
 ```
 
 The Nx targets (`nx build|lint mobile`) wrap these and run in the root
-`npm run verify` / CI build job. `npm audit` covers `apps/mobile` via the
+`pnpm run verify` / CI build job. `pnpm audit` covers `apps/mobile` via the
 security workflow's directory matrix. There is **no Docker image** — the app
-ships through EAS/app stores (`npx eas build`), so mobile is absent from the
+ships through EAS/app stores (`pnpm dlx eas build`), so mobile is absent from the
 docker/image-scan matrices on purpose.
 
 ## Dependencies
 
 `expo-*` and `react-native` keep Expo's `~` ranges — the SDK owns those
-versions. Add or bump Expo-managed packages with `npx expo install <pkg>`
+versions. Add or bump Expo-managed packages with `pnpm exec expo install <pkg>`
 (picks the SDK-compatible version), everything else stays exact-pinned.
 Dependabot watches `apps/mobile` separately; majors land in the isolated
 `major-updates` PR like the other apps.
@@ -87,5 +87,5 @@ Dependabot watches `apps/mobile` separately; majors land in the isolated
 - `--mobile expo` (default) keeps the app; `--mobile none` prunes it everywhere
   (dir, `dev:mobile`, tsconfig exclude, dependabot block, audit matrix).
 - `--minimal` reduces it to a health-check screen (auth/tasks/push wiring
-  removed; the extra Expo packages stay installed so `npm ci` keeps working —
-  `npm uninstall` them in `apps/mobile` if you won't add auth/push back).
+  removed; the extra Expo packages stay installed so `pnpm install --frozen-lockfile` keeps working —
+  `pnpm remove` them in `apps/mobile` if you won't add auth/push back).

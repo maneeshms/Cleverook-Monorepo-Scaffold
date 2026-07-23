@@ -50,26 +50,38 @@ apps/mobile        → standalone Expo React Native app (own package.json/lockfi
 - **Apps never import other apps.** Shared code goes in a lib.
 - Path aliases: `@clevrook/{common,config,logger,database,auth,feature-flags,messaging,realtime,compliance}`.
 
-## Package layout (npm workspaces)
+## Package layout (pnpm workspaces)
 
 **Every project owns its own `package.json`** — there is no giant root dependency
-list. The root is a thin workspace root (`"workspaces": ["libs/*", "apps/api"]`)
-holding only shared build/test tooling (nx, typescript, eslint, prettier, jest,
-husky) and orchestration scripts.
+list. The root is a thin workspace root (`pnpm-workspace.yaml` listing `libs/*`
+and `apps/api`) holding only shared build/test tooling (nx, typescript, eslint,
+prettier, jest, husky) and orchestration scripts.
 
 - **Each lib** (`libs/*/package.json`) declares exactly the npm deps its source
-  imports, plus its `@clevrook/*` workspace deps.
+  imports, plus its `@clevrook/*` workspace deps — always as **`workspace:*`**.
+  A bare `*` would resolve from the registry: pnpm 10+ defaults
+  `link-workspace-packages` to `false`, and these libs are never published.
 - **Each backend app** declares its own deps + the workspace libs it uses. So
   `apps/api` lists its TypeORM/messaging deps directly.
-- **One root lockfile** (`package-lock.json`) — npm workspaces hoists a single,
-  deduplicated `node_modules`. That's deliberate: deterministic installs + one
-  security-audit surface. Per-project _manifests_, single lockfile.
-- **Frontends and mobile** (`apps/web`, `apps/web-next`, `apps/mobile`) are **not**
-  workspaces — they keep their own `package.json` **and** lockfile and build/deploy
-  fully standalone. In `apps/mobile`, `expo-*`/`react-native` keep Expo's `~`
-  ranges (the SDK owns them; bump via `npx expo install`).
+- **One root lockfile** (`pnpm-lock.yaml`) for the backend workspace: deterministic
+  installs + one security-audit surface. Per-project _manifests_, single lockfile.
+- **Isolated `node_modules` by default.** A package can import only what it
+  declares — no accidental reliance on a hoisted transitive dep. `apps/mobile` is
+  the sole exception (`node-linker=hoisted` in its `.npmrc`), because Metro cannot
+  resolve through pnpm's symlinks.
+- **Install scripts are blocked by default** and allowed one-by-one in
+  `pnpm-workspace.yaml` under `allowBuilds`. A dependency bump that adds a new
+  postinstall fails the install by design — decide, don't blanket-allow.
+- **Client apps** (`apps/web`, `apps/web-next`, `apps/mobile`) are **not** in the
+  workspace — each keeps its own `package.json`, `pnpm-lock.yaml`, **and** a
+  `pnpm-workspace.yaml` marking it a standalone root (without that file pnpm walks
+  up and swallows it into the backend workspace, breaking its Docker build, which
+  copies only that directory). In `apps/mobile`, `expo-*`/`react-native` keep
+  Expo's `~` ranges (the SDK owns them; bump via `pnpm exec expo install`).
+- Transitive version pins go in that app's `pnpm-workspace.yaml` under
+  `overrides` — pnpm ignores npm's `overrides` field in package.json.
 - Add a dep to the package that uses it (`libs/<x>/package.json` or
-  `apps/<x>/package.json`), exact-pinned, then `npm install` at the root.
+  `apps/<x>/package.json`), exact-pinned, then `pnpm install` at the root.
 
 ## Lean Docker images
 
@@ -77,7 +89,7 @@ Apps compile their libs into `dist` (tsc + tsc-alias), so at runtime only extern
 npm deps are needed. `scripts/docker-manifest.mjs` walks an app's package.json,
 follows `@clevrook/*` into each lib, and flattens the external dependency
 closure into a self-contained `package.json` in the app's `dist`. The Docker
-runtime stage `npm install --omit=dev` from that — so `apps/api` images ship
+runtime stage `pnpm install --prod` from that — so `apps/api` images ship
 only TypeORM/BullMQ/OpenFeature and the libs it actually imports. Keep app/lib
 deps accurate and this stays correct automatically.
 
@@ -132,7 +144,7 @@ Per key, first hit wins:
   Follow `modules/tasks` as the canonical example (pagination, ownership, cache,
   messaging hook).
 - **Add a migration:** hand-write under `libs/database/src/migrations/`
-  (timestamp-prefixed); use the enum `DO $$…$$` guard. `npm run migration:run`.
+  (timestamp-prefixed); use the enum `DO $$…$$` guard. `pnpm run migration:run`.
 - **Add a lib:** `nx g @nx/js:lib <name>` under `libs/`; respect the ORM-free rule
   for anything used outside the API. Add the `@clevrook/<name>` path alias.
 - **Add config:** add the key to the app's `config/*.json` (non-secret) or

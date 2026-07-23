@@ -6,9 +6,9 @@
 
 ## Checklist (the golden rules — AGENTS.md)
 
-- [ ] Tests ship with the change; coverage stays **≥ 90%** (`npm run test`)
-- [ ] `npm run verify` green (lint + typecheck + build + unit)
-- [ ] e2e run for backend/endpoint changes (`npm run e2e`)
+- [ ] Tests ship with the change; coverage stays **≥ 90%** (`pnpm run test`)
+- [ ] `pnpm run verify` green (lint + typecheck + build + unit)
+- [ ] e2e run for backend/endpoint changes (`pnpm run e2e`)
 - [ ] No secrets in code/JSON/YAML; no direct `process.env` outside the allowlist
 - [ ] Dependencies exact-pinned; lockfile updated with `package.json`
 - [ ] New endpoints guarded (or explicitly `@Public()`) + Swagger-decorated

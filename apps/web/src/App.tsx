@@ -1,5 +1,30 @@
+/**
+ * Reference UI for the Clevrook Design Kit.
+ *
+ * Every visual element here comes from `@clevrook/web` + theme tokens — no
+ * bespoke CSS, no hardcoded color, font size, or radius. Plain elements appear
+ * only where semantics demand them (`<form>`); layout uses `Box` so spacing
+ * stays on the token scale. Mirror this shape when you build real screens; see
+ * docs/DESIGN_SYSTEM.md.
+ */
 import { FormEvent, useCallback, useEffect, useState } from 'react';
+import {
+  Alert,
+  Badge,
+  Box,
+  Button,
+  Card,
+  EmptyState,
+  Icon,
+  Spinner,
+  Text,
+  TextInput,
+} from '@clevrook/web';
 import { api, isAuthenticated, Task } from './api';
+
+const column = { display: 'flex', flexDirection: 'column' } as const;
+const row = { display: 'flex', alignItems: 'center' } as const;
+const rowBetween = { ...row, justifyContent: 'space-between' } as const;
 
 export default function App() {
   const [apiUp, setApiUp] = useState<boolean | null>(null);
@@ -14,14 +39,28 @@ export default function App() {
   }, []);
 
   return (
-    <main className="shell">
-      <header>
-        <h1>ClevScaffold</h1>
-        <span className={`badge ${apiUp ? 'up' : 'down'}`}>
-          API {apiUp === null ? '…' : apiUp ? 'up' : 'down'}
-        </span>
-      </header>
-      {error && <p className="error">{error}</p>}
+    <Box
+      as="main"
+      paddingX="lg"
+      paddingY="xl"
+      gap="lg"
+      style={{ ...column, maxWidth: 560, margin: '0 auto' }}
+    >
+      <Box as="header" style={rowBetween}>
+        <Text variant="heading-lg">ClevScaffold</Text>
+        {apiUp === null ? (
+          <Spinner size="sm" label="Checking API" />
+        ) : (
+          <Badge variant={apiUp ? 'success' : 'error'}>API {apiUp ? 'up' : 'down'}</Badge>
+        )}
+      </Box>
+
+      {error && (
+        <Alert variant="error" onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+
       {authed ? (
         <TasksPanel
           onError={setError}
@@ -39,38 +78,60 @@ export default function App() {
           }}
         />
       )}
-    </main>
+    </Box>
   );
 }
 
 function AuthPanel({ onAuthed, onError }: { onAuthed: () => void; onError: (m: string) => void }) {
   const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [busy, setBusy] = useState(false);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const email = String(form.get('email'));
     const password = String(form.get('password'));
+    setBusy(true);
     try {
       if (mode === 'login') await api.login(email, password);
       else await api.register(email, password, String(form.get('displayName') || '') || undefined);
       onAuthed();
     } catch (err) {
       onError(err instanceof Error ? err.message : 'Authentication failed');
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
-    <form className="card" onSubmit={submit}>
-      <h2>{mode === 'login' ? 'Sign in' : 'Create account'}</h2>
-      {mode === 'register' && <input name="displayName" placeholder="Display name (optional)" />}
-      <input name="email" type="email" placeholder="Email" required />
-      <input name="password" type="password" placeholder="Password" required minLength={8} />
-      <button type="submit">{mode === 'login' ? 'Sign in' : 'Register'}</button>
-      <button type="button" className="link" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
-        {mode === 'login' ? 'Need an account? Register' : 'Have an account? Sign in'}
-      </button>
-    </form>
+    <Card title={mode === 'login' ? 'Sign in' : 'Create account'}>
+      <form onSubmit={submit}>
+        <Box gap="md" style={column}>
+          {mode === 'register' && (
+            <TextInput name="displayName" placeholder="Display name (optional)" fullWidth />
+          )}
+          <TextInput name="email" type="email" placeholder="Email" required fullWidth />
+          <TextInput
+            name="password"
+            type="password"
+            placeholder="Password"
+            required
+            minLength={8}
+            fullWidth
+          />
+          <Button type="submit" variant="primary" fullWidth disabled={busy}>
+            {mode === 'login' ? 'Sign in' : 'Register'}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+          >
+            {mode === 'login' ? 'Need an account? Register' : 'Have an account? Sign in'}
+          </Button>
+        </Box>
+      </form>
+    </Card>
   );
 }
 
@@ -87,7 +148,7 @@ function TasksPanel({ onLogout, onError }: { onLogout: () => void; onError: (m: 
 
   useEffect(refresh, [refresh]);
 
-  const create = async (event: FormEvent) => {
+  const create = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!title.trim()) return;
     try {
@@ -100,36 +161,65 @@ function TasksPanel({ onLogout, onError }: { onLogout: () => void; onError: (m: 
   };
 
   const cycle = (task: Task) => {
-    const next = task.status === 'TODO' ? 'IN_PROGRESS' : task.status === 'IN_PROGRESS' ? 'DONE' : 'TODO';
-    api.setTaskStatus(task.id, next).then(refresh).catch((err) => onError(err.message));
+    const next =
+      task.status === 'TODO' ? 'IN_PROGRESS' : task.status === 'IN_PROGRESS' ? 'DONE' : 'TODO';
+    api
+      .setTaskStatus(task.id, next)
+      .then(refresh)
+      .catch((err) => onError(err.message));
   };
 
   return (
-    <section className="card">
-      <div className="row">
-        <h2>My tasks</h2>
-        <button className="link" onClick={onLogout}>
-          Sign out
-        </button>
-      </div>
-      <form className="row" onSubmit={create}>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="New task title" />
-        <button type="submit">Add</button>
-      </form>
-      <ul>
-        {tasks.map((task) => (
-          <li key={task.id} className="row">
-            <button className={`status ${task.status}`} onClick={() => cycle(task)}>
-              {task.status}
-            </button>
-            <span>{task.title}</span>
-            <button className="link" onClick={() => api.deleteTask(task.id).then(refresh)}>
-              ✕
-            </button>
-          </li>
-        ))}
-        {tasks.length === 0 && <li className="muted">No tasks yet — add one above.</li>}
-      </ul>
-    </section>
+    <Card>
+      <Box gap="md" style={column}>
+        <Box style={rowBetween}>
+          <Text variant="heading-md">My tasks</Text>
+          <Button variant="ghost" size="sm" onClick={onLogout}>
+            Sign out
+          </Button>
+        </Box>
+
+        <form onSubmit={create}>
+          <Box gap="sm" style={row}>
+            <TextInput
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="New task title"
+              fullWidth
+            />
+            <Button type="submit">Add</Button>
+          </Box>
+        </form>
+
+        {tasks.length === 0 ? (
+          <EmptyState
+            icon="Plus"
+            title="No tasks yet"
+            description="Add one above to see the list render."
+          />
+        ) : (
+          <Box as="ul" gap="sm" style={{ ...column, listStyle: 'none', padding: 0, margin: 0 }}>
+            {tasks.map((task) => (
+              <Box as="li" key={task.id} gap="sm" style={row}>
+                <Button variant="outline" size="sm" onClick={() => cycle(task)}>
+                  {task.status}
+                </Button>
+                <Text variant="body-md" style={{ flex: 1 }}>
+                  {task.title}
+                </Text>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`Delete ${task.title}`}
+                  onClick={() => api.deleteTask(task.id).then(refresh)}
+                >
+                  <Icon name="X" size="sm" />
+                </Button>
+              </Box>
+            ))}
+          </Box>
+        )}
+      </Box>
+    </Card>
   );
 }

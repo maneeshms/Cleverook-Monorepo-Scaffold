@@ -45,7 +45,7 @@ web / web-next → standalone (own package.json + lockfile, not workspaces)
   apps compile them; each takes runtime config via `forRootAsync` from the host.
 - Apps never import other apps.
 
-## Packages (npm workspaces)
+## Packages (pnpm workspaces)
 
 Every lib and backend app has its **own `package.json`** declaring its own
 dependencies; the root is a thin workspace root with shared build/test tooling

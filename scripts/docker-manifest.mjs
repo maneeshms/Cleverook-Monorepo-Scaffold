@@ -6,7 +6,7 @@
  * runtime only the EXTERNAL npm deps are needed — not the workspace libs. This
  * script walks the app's package.json, follows @clevrook/* deps into each
  * lib's package.json, and flattens the external dependency closure (exact pins)
- * into a lean manifest. The runtime stage then `npm install --omit=dev` from it,
+ * into a lean manifest. The runtime stage then `pnpm install --prod` from it,
  * so each image carries only what that app actually runs.
  *
  * Usage:  node scripts/docker-manifest.mjs apps/api dist/apps/api/package.json

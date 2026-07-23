@@ -1,19 +1,57 @@
+/**
+ * Reference UI for the Clevrook Design Kit on React Native.
+ *
+ * Every visual element comes from `@clevrook/native` + theme tokens — no
+ * `StyleSheet` colors, font sizes, or radii. The only local styles are layout
+ * primitives (`flex`, direction) that carry no design decisions. Mirror this
+ * shape when you build real screens; see docs/DESIGN_SYSTEM.md.
+ */
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
+import { FlatList, Platform, StyleSheet, View } from 'react-native';
 import {
-  ActivityIndicator,
-  FlatList,
-  Platform,
-  Pressable,
-  StyleSheet,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+} from '@expo-google-fonts/plus-jakarta-sans';
+import { Rubik_400Regular, Rubik_500Medium } from '@expo-google-fonts/rubik';
+import { useFonts } from 'expo-font';
+import { ThemeProvider } from '@clevrook/theme';
+import {
+  Alert,
+  Badge,
+  Box,
+  Button,
+  Card,
+  EmptyState,
+  Icon,
+  Spinner,
   Text,
   TextInput,
-  View,
-} from 'react-native';
+} from '@clevrook/native';
 import { api, Task } from './src/api';
 import { registerForPush, unregisterPush } from './src/push';
+import { brandPrimitives } from './src/theme/brand';
 
 export default function App() {
+  // The keys registered here ARE the font family names — src/theme/brand.ts maps
+  // the kit's `sans`/`body` tokens onto them. Keep the two in sync.
+  const [fontsLoaded] = useFonts({
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    Rubik_400Regular,
+    Rubik_500Medium,
+  });
+
+  if (!fontsLoaded) return null;
+
+  return (
+    <ThemeProvider primitives={brandPrimitives} mode="light">
+      <Shell />
+    </ThemeProvider>
+  );
+}
+
+function Shell() {
   const [apiUp, setApiUp] = useState<boolean | null>(null);
   const [authed, setAuthed] = useState<boolean | null>(null); // null = restoring
   const [error, setError] = useState('');
@@ -30,17 +68,25 @@ export default function App() {
   }, []);
 
   return (
-    <View style={styles.shell}>
+    <Box background="primary" paddingX="md" gap="md" style={styles.shell}>
       <StatusBar style="dark" />
-      <View style={styles.header}>
-        <Text style={styles.title}>ClevScaffold</Text>
-        <View style={[styles.badge, apiUp ? styles.badgeUp : styles.badgeDown]}>
-          <Text style={styles.badgeText}>API {apiUp === null ? '…' : apiUp ? 'up' : 'down'}</Text>
-        </View>
-      </View>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <Box style={styles.rowBetween}>
+        <Text variant="heading-lg">ClevScaffold</Text>
+        {apiUp === null ? (
+          <Spinner size="sm" />
+        ) : (
+          <Badge variant={apiUp ? 'success' : 'error'}>API {apiUp ? 'up' : 'down'}</Badge>
+        )}
+      </Box>
+
+      {error ? (
+        <Alert variant="error" onClose={() => setError('')}>
+          {error}
+        </Alert>
+      ) : null}
+
       {authed === null ? (
-        <ActivityIndicator style={styles.card} />
+        <Spinner size="lg" />
       ) : authed ? (
         <TasksPanel
           onError={setError}
@@ -60,7 +106,7 @@ export default function App() {
           }}
         />
       )}
-    </View>
+    </Box>
   );
 }
 
@@ -85,43 +131,40 @@ function AuthPanel({ onAuthed, onError }: { onAuthed: () => void; onError: (m: s
   };
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.h2}>{mode === 'login' ? 'Sign in' : 'Create account'}</Text>
-      {mode === 'register' && (
+    <Card title={mode === 'login' ? 'Sign in' : 'Create account'}>
+      <Box gap="md">
+        {mode === 'register' && (
+          <TextInput
+            placeholder="Display name (optional)"
+            value={displayName}
+            onChangeText={setDisplayName}
+            fullWidth
+          />
+        )}
         <TextInput
-          style={styles.input}
-          placeholder="Display name (optional)"
-          value={displayName}
-          onChangeText={setDisplayName}
+          placeholder="Email"
+          autoCapitalize="none"
+          autoComplete="email"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+          fullWidth
         />
-      )}
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        autoCapitalize="none"
-        autoComplete="email"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-      <Pressable style={styles.button} disabled={busy} onPress={submit}>
-        <Text style={styles.buttonText}>
-          {busy ? '…' : mode === 'login' ? 'Sign in' : 'Register'}
-        </Text>
-      </Pressable>
-      <Pressable onPress={() => setMode(mode === 'login' ? 'register' : 'login')}>
-        <Text style={styles.link}>
+        <TextInput
+          placeholder="Password"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+          fullWidth
+        />
+        <Button variant="primary" fullWidth disabled={busy} onPress={submit}>
+          {mode === 'login' ? 'Sign in' : 'Register'}
+        </Button>
+        <Button variant="ghost" onPress={() => setMode(mode === 'login' ? 'register' : 'login')}>
           {mode === 'login' ? 'Need an account? Register' : 'Have an account? Sign in'}
-        </Text>
-      </Pressable>
-    </View>
+        </Button>
+      </Box>
+    </Card>
   );
 }
 
@@ -159,91 +202,72 @@ function TasksPanel({ onLogout, onError }: { onLogout: () => void; onError: (m: 
   };
 
   return (
-    <View style={[styles.card, styles.grow]}>
-      <View style={styles.row}>
-        <Text style={styles.h2}>My tasks</Text>
-        <Pressable onPress={onLogout}>
-          <Text style={styles.link}>Sign out</Text>
-        </Pressable>
-      </View>
-      <View style={styles.row}>
-        <TextInput
-          style={[styles.input, styles.grow]}
-          placeholder="New task title"
-          value={title}
-          onChangeText={setTitle}
-          onSubmitEditing={create}
-        />
-        <Pressable style={styles.button} onPress={create}>
-          <Text style={styles.buttonText}>Add</Text>
-        </Pressable>
-      </View>
-      <FlatList
-        data={tasks}
-        keyExtractor={(task) => task.id}
-        ListEmptyComponent={<Text style={styles.muted}>No tasks yet — add one above.</Text>}
-        renderItem={({ item: task }) => (
-          <View style={styles.row}>
-            <Pressable style={styles.status} onPress={() => cycle(task)}>
-              <Text style={styles.statusText}>{task.status}</Text>
-            </Pressable>
-            <Text style={styles.grow}>{task.title}</Text>
-            <Pressable onPress={() => api.deleteTask(task.id).then(refresh)}>
-              <Text style={styles.link}>✕</Text>
-            </Pressable>
-          </View>
-        )}
-      />
+    <View style={styles.grow}>
+      <Card>
+        <Box gap="md">
+          <Box style={styles.rowBetween}>
+            <Text variant="heading-md">My tasks</Text>
+            <Button variant="ghost" size="sm" onPress={onLogout}>
+              Sign out
+            </Button>
+          </Box>
+
+          <Box gap="sm" style={styles.row}>
+            <View style={styles.grow}>
+              <TextInput
+                placeholder="New task title"
+                value={title}
+                onChangeText={setTitle}
+                onSubmitEditing={create}
+                fullWidth
+              />
+            </View>
+            <Button onPress={create}>Add</Button>
+          </Box>
+
+          <FlatList
+            data={tasks}
+            keyExtractor={(task) => task.id}
+            ListEmptyComponent={
+              <EmptyState
+                icon="Plus"
+                title="No tasks yet"
+                description="Add one above to see the list render."
+              />
+            }
+            renderItem={({ item: task }) => (
+              <Box gap="sm" paddingY="xs" style={styles.row}>
+                <Button variant="outline" size="sm" onPress={() => cycle(task)}>
+                  {task.status}
+                </Button>
+                <Text variant="body-md" style={styles.grow}>
+                  {task.title}
+                </Text>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  accessibilityLabel={`Delete ${task.title}`}
+                  onPress={() => api.deleteTask(task.id).then(refresh)}
+                >
+                  <Icon name="X" size="sm" />
+                </Button>
+              </Box>
+            )}
+          />
+        </Box>
+      </Card>
     </View>
   );
 }
 
+// Layout only — no colors, font sizes, or radii. Those belong to the design kit.
 const styles = StyleSheet.create({
   shell: {
     flex: 1,
-    backgroundColor: '#f4f5f7',
     paddingTop: Platform.OS === 'android' ? 48 : 64,
-    paddingHorizontal: 16,
     paddingBottom: 24,
-    gap: 12,
   },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 24, fontWeight: '700' },
-  badge: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
-  badgeUp: { backgroundColor: '#d1f7dd' },
-  badgeDown: { backgroundColor: '#fde2e2' },
-  badgeText: { fontSize: 12, fontWeight: '600' },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    gap: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
+  row: { flexDirection: 'row', alignItems: 'center' },
+  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   grow: { flex: 1 },
-  h2: { fontSize: 18, fontWeight: '600' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 4 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d5d9df',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  button: {
-    backgroundColor: '#1f6feb',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  buttonText: { color: '#fff', fontWeight: '600' },
-  link: { color: '#1f6feb', fontWeight: '500' },
-  status: { borderRadius: 6, backgroundColor: '#eef1f5', paddingHorizontal: 8, paddingVertical: 4 },
-  statusText: { fontSize: 11, fontWeight: '700' },
-  muted: { color: '#7a828c' },
-  error: { color: '#c0392b' },
 });

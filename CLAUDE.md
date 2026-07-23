@@ -20,12 +20,14 @@ Read the topic doc that matches your task (all under `docs/agents/`):
 - **conventions.md** — naming, types, Swagger, commits, style.
 - **testing.md** — writing tests, the ≥90% coverage floor, e2e, the scanner.
 - **workflows.md** — branching, PRs, CI gates, migrations, deploys.
-- **frontend.md** — anything under `apps/web` or `apps/web-next`.
+- **frontend.md** — anything under `apps/web`, `apps/web-next`, or `apps/mobile`.
+- **../DESIGN_SYSTEM.md** — **any UI work.** The Clevrook Design Kit is mandatory;
+  read it before writing a single component.
 
 ## Non-negotiables (full list + reasons in AGENTS.md)
 
 - Ship tests with every code change; keep coverage **≥ 90%**. Prove done with
-  `npm run verify` (plus `npm run e2e` for backend behaviour) and the AGENTS.md
+  `pnpm run verify` (plus `pnpm run e2e` for backend behaviour) and the AGENTS.md
   self-audit checklist.
 - No secrets in code/JSON/logs. No direct `process.env`. No `any`. Exact-pinned
   deps in the package that imports them (never the root).
@@ -35,6 +37,10 @@ Read the topic doc that matches your task (all under `docs/agents/`):
   pagination, Redis, metrics, crypto, messaging, flags, compliance. Reimplementing
   one is a defect. New personal data → register a `PersonalDataContributor`;
   sensitive mutations → `auditService.record(...)` (no PII in metadata).
+- **All UI uses the Clevrook Design Kit** (`@clevrook/web` / `@clevrook/native`).
+  No hand-rolled components, no hardcoded colors/fonts/radii/spacing; anything
+  outside the kit must read `useTheme()` tokens so it themes with everything else.
+  Branding lives only in each app's `src/theme/brand.ts`. See `docs/DESIGN_SYSTEM.md`.
 - **Never guess** — verify every file, symbol, route, env key, command, and
   package against the repo before referencing it; if the docs and code disagree,
   the code wins and you flag the drift.

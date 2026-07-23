@@ -29,9 +29,21 @@ import path from 'node:path';
 
 export const OLD_SCOPE = '@clevrook';
 
+// ── Design kit ──────────────────────────────────────────────────────────────
+// The Clevrook Design Kit (github.com/clevrook/clevrook-design-kit) publishes to
+// GitHub Packages under the SAME @clevrook scope this scaffold uses for its own
+// libs. init.mjs/add.mjs rewrite `@clevrook` → the project's scope, so these
+// specifiers MUST survive that rewrite untouched — otherwise every generated
+// project's frontends import a scope that was never published.
+//
+// The two name sets are disjoint by design: never name a scaffold lib `tokens`,
+// `theme`, `icons`, `web`, or `native`.
+export const DESIGN_KIT_REGISTRY = 'https://npm.pkg.github.com';
+export const DESIGN_KIT_PACKAGES = new Set(['tokens', 'theme', 'icons', 'web', 'native']);
+
 // ── Component manifest ──────────────────────────────────────────────────────
 // Each removable component lists what to delete when it is NOT selected. Runtime
-// deps live in each package's own package.json (npm workspaces), so removing a
+// deps live in each package's own package.json (pnpm workspaces), so removing a
 // component's directory removes its dependencies with it — no root-dep pruning.
 export const COMPONENTS = {
   typeorm: {
@@ -344,6 +356,30 @@ export function appendToArrayLiteral(root, rel, matchKey, value, quote = false) 
   return true;
 }
 
+/**
+ * Rewrite `@clevrook` → the project's scope in one file's text, leaving two
+ * things alone (see DESIGN_KIT_PACKAGES above):
+ *
+ *   - design-kit specifiers — `@clevrook/web`, `@clevrook/tokens`, … name a real
+ *     published scope on GitHub Packages, not this repo's libs;
+ *   - the `.npmrc` registry key `@clevrook:registry=` — same reason.
+ *
+ * Everything else (`@clevrook/common`, `@clevrook/auth`, prose mentions) renames
+ * as before. Matching is boundary-safe: `@clevrook/webhooks` is NOT a kit package
+ * and still renames.
+ */
+export function renameScopeInText(text, fromScope, toScope) {
+  const re = new RegExp(
+    `${fromScope.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([:/][A-Za-z0-9_-]*)?`,
+    'g',
+  );
+  return text.replace(re, (match, tail = '') => {
+    if (tail.startsWith(':')) return match; // .npmrc registry key
+    if (DESIGN_KIT_PACKAGES.has(tail.slice(1))) return match; // @clevrook/<kit package>
+    return `${toScope}${tail}`;
+  });
+}
+
 /** Rename the npm scope across all text files under root. Returns files changed. */
 export function renameScope(root, fromScope, toScope, skipFiles = RENAME_SKIP_FILES) {
   let renamed = 0;
@@ -351,7 +387,9 @@ export function renameScope(root, fromScope, toScope, skipFiles = RENAME_SKIP_FI
     if (skipFiles.has(path.basename(file))) continue;
     const before = readFileSync(file, 'utf8');
     if (!before.includes(fromScope)) continue;
-    writeFileSync(file, before.split(fromScope).join(toScope));
+    const after = renameScopeInText(before, fromScope, toScope);
+    if (after === before) continue;
+    writeFileSync(file, after);
     renamed++;
   }
   return renamed;
@@ -484,10 +522,23 @@ export function fetchPristine(projectRoot, fromOpt, refOpt, manifest) {
 
 // ── Minimal client shells ───────────────────────────────────────────────────
 
-/** Minimal frontend: replace the coupled auth+tasks Vite sample with a health page. */
+/**
+ * Minimal frontend: replace the coupled auth+tasks Vite sample with a health page.
+ * Still built entirely from the Clevrook Design Kit — the kit is mandatory in
+ * every generated project, minimal or not (docs/DESIGN_SYSTEM.md). main.tsx and
+ * src/theme/brand.ts carry the provider wiring and are left untouched.
+ */
 export function writeMinimalVite(root, appName, appDir = 'apps/web') {
   const app = `import { useEffect, useState } from 'react';
+import { Badge, Box, Card, Spinner, Text } from '@clevrook/web';
 import { api } from './api';
+
+const column = { display: 'flex', flexDirection: 'column' } as const;
+const rowBetween = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+} as const;
 
 export default function App() {
   const [apiUp, setApiUp] = useState<boolean | null>(null);
@@ -500,18 +551,28 @@ export default function App() {
   }, []);
 
   return (
-    <main className="shell">
-      <header>
-        <h1>${appName}</h1>
-        <span className={\`badge \${apiUp ? 'up' : 'down'}\`}>
-          API {apiUp === null ? '…' : apiUp ? 'up' : 'down'}
-        </span>
-      </header>
-      <section className="card">
-        <h2>Your app shell is ready</h2>
-        <p>This page checks the backend health endpoint. Start building your UI here.</p>
-      </section>
-    </main>
+    <Box
+      as="main"
+      paddingX="lg"
+      paddingY="xl"
+      gap="lg"
+      style={{ ...column, maxWidth: 560, margin: '0 auto' }}
+    >
+      <Box as="header" style={rowBetween}>
+        <Text variant="heading-lg">${appName}</Text>
+        {apiUp === null ? (
+          <Spinner size="sm" label="Checking API" />
+        ) : (
+          <Badge variant={apiUp ? 'success' : 'error'}>API {apiUp ? 'up' : 'down'}</Badge>
+        )}
+      </Box>
+      <Card title="Your app shell is ready">
+        <Text variant="body-md" color="secondary">
+          This page checks the backend health endpoint. Build your UI from
+          @clevrook/web components — see docs/DESIGN_SYSTEM.md.
+        </Text>
+      </Card>
+    </Box>
   );
 }
 `;
@@ -543,17 +604,48 @@ export const api = {
 /**
  * Minimal mobile: replace the coupled auth+tasks+push Expo sample with a health
  * screen. Deps stay untouched (pruning them would desync the app's own
- * package-lock.json and break `npm ci`); expo-secure-store / expo-notifications /
+ * pnpm-lock.yaml and break `pnpm install --frozen-lockfile`); expo-secure-store / expo-notifications /
  * expo-device are simply unused until you add auth or push back —
  * `npm uninstall` them in the app dir if you never will.
  */
 export function writeMinimalMobile(root, appName, appDir = 'apps/mobile') {
-  const app = `import { StatusBar } from 'expo-status-bar';
+  const app = `/**
+ * Minimal health screen — still built entirely from the Clevrook Design Kit.
+ * The kit is mandatory in every generated project (docs/DESIGN_SYSTEM.md).
+ * Font-family mapping lives in src/theme/brand.ts.
+ */
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import {
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+} from '@expo-google-fonts/plus-jakarta-sans';
+import { Rubik_400Regular, Rubik_500Medium } from '@expo-google-fonts/rubik';
+import { useFonts } from 'expo-font';
+import { ThemeProvider } from '@clevrook/theme';
+import { Badge, Box, Spinner, Text } from '@clevrook/native';
 import { api } from './src/api';
+import { brandPrimitives } from './src/theme/brand';
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    Rubik_400Regular,
+    Rubik_500Medium,
+  });
+
+  if (!fontsLoaded) return null;
+
+  return (
+    <ThemeProvider primitives={brandPrimitives} mode="light">
+      <Shell />
+    </ThemeProvider>
+  );
+}
+
+function Shell() {
   const [apiUp, setApiUp] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -564,22 +656,26 @@ export default function App() {
   }, []);
 
   return (
-    <View style={styles.shell}>
+    <Box background="primary" padding="lg" gap="md" style={styles.shell}>
       <StatusBar style="dark" />
-      <Text style={styles.title}>${appName}</Text>
-      <Text style={styles.badge}>API {apiUp === null ? '…' : apiUp ? 'up' : 'down'}</Text>
-      <Text style={styles.muted}>
-        This screen checks the backend health endpoint. Start building your app here.
+      <Text variant="heading-lg">${appName}</Text>
+      {apiUp === null ? (
+        <Spinner size="sm" />
+      ) : (
+        <Badge variant={apiUp ? 'success' : 'error'}>API {apiUp ? 'up' : 'down'}</Badge>
+      )}
+      <Text variant="body-md" color="secondary" style={styles.centered}>
+        This screen checks the backend health endpoint. Build your UI from
+        @clevrook/native components — see docs/DESIGN_SYSTEM.md.
       </Text>
-    </View>
+    </Box>
   );
 }
 
+// Layout only — colors, sizes, and radii come from the design kit.
 const styles = StyleSheet.create({
-  shell: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
-  title: { fontSize: 24, fontWeight: '700' },
-  badge: { fontSize: 16, fontWeight: '600' },
-  muted: { color: '#7a828c', textAlign: 'center' },
+  shell: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  centered: { textAlign: 'center' },
 });
 `;
   const client = `/**

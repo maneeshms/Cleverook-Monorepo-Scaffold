@@ -22,6 +22,7 @@ once — and `scripts/init.mjs` strips it down to just what your project needs.
 | **API**            | `apps/api` — NestJS + TypeORM full reference (one worked example per feature).                                                                                                  |
 | **Two frontends**  | `apps/web` (Vite) + `apps/web-next` (Next.js) — Docker + Railway wiring references.                                                                                             |
 | **Mobile**         | `apps/mobile` (Expo React Native) — keychain-backed auth, tasks demo, FCM push-device registration; ships via EAS/app stores.                                                   |
+| **Design system**  | Clevrook Design Kit wired into all three client apps — 37 shared components (web + native), three-tier tokens, per-project branding in `src/theme/brand.ts`. **Mandatory.**     |
 | **Auth**           | Reusable `libs/auth` engine — 15-min access JWT + rotating opaque hashed refresh with reuse detection; progressive lockout; RBAC; extend via subclass hooks.                    |
 | **Layered config** | `process.env → config/{NODE_ENV}.json → config/default.json → code default`, validated at boot. Secrets never in JSON.                                                          |
 | **Security**       | helmet, strict CORS, validated DTOs, parameterized queries, audit/alert logging, OWASP e2e + a 49-check runtime scanner (baseline 49/49).                                       |
@@ -37,8 +38,8 @@ once — and `scripts/init.mjs` strips it down to just what your project needs.
 git clone <this-repo> my-app && cd my-app
 node scripts/init.mjs --yes --name my-app --scope @myco --frontend next
 cp .env.example .env          # add real JWT secrets (openssl rand -base64 48)
-npm ci && npm run db:up && npm run migration:run
-npm run dev:api               # http://localhost:3000/api/v1  (Swagger: /api/docs)
+pnpm install --frozen-lockfile && pnpm run db:up && pnpm run migration:run
+pnpm run dev:api               # http://localhost:3000/api/v1  (Swagger: /api/docs)
 ```
 
 Full walkthrough: **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**.
@@ -48,6 +49,7 @@ Full walkthrough: **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**.
 - [GETTING_STARTED](docs/GETTING_STARTED.md) — clone → init → run
 - [FAQ](docs/FAQ.md) — common developer questions, grounded answers
 - [EVOLVING](docs/EVOLVING.md) — after init: capabilities later, new apps, renames, future libs
+- [DESIGN_SYSTEM](docs/DESIGN_SYSTEM.md) — the mandatory Clevrook Design Kit: components, tokens, branding, registry access
 - [CONFIGURATION](docs/CONFIGURATION.md) — the layered config scheme
 - [DATABASE](docs/DATABASE.md) — local / self-hosted / Supabase, migrations
 - [TESTING](docs/TESTING.md) — unit, e2e, coverage, the OWASP scanner
@@ -66,13 +68,13 @@ Full walkthrough: **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**.
 ## Commands
 
 ```bash
-npm run doctor               # preflight checks (node, .env, docker, ports)
-npm run dev:api | dev:web | dev:web-next | dev:mobile
-npm run db:up | db:down
-npm run verify               # lint + typecheck + build + test in one go
-npm run e2e:setup && npm run e2e
-npm run migration:run | seed:api
-npm run scan:security
+pnpm run doctor               # preflight checks (node, .env, docker, ports)
+pnpm run dev:api | dev:web | dev:web-next | dev:mobile
+pnpm run db:up | db:down
+pnpm run verify               # lint + typecheck + build + test in one go
+pnpm run e2e:setup && pnpm run e2e
+pnpm run migration:run | seed:api
+pnpm run scan:security
 ```
 
 ## Tailoring

@@ -14,7 +14,7 @@ How to work here, in one paragraph: find the existing pattern for what you're
 building (`modules/tasks` is the canonical module; `docs/agents/nestjs.md` shows
 every shape), follow the matching recipe in `docs/agents/recipes.md`, use the
 shipped libs instead of reimplementing (table below), and prove you're done with
-`npm run verify` + the self-audit at the bottom of this file. These rules
+`pnpm run verify` + the self-audit at the bottom of this file. These rules
 constrain **how** code is written, never **what** you're allowed to build —
 anything not covered by a rule, a recipe, or an existing pattern is a
 **stop-and-ask**, never an invitation to invent (see "Stop and ask" below).
@@ -69,10 +69,14 @@ actually asked for.
    logging, auth, pagination, Redis, metrics, crypto, messaging, flags,
    compliance all have a lib (table below). _Why: parallel implementations
    drift, dodge the audits these libs passed, and double the maintenance._
+   **The same rule governs UI: all of it is built with the Clevrook Design Kit**
+   (`@clevrook/web` · `@clevrook/native` · `theme` · `tokens` · `icons`), and
+   anything the kit doesn't provide is built _on_ its tokens, never beside them —
+   no hardcoded colors, fonts, radii, or spacing. See `docs/DESIGN_SYSTEM.md`.
 9. **Never guess — verify or ask.** Only reference files, symbols, routes,
    env keys, commands, and packages you have confirmed exist in this repo.
    _Why: a hallucinated API compiles into a real outage._
-10. **Prove done, don't declare it:** `npm run verify`, plus `npm run e2e` for
+10. **Prove done, don't declare it:** `pnpm run verify`, plus `pnpm run e2e` for
     backend behaviour, plus the self-audit below.
 
 ## What enforces what (know where the machine has your back)
@@ -89,7 +93,7 @@ actually asked for.
 | Validation whitelist       | global `ValidationPipe` (`forbidNonWhitelisted`)                                                              | fix the DTO, don't loosen the pipe                   |
 | Commit format              | commitlint (husky)                                                                                            | Conventional Commits                                 |
 | Formatting                 | prettier (lint-staged)                                                                                        | let it run; don't hand-format                        |
-| OWASP behaviour            | `security-owasp.e2e-spec.ts` + `npm run scan:security`                                                        | fix the code, keep the baseline                      |
+| OWASP behaviour            | `security-owasp.e2e-spec.ts` + `pnpm run scan:security`                                                       | fix the code, keep the baseline                      |
 
 Everything **not** in this table (BOLA-safe 404s, thin controllers, migration
 discipline, response DTOs…) is enforced only by you and review — those deserve
@@ -107,7 +111,7 @@ circumstances, to make checks pass:
   without a one-line justification comment — and never to silence a real defect;
 - loosen `tsconfig`, the `ValidationPipe` options, guard wiring, helmet/CORS
   settings, or throttle limits;
-- use `npm install --force` / `--legacy-peer-deps`, or delete the lockfile to make
+- use `pnpm install --force` / `--legacy-peer-deps`, or delete the lockfile to make
   a dependency conflict "go away";
 - touch these **guardrail files** except when the task is explicitly about them:
   `jest.preset.js`, `eslint.config.mjs`, `.npmrc`, `tsconfig.base.json`,
@@ -168,21 +172,27 @@ Everything you write must trace to this repo, these docs, or the task itself:
 Cross-cutting concerns are already solved in `libs/`. Hand-rolling a parallel
 version is a defect even when it works. Before writing any of these, use:
 
-| Need                                     | Use                                                                                                                                               | Never                                             |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| Read configuration                       | `ConfigService` typed namespaces (`@clevrook/config`)                                                                                             | `process.env`, hand-rolled dotenv                 |
-| Logging / audit / security alerts        | `LoggerService` — `log()` / `audit()` / `alert()` (`@clevrook/logger`)                                                                            | `console.*`, new winston instances                |
-| AuthN / AuthZ                            | flows: `AuthModule.forRootAsync` + subclass hooks (`@clevrook/auth`); guards: `JwtAuthGuard` + `@Roles()` + `@CurrentUser()` (`@clevrook/common`) | per-route guards, manual JWT parsing, forked auth |
-| Pagination                               | `PaginationQueryDto` + `paginate()` (`@clevrook/common`)                                                                                          | ad-hoc page/limit handling                        |
-| Redis / caching                          | `RedisService` (null-safe) (`@clevrook/common`)                                                                                                   | new ioredis clients                               |
-| Prometheus metrics                       | `MetricsModule` (`@clevrook/common`)                                                                                                              | manual prom-client registries                     |
-| Encrypting stored credentials            | `SecretCipher` (`@clevrook/common`)                                                                                                               | hand-rolled crypto, plaintext                     |
-| Entities / schema changes                | `BaseEntity` + hand-written migrations (`@clevrook/database`)                                                                                     | `synchronize`, per-app data sources               |
-| Email / in-app / any outbound message    | `MessagingService.dispatch(...)` (`@clevrook/messaging`)                                                                                          | nodemailer/fetch inside a feature service         |
-| Live push to connected clients           | `RealtimeService.emitToUser(...)` (`@clevrook/realtime`) — persist the durable row first                                                          | new ws/socket.io servers, polling endpoints       |
-| Feature gating                           | `FeatureFlagsService.isEnabled(...)` (`@clevrook/feature-flags`)                                                                                  | env-var if-checks                                 |
-| Audit trail · GDPR · consent · retention | `AuditService` / `PersonalDataRegistry` / `RetentionRegistry` etc. (`@clevrook/compliance`)                                                       | bespoke audit tables, soft-delete-as-erasure      |
-| Request correlation                      | correlation-id middleware, already global (`@clevrook/common`)                                                                                    | new header conventions                            |
+| Need                                     | Use                                                                                                                                               | Never                                               |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Read configuration                       | `ConfigService` typed namespaces (`@clevrook/config`)                                                                                             | `process.env`, hand-rolled dotenv                   |
+| Logging / audit / security alerts        | `LoggerService` — `log()` / `audit()` / `alert()` (`@clevrook/logger`)                                                                            | `console.*`, new winston instances                  |
+| AuthN / AuthZ                            | flows: `AuthModule.forRootAsync` + subclass hooks (`@clevrook/auth`); guards: `JwtAuthGuard` + `@Roles()` + `@CurrentUser()` (`@clevrook/common`) | per-route guards, manual JWT parsing, forked auth   |
+| Pagination                               | `PaginationQueryDto` + `paginate()` (`@clevrook/common`)                                                                                          | ad-hoc page/limit handling                          |
+| Redis / caching                          | `RedisService` (null-safe) (`@clevrook/common`)                                                                                                   | new ioredis clients                                 |
+| Prometheus metrics                       | `MetricsModule` (`@clevrook/common`)                                                                                                              | manual prom-client registries                       |
+| Encrypting stored credentials            | `SecretCipher` (`@clevrook/common`)                                                                                                               | hand-rolled crypto, plaintext                       |
+| Entities / schema changes                | `BaseEntity` + hand-written migrations (`@clevrook/database`)                                                                                     | `synchronize`, per-app data sources                 |
+| Email / in-app / any outbound message    | `MessagingService.dispatch(...)` (`@clevrook/messaging`)                                                                                          | nodemailer/fetch inside a feature service           |
+| Live push to connected clients           | `RealtimeService.emitToUser(...)` (`@clevrook/realtime`) — persist the durable row first                                                          | new ws/socket.io servers, polling endpoints         |
+| Feature gating                           | `FeatureFlagsService.isEnabled(...)` (`@clevrook/feature-flags`)                                                                                  | env-var if-checks                                   |
+| Audit trail · GDPR · consent · retention | `AuditService` / `PersonalDataRegistry` / `RetentionRegistry` etc. (`@clevrook/compliance`)                                                       | bespoke audit tables, soft-delete-as-erasure        |
+| Request correlation                      | correlation-id middleware, already global (`@clevrook/common`)                                                                                    | new header conventions                              |
+| **Any UI** — components, color, type     | Clevrook Design Kit — `@clevrook/web` / `@clevrook/native` + `useTheme()` tokens (`docs/DESIGN_SYSTEM.md`)                                        | hand-rolled components, hex/px literals, ad-hoc CSS |
+
+> **The design kit keeps the `@clevrook` scope after `init.mjs`.** Your backend
+> libs are rescoped (`@myco/logger`); the kit is a real published package and is
+> deliberately exempt from the rename. `@clevrook/web` = design kit (required in
+> UI); `@myco/common` = your backend lib (never imported by a frontend).
 
 Two standing obligations that come with the libs:
 
@@ -201,6 +211,9 @@ apps/
   web-next/     Next.js          — wiring reference (standalone Docker/railway)
   mobile/       Expo React Native — wiring reference (SecureStore auth, tasks,
                 push-device registration; no Docker — ships via EAS/app stores)
+                All three client apps render exclusively with the Clevrook
+                Design Kit (@clevrook/web|native) — see docs/DESIGN_SYSTEM.md.
+                Each owns .npmrc (GitHub Packages) + src/theme/brand.ts.
 libs/
   common/       ORM-FREE: decorators, guards, filters, interceptors, redis,
                 pagination, metrics, crypto, correlation-id
@@ -224,10 +237,14 @@ scripts/        init.mjs · doctor.mjs · e2e-setup.mjs · seed-api.mjs ·
 docs/           human docs + docs/agents/ (agent topic docs)
 ```
 
-**npm workspaces:** every lib and backend app owns its **own `package.json`**.
-The root is a thin workspace root — shared tooling only, no runtime deps. One
-root lockfile. Frontends and the mobile app stay standalone (own package.json +
-lockfile).
+**pnpm workspaces:** every lib and backend app owns its **own `package.json`**.
+The root is a thin workspace root (`pnpm-workspace.yaml`) — shared tooling only,
+no runtime deps. One root lockfile. Workspace deps are declared `workspace:*`,
+never a bare `*`. The client apps stay standalone: each has its own
+`package.json`, `pnpm-lock.yaml`, and a `pnpm-workspace.yaml` root marker.
+`node_modules` is **isolated** everywhere except `apps/mobile` (Metro needs
+`node-linker=hoisted`), and postinstall scripts are allowed one-by-one in
+`pnpm-workspace.yaml#allowBuilds`.
 
 **Dependency direction:** `common` is ORM-free and imported everywhere;
 `database`/`auth`/`feature-flags`/`messaging`/`compliance` are TypeORM-coupled;
@@ -237,18 +254,18 @@ apps import libs, never other apps. Full rules:
 ## Commands
 
 ```bash
-npm ci                       # install (exact, from lockfile)
-npm run doctor               # preflight: node/.env/docker/postgres-port checks
-npm run verify               # format:check + lint + typecheck + build + unit
-npm run dev:api              # serve the api (watch)         :3000  /api/v1
-npm run dev:web              # Vite dev server               :5173
-npm run dev:web-next         # Next dev server               :3005
-npm run dev:mobile           # Expo dev server (Metro; scan QR with Expo Go)
-npm run db:up / db:down      # local Postgres + Redis (docker compose)
-npm run e2e:setup && npm run e2e   # create+migrate test DB, run e2e
-npm run migration:run        # TypeORM migrations
-npm run seed:api             # admin seed (idempotent)
-npm run scan:security        # OWASP runtime scan against a live api
+pnpm install --frozen-lockfile                       # install (exact, from lockfile)
+pnpm run doctor               # preflight: node/.env/docker/postgres-port checks
+pnpm run verify               # format:check + lint + typecheck + build + unit
+pnpm run dev:api              # serve the api (watch)         :3000  /api/v1
+pnpm run dev:web              # Vite dev server               :5173
+pnpm run dev:web-next         # Next dev server               :3005
+pnpm run dev:mobile           # Expo dev server (Metro; scan QR with Expo Go)
+pnpm run db:up / db:down      # local Postgres + Redis (docker compose)
+pnpm run e2e:setup && pnpm run e2e   # create+migrate test DB, run e2e
+pnpm run migration:run        # TypeORM migrations
+pnpm run seed:api             # admin seed (idempotent)
+pnpm run scan:security        # OWASP runtime scan against a live api
 ```
 
 ## Configuration (layered)
@@ -283,12 +300,13 @@ the top priority — any auth/validation/data change starts with
 | `docs/agents/testing.md`      | writing tests, coverage floor, e2e, the scanner                              |
 | `docs/agents/workflows.md`    | branching, PRs, CI gates, migrations, deploys                                |
 | `docs/agents/frontend.md`     | anything under `apps/web`, `apps/web-next`, or `apps/mobile`                 |
+| `docs/DESIGN_SYSTEM.md`       | **any UI work** — the mandatory design kit, tokens, branding, registry auth  |
 
 ## Definition of done — self-audit before you claim it
 
 Run through this list; if any line fails, you are not done:
 
-- [ ] `npm run verify` green; `npm run e2e` green for behavioural backend changes
+- [ ] `pnpm run verify` green; `pnpm run e2e` green for behavioural backend changes
 - [ ] Every new/changed behaviour has a test that would fail without the change
 - [ ] New endpoints: DTO-validated, Swagger-decorated, guarded (or explicitly
       `@Public()`), ownership checked in the service, OWASP e2e extended if sensitive
@@ -297,6 +315,10 @@ Run through this list; if any line fails, you are not done:
 - [ ] New env keys: validated in `libs/config` + documented (`.env.example`/JSON)
 - [ ] Sentinel pairs (`clevscaffold:*:start/end`) intact and balanced
 - [ ] Used the shipped libs (capability map above) — no parallel reimplementation
+- [ ] UI: built from Clevrook Design Kit components; every color/font/radius/
+      spacing value comes from tokens (no hex, px, or font literals); anything
+      outside the kit reads `useTheme()`; branding changes confined to
+      `src/theme/brand.ts`
 - [ ] New personal data registered for export **and** erasure (+ retention if it
       ages) per `docs/agents/compliance.md`; sensitive mutations audited
 - [ ] Every file/symbol/route/env key you referenced was verified to exist —

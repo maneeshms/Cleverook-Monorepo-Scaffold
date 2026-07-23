@@ -231,10 +231,35 @@ async function main() {
     const notes = [];
     const rootPkg = readJson(ROOT, 'package.json');
     rootPkg.scripts[`dev:${name}`] = `nx ${spec.run} ${name}`;
-    if (!spec.standalone && Array.isArray(rootPkg.workspaces)) {
-      rootPkg.workspaces = [...new Set([...rootPkg.workspaces, appDirRel])];
-    }
     writeJson(ROOT, 'package.json', rootPkg);
+    // Backend apps join the pnpm workspace (pnpm-workspace.yaml, NOT a
+    // package.json `workspaces` field — pnpm ignores that one). Standalone client
+    // apps stay out on purpose: each owns its lockfile so its Docker build can
+    // copy just its directory. Appended textually to preserve the file's comments.
+    if (!spec.standalone) {
+      const wsPath = path.join(ROOT, 'pnpm-workspace.yaml');
+      if (existsSync(wsPath)) {
+        const ws = readFileSync(wsPath, 'utf8');
+        if (!new RegExp(`^\\s*-\\s*'?${appDirRel}'?\\s*$`, 'm').test(ws)) {
+          const lines = ws.split('\n');
+          // Insert after the last `  - '…'` entry in the packages: block.
+          let last = -1;
+          for (let i = 0; i < lines.length; i++) {
+            if (/^packages:/.test(lines[i])) last = i;
+            else if (last >= 0 && /^\s+-\s/.test(lines[i])) last = i;
+            else if (last >= 0 && lines[i].trim() && !/^\s+-\s/.test(lines[i])) break;
+          }
+          if (last >= 0) {
+            lines.splice(last + 1, 0, `  - '${appDirRel}'`);
+            writeFileSync(wsPath, lines.join('\n'));
+          } else {
+            notes.push(`add "- '${appDirRel}'" under packages: in pnpm-workspace.yaml`);
+          }
+        }
+      } else {
+        notes.push(`add "- '${appDirRel}'" under packages: in pnpm-workspace.yaml`);
+      }
+    }
     console.log(`  registered root script dev:${name}${spec.standalone ? '' : ' + workspace'}`);
 
     if (spec.docker) {
@@ -292,15 +317,15 @@ async function main() {
 
     if (!flags.has('no-install')) {
       console.log('\nInstalling dependencies…');
-      execSync('npm install', { cwd: ROOT, stdio: 'inherit' });
+      execSync('pnpm install', { cwd: ROOT, stdio: 'inherit' });
       if (spec.standalone) {
-        execSync('npm install --no-audit --no-fund', { cwd: appDir, stdio: 'inherit' });
+        execSync('pnpm install', { cwd: appDir, stdio: 'inherit' });
       }
     }
 
     console.log(`\n✅  ${appDirRel} is ready.`);
-    console.log(`    run:    npm run dev:${name}`);
-    console.log(`    verify: npx nx build ${name} && npx nx lint ${name}`);
+    console.log(`    run:    pnpm run dev:${name}`);
+    console.log(`    verify: pnpm exec nx build ${name} && pnpm exec nx lint ${name}`);
     if (type === 'api') {
       console.log(
         '    note: shares DATABASE_URL + libs/database migrations — point it at its own DB via config when needed.',

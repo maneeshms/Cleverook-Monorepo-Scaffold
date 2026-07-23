@@ -7,7 +7,18 @@ one says what you should see before moving on.
 
 - **Node 22** (`.nvmrc` pins it — `nvm use`)
 - **Docker** (local Postgres + Redis)
-- **Python 3** (only for `npm run scan:security`)
+- **Python 3** (only for `pnpm run scan:security`)
+- **A GitHub token with `read:packages`** — only if you keep a client app. The
+  Clevrook Design Kit is published to GitHub Packages, so `apps/web`,
+  `apps/web-next`, and `apps/mobile` can't install without it. Configure it in
+  your **user-level** pnpm config (an `export` does not work — pnpm ignores
+  credentials that come from a committed project `.npmrc`):
+
+  ```bash
+  pnpm config set "//npm.pkg.github.com/:_authToken" ghp_…   # SSO orgs: authorize for `clevrook`
+  ```
+
+  The backend needs no token. See [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md).
 
 ### New to this stack? 60-second glossary
 
@@ -98,27 +109,27 @@ app's `config/*.json`. See [CONFIGURATION.md](CONFIGURATION.md).
 ## 3. Start infrastructure
 
 ```bash
-npm ci
-npm run doctor         # preflight: node version, .env, docker, postgres ports
-npm run db:up          # Postgres 16 + Redis 7 via docker compose
-npm run migration:run  # TypeORM schema (apps/api)
-npm run seed:api       # optional: idempotent admin account (admin@example.com)
+pnpm install --frozen-lockfile
+pnpm run doctor         # preflight: node version, .env, docker, postgres ports
+pnpm run db:up          # Postgres 16 + Redis 7 via docker compose
+pnpm run migration:run  # TypeORM schema (apps/api)
+pnpm run seed:api       # optional: idempotent admin account (admin@example.com)
 ```
 
 **You should see:** `doctor` prints every check green, and `migration:run` ends
 with each migration marked "executed successfully".
 
 > **Port 5432 taken?** (a host Postgres is common) — set `POSTGRES_PORT=5433`
-> before `db:up`; compose, the e2e setup, and `npm run doctor` all honor it.
+> before `db:up`; compose, the e2e setup, and `pnpm run doctor` all honor it.
 > `doctor` diagnoses the collision explicitly if you hit it.
 
 ## 4. Run
 
 ```bash
-npm run dev:api          # API           → http://localhost:3000/api/v1
-npm run dev:web          # Vite frontend → http://localhost:5173
-npm run dev:web-next     # Next frontend → http://localhost:3005
-npm run dev:mobile       # Expo (Metro)  → scan the QR with Expo Go; see docs/MOBILE.md
+pnpm run dev:api          # API           → http://localhost:3000/api/v1
+pnpm run dev:web          # Vite frontend → http://localhost:5173
+pnpm run dev:web-next     # Next frontend → http://localhost:3005
+pnpm run dev:mobile       # Expo (Metro)  → scan the QR with Expo Go; see docs/MOBILE.md
 ```
 
 **You should see:** each dev server logs its URL when ready. Check the API is
@@ -132,13 +143,14 @@ curl http://localhost:3000/api/v1/health
 ## 5. Verify everything
 
 ```bash
-npm run verify             # lint + typecheck + build + unit tests, one command
-npm run e2e:setup && npm run e2e
-npm run scan:security      # with an api running locally
+pnpm run verify             # lint + typecheck + build + unit tests, one command
+pnpm run e2e:setup && pnpm run e2e
+pnpm run scan:security      # with an api running locally
 ```
 
 ## Where next
 
+- [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) — the mandatory UI kit, tokens, branding
 - [CONFIGURATION.md](CONFIGURATION.md) — the layered config scheme
 - [DATABASE.md](DATABASE.md) — local / self-hosted / Supabase, migrations
 - [TESTING.md](TESTING.md) — unit, e2e, coverage, the OWASP scanner

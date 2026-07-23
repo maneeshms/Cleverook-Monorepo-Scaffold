@@ -4,16 +4,33 @@
 # ---- deps ----
 FROM node:22-alpine AS deps
 WORKDIR /app
-COPY apps/web-next/package.json apps/web-next/package-lock.json ./
-RUN npm ci
-RUN npm audit --audit-level=critical --omit=dev
+RUN corepack enable
+# .npmrc routes the @clevrook design-kit scope to GitHub Packages; the token is
+# mounted as a BuildKit secret so it never lands in an image layer or history.
+# Build with:  docker build --secret id=github_token,env=GITHUB_TOKEN …
+# pnpm-workspace.yaml marks this directory as its OWN workspace root AND carries
+# the transitive `overrides` (sharp, postcss) — pnpm ignores npm's `overrides`
+# field, so omitting this file would silently un-pin them.
+COPY apps/web-next/package.json apps/web-next/pnpm-lock.yaml apps/web-next/pnpm-workspace.yaml apps/web-next/.npmrc ./
+# pnpm ignores credentials in a project .npmrc (see that file), so the token is
+# written to the USER-level ~/.npmrc — created and shredded inside a single RUN,
+# so it never becomes part of a layer. Both steps run together for the same
+# reason: leaving ~/.npmrc behind would bake the token into the image.
+RUN --mount=type=secret,id=github_token \
+    printf '//npm.pkg.github.com/:_authToken=%s\n' "$(cat /run/secrets/github_token)" > /root/.npmrc && \
+    pnpm install --frozen-lockfile && \
+    pnpm audit --audit-level critical --prod; \
+    status=$?; rm -f /root/.npmrc; exit $status
 
 # ---- build ----
 FROM node:22-alpine AS builder
 WORKDIR /app
+RUN corepack enable
+# pnpm's node_modules contains symlinks into .pnpm — copy the whole tree so the
+# links resolve in this stage.
 COPY --from=deps /app/node_modules ./node_modules
 COPY apps/web-next/ ./
-RUN npm run build
+RUN pnpm run build
 
 # ---- run ----
 FROM node:22-alpine AS runner

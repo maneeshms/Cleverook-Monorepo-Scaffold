@@ -3,7 +3,7 @@
  * Preflight checks for local development: catches the classic setup traps in
  * seconds instead of cryptic failures minutes later.
  *
- * Usage:  npm run doctor
+ * Usage:  pnpm run doctor
  *
  * Checks: Node version vs .nvmrc · .env presence + JWT secret sanity · Docker
  * daemon · Postgres reachability (including the host-Postgres-on-5432 vs
@@ -61,6 +61,42 @@ if (!env) {
   }
 }
 
+// ── 2b. Design-kit registry token ───────────────────────────────────────────
+// The client apps install @clevrook/* from GitHub Packages (see their .npmrc).
+// Without a token, `pnpm install` in those directories fails with a bare 401 —
+// this turns that into an actionable message. Only checked when a client app
+// exists.
+//
+// The credential must live in the USER-level config: pnpm deliberately ignores
+// (and does not env-expand) registry credentials found in a committed project
+// .npmrc. `export GITHUB_TOKEN=…` alone does NOT work for pnpm.
+const clientApps = ['apps/web', 'apps/web-next', 'apps/mobile'].filter((d) =>
+  existsSync(path.join(ROOT, d, '.npmrc')),
+);
+/** Presence check only — the value is never read into a variable or printed. */
+function hasDesignKitToken() {
+  try {
+    const v = execSync('pnpm config get "//npm.pkg.github.com/:_authToken"', { stdio: 'pipe' })
+      .toString()
+      .trim();
+    return v !== '' && v !== 'undefined' && !v.startsWith('${');
+  } catch {
+    return false;
+  }
+}
+if (clientApps.length === 0) {
+  ok('design-kit', 'no client apps in this project — registry token not needed');
+} else if (!hasDesignKitToken()) {
+  warn(
+    'design-kit',
+    `no GitHub Packages token configured — \`pnpm install\` in ${clientApps.join(', ')} will 401. ` +
+      'Create a token with read:packages (SSO orgs: authorize it for `clevrook`), then run: ' +
+      'pnpm config set "//npm.pkg.github.com/:_authToken" <token>. See docs/DESIGN_SYSTEM.md',
+  );
+} else {
+  ok('design-kit', `registry token configured — @clevrook resolvable for ${clientApps.join(', ')}`);
+}
+
 // ── 3. Docker daemon ────────────────────────────────────────────────────────
 let dockerUp = false;
 try {
@@ -68,7 +104,7 @@ try {
   dockerUp = true;
   ok('docker', 'daemon reachable');
 } catch {
-  warn('docker', 'not reachable — `npm run db:up` needs it (skip if using external Postgres)');
+  warn('docker', 'not reachable — `pnpm run db:up` needs it (skip if using external Postgres)');
 }
 
 // ── 4. Postgres — including the 5432 port-collision trap ────────────────────

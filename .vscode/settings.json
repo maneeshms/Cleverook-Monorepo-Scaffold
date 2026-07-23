@@ -1,6 +1,6 @@
 {
   // Use the workspace TypeScript (pinned in package.json) instead of the IDE's
-  // bundled one, so editor diagnostics match `npm run typecheck` exactly.
+  // bundled one, so editor diagnostics match `pnpm run typecheck` exactly.
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true
 }

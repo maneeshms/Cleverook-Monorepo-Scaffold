@@ -2,7 +2,7 @@
 /**
  * Creates + migrates the disposable e2e databases.
  *
- * Usage:  npm run e2e:setup
+ * Usage:  pnpm run e2e:setup
  * Env:    E2E_DATABASE_URL          (API test DB; default clevscaffold_test)
  *         E2E_ADMIN_URL             (superuser conn for CREATE DATABASE; derived otherwise)
  *
@@ -49,7 +49,7 @@ function run(command, env = {}) {
 if (existsSync('apps/api')) {
   await ensureDatabase(typeormUrl);
   console.log('migrating API test DB…');
-  run('npx typeorm-ts-node-commonjs migration:run -d libs/database/src/data-source.ts', {
+  run('pnpm exec typeorm-ts-node-commonjs migration:run -d libs/database/src/data-source.ts', {
     DATABASE_URL: typeormUrl,
     DATABASE_SSL: 'disable',
   });

@@ -72,10 +72,10 @@ async function main() {
 
   if (!flags.has('no-install')) {
     console.log('\nRegenerating lockfile…');
-    execSync('npm install', { cwd: ROOT, stdio: 'inherit' });
+    execSync('pnpm install', { cwd: ROOT, stdio: 'inherit' });
   }
 
-  console.log(`\n✅  renamed. Run: npm run dev:${to} · npx nx build ${to}`);
+  console.log(`\n✅  renamed. Run: pnpm run dev:${to} · pnpm exec nx build ${to}`);
   console.log('    Commit the change as one unit (directory move + reference rewrites).');
 }
 

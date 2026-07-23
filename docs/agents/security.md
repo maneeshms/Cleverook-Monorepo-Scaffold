@@ -109,7 +109,7 @@ Mirror these patterns; don't invent new ones.
 
 ## 8. Dependencies & supply chain
 
-- Exact-pinned deps; lockfiles committed. Docker build runs `npm audit
+- Exact-pinned deps; lockfiles committed. Docker build runs `pnpm audit
 --audit-level=critical` and fails on criticals. `security.yml` audits weekly +
   runs gitleaks + dependency-review.
 - CodeQL (`security-and-quality`) runs on push/PR/weekly.
@@ -118,7 +118,7 @@ Mirror these patterns; don't invent new ones.
 
 - `apps/api/test/security-owasp.e2e-spec.ts` covers A01/A02/A03/A05/A07 + BOLA +
   mass-assignment + token rotation/reuse. Keep it green.
-- `npm run scan:security` (needs a live api) runs the black-box scanner — **49-check
+- `pnpm run scan:security` (needs a live api) runs the black-box scanner — **49-check
   baseline, all passing**. A HIGH/MEDIUM failure exits non-zero and must block merge.
 
 ## Quick reject-list (flag these in review)

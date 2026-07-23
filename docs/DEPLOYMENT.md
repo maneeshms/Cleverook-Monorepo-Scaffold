@@ -1,7 +1,7 @@
 # Deployment (Railway)
 
 Each deployable app ships a `Dockerfile` + `railway.json`. Images are multi-stage,
-run as a non-root user, gate on `npm audit`, and (for the APIs) run migrations
+run as a non-root user, gate on `pnpm audit`, and (for the APIs) run migrations
 before starting.
 
 ## Per-app services

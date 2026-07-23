@@ -39,7 +39,7 @@
  *   --with-compliance    include the compliance toolkit (audit trail, GDPR
  *                        export/erasure, consent, retention) — implies auth
  *   --reinit-git         wipe .git and start a fresh repo
- *   --no-install         skip npm install (lockfile not regenerated)
+ *   --no-install         skip pnpm install (lockfile not regenerated)
  *   --skip-verify        skip the build + test verification step
  */
 import { existsSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
@@ -58,6 +58,7 @@ import {
   RENAME_SKIP_FILES,
   renameApp,
   walkTextFiles,
+  renameScopeInText,
   rmrf as rmrfAt,
   readJson as readJsonAt,
   writeJson as writeJsonAt,
@@ -256,9 +257,9 @@ async function main() {
     for (const m of cap.migrations ?? []) rmrf(`${MIGRATIONS_DIR}/${m}`);
   }
 
-  // 2. Root package.json — rename, drop scripts, and prune workspace entries whose
-  //    directory was removed. Runtime deps live in each package's own package.json
-  //    (npm workspaces), so there are no root runtime deps to prune here.
+  // 2. Root package.json — rename and drop scripts for removed components.
+  //    Runtime deps live in each package's own package.json (pnpm workspaces),
+  //    so there are no root runtime deps to prune here.
   const pkg = readJson('package.json');
   pkg.name = name;
   for (const c of remove) {
@@ -267,13 +268,24 @@ async function main() {
   for (const c of dropCaps) {
     for (const s of CAPABILITIES[c].scripts ?? []) delete pkg.scripts?.[s];
   }
-  if (Array.isArray(pkg.workspaces)) {
-    pkg.workspaces = pkg.workspaces.filter(
-      (w) => w.includes('*') || existsSync(path.join(ROOT, w)),
-    );
-  }
   writeJson('package.json', pkg);
   console.log('  updated package.json');
+
+  // 2a. pnpm-workspace.yaml — drop `packages:` entries whose directory was
+  //     removed (globs like `libs/*` always stay). Edited line-wise so the file's
+  //     explanatory comments and the allowBuilds block survive untouched.
+  const wsRel = 'pnpm-workspace.yaml';
+  if (existsSync(path.join(ROOT, wsRel))) {
+    const kept = readFileSync(path.join(ROOT, wsRel), 'utf8')
+      .split('\n')
+      .filter((line) => {
+        const m = line.match(/^\s+-\s+'?([^'\s]+)'?\s*$/);
+        if (!m) return true;
+        return m[1].includes('*') || existsSync(path.join(ROOT, m[1]));
+      });
+    writeFileSync(path.join(ROOT, wsRel), kept.join('\n'));
+    console.log('  updated pnpm-workspace.yaml');
+  }
 
   // 2b. Drop workspace-lib deps for dropped capabilities from the app package.json.
   for (const c of dropCaps) {
@@ -327,13 +339,17 @@ async function main() {
   stripSentinelMarkers('.github/dependabot.yml');
   console.log('  pruned dependabot.yml to the kept apps');
 
-  // 6. Rename the @clevrook scope across all text files.
+  // 6. Rename the @clevrook scope across all text files. The design kit publishes
+  //    under the same scope on GitHub Packages — renameScopeInText leaves those
+  //    specifiers (and the .npmrc registry key) alone; see scaffold-manifest.mjs.
   let renamed = 0;
   for (const file of walkTextFiles(ROOT)) {
     if (RENAME_SKIP_FILES.has(path.basename(file))) continue;
     const before = readFileSync(file, 'utf8');
     if (!before.includes(OLD_SCOPE)) continue;
-    writeFileSync(file, before.split(OLD_SCOPE).join(scope));
+    const after = renameScopeInText(before, OLD_SCOPE, scope);
+    if (after === before) continue;
+    writeFileSync(file, after);
     renamed++;
   }
   console.log(`  renamed ${OLD_SCOPE} → ${scope} in ${renamed} file(s)`);
@@ -404,13 +420,13 @@ async function main() {
   // 8. Regenerate lockfile + verify.
   if (!flags.has('no-install')) {
     console.log('\nInstalling dependencies (regenerating lockfile)…');
-    execSync('npm install', { cwd: ROOT, stdio: 'inherit' });
+    execSync('pnpm install', { cwd: ROOT, stdio: 'inherit' });
     if (!flags.has('skip-verify')) {
       console.log('\nVerifying (lint + build + test)…');
-      execSync('npm run lint && npm run build && npm run test', { cwd: ROOT, stdio: 'inherit' });
+      execSync('pnpm run lint && pnpm run build && pnpm run test', { cwd: ROOT, stdio: 'inherit' });
     }
   } else {
-    console.log('\nSkipped install (--no-install). Run `npm install` next.');
+    console.log('\nSkipped install (--no-install). Run `pnpm install` next.');
   }
 
   // 9. Remove self BEFORE any git commit so the initializer never lands in the
@@ -432,7 +448,7 @@ async function main() {
   if (Object.keys(appRenames).length) {
     console.log(
       `    Apps: ${Object.entries(appRenames)
-        .map(([, t]) => `apps/${t} (npm run dev:${t})`)
+        .map(([, t]) => `apps/${t} (pnpm run dev:${t})`)
         .join(' · ')}`,
     );
   }

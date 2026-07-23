@@ -2,7 +2,7 @@
 /**
  * Idempotent seed for the API: one admin account for local exploration.
  *
- * Run:  npm run seed:api        (after `npm run migration:run`)
+ * Run:  pnpm run seed:api        (after `pnpm run migration:run`)
  * Env:  DATABASE_URL            (default: local compose Postgres)
  *       SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD  (override credentials)
  *       BCRYPT_ROUNDS           (default 12 — matches the app)

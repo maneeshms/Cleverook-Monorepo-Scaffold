@@ -1,0 +1,7 @@
+# Standalone project root marker.
+#
+# Without this file pnpm walks UP, finds the repo-root pnpm-workspace.yaml, and
+# treats this app as part of the backend workspace — which would put its deps in
+# the root lockfile and break the Docker build (it copies only this directory).
+# An empty package list makes this directory its own workspace root.
+packages: []

@@ -14,10 +14,13 @@ permissions:
   contents: read
 
 jobs:
-  # ── npm audit (workspace + each self-contained frontend) ────────────────────
+  # ── pnpm audit (workspace + each self-contained client app) ─────────────────
   audit:
-    name: npm audit (${{ matrix.dir }})
+    name: pnpm audit (${{ matrix.dir }})
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+      packages: read # the client apps install the @clevrook design kit
     strategy:
       fail-fast: false
       matrix:
@@ -25,21 +28,31 @@ jobs:
         dir: ['.', 'apps/web', 'apps/web-next', 'apps/mobile']
     steps:
       - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4 # reads packageManager from package.json
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
+      # The client apps resolve @clevrook from GitHub Packages. pnpm ignores
+      # credentials in a project .npmrc, so the token goes into the runner's
+      # USER-level config. `pnpm config set` writes the literal value — never
+      # echo it, and the runner is discarded after the job.
+      # See the ci.yml docker job for the token-choice rationale.
+      - name: Authenticate to GitHub Packages
+        run: pnpm config set "//npm.pkg.github.com/:_authToken" "$DESIGN_KIT_TOKEN"
+        env:
+          DESIGN_KIT_TOKEN: ${{ secrets.DESIGN_KIT_TOKEN || secrets.GITHUB_TOKEN }}
       - name: Install (${{ matrix.dir }})
         working-directory: ${{ matrix.dir }}
-        run: npm ci --no-audit --no-fund
+        run: pnpm install --frozen-lockfile
       # Block on CRITICAL. HIGH advisories without an available patch are reported
       # as an artifact rather than failing the pipeline (upgrade tracked separately).
       - name: Audit — block on CRITICAL
         working-directory: ${{ matrix.dir }}
-        run: npm audit --audit-level=critical --omit=dev
+        run: pnpm audit --audit-level critical --prod
       - name: Audit — full report (informational)
         if: always()
         working-directory: ${{ matrix.dir }}
-        run: npm audit --json --omit=dev > audit.json || true
+        run: pnpm audit --json --prod > audit.json || true
       - uses: actions/upload-artifact@v7
         if: always()
         with:

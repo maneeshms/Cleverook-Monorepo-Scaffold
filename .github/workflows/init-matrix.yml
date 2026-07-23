@@ -25,6 +25,7 @@ jobs:
         frontend: [vite, next, both, none]
     steps:
       - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4 # reads packageManager from package.json
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
@@ -42,10 +43,10 @@ jobs:
         working-directory: /tmp/gen
         run: |
           set -euo pipefail
-          npm install
-          npm run lint
-          npm run build
-          npm run test
+          pnpm install
+          pnpm run lint
+          pnpm run build
+          pnpm run test
 
   # Evolution tools: a minimal project must be able to grow — add a capability
   # later (scripts/add.mjs) and spawn new named apps (scripts/new-app.mjs).
@@ -54,6 +55,7 @@ jobs:
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4 # reads packageManager from package.json
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
@@ -89,13 +91,13 @@ jobs:
             --from "$GITHUB_WORKSPACE" --no-install
           node scripts/new-app.mjs --type vite --name storefront \
             --from "$GITHUB_WORKSPACE" --no-install
-          grep -q 'apps/billing' package.json
+          grep -q 'apps/billing' pnpm-workspace.yaml
       - name: The evolved project still installs, builds, and tests green
         working-directory: /tmp/gen
         run: |
           set -euo pipefail
-          npm install
-          npm run build
-          npm run test
-          npx nx build storefront
-          npx nx lint billing
+          pnpm install
+          pnpm run build
+          pnpm run test
+          pnpm exec nx build storefront
+          pnpm exec nx lint billing

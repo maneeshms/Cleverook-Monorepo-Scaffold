@@ -71,7 +71,7 @@ The same controls satisfy multiple frameworks — this is the table an auditor w
 | Retention / storage-limitation cron (`RetentionService`)               | CC6.5 disposal   | Art. 5(1)(e)                      | A.8.10, A.5.33                      |
 | Input validation / mass-assignment defence (ValidationPipe, DTOs)      | CC6.8, PI1       | Art. 32                           | A.8.26, A.8.28                      |
 | Secrets hygiene — env-only, gitleaks, no secrets in logs               | CC6.1            | Art. 32                           | A.8.24, A.5.14                      |
-| Supply chain — pinned deps, `npm audit` gate, CodeQL, SBOM             | CC7.1, CC8.1     | —                                 | A.8.8, A.8.28, A.5.23               |
+| Supply chain — pinned deps, `pnpm audit` gate, CodeQL, SBOM            | CC7.1, CC8.1     | —                                 | A.8.8, A.8.28, A.5.23               |
 | Change management — PRs, CI gates, CODEOWNERS                          | CC8.1            | —                                 | A.8.25, A.8.32                      |
 | Availability — health/readiness, graceful shutdown                     | A1.1, A1.2       | —                                 | A.8.14, A.5.30                      |
 | Correlation IDs + structured logs                                      | CC7.2            | Art. 33 (breach forensics)        | A.8.15, A.8.16                      |

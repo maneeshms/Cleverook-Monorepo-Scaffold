@@ -54,7 +54,47 @@ No tool for that (rarely worth automating): delete the lib/module dirs, its
 migrations (write a down-migration for applied schemas), the `forRootAsync`
 block, tsconfig path, and package dep — the capability's entry in
 `scripts/scaffold-manifest.mjs` in a pristine scaffold lists exactly what it
-owns. Then `npm install && npm run verify`.
+owns. Then `pnpm install && pnpm run verify`.
+
+## UI & the design system
+
+**How do I build UI here?**
+With the **Clevrook Design Kit** — it's mandatory, already wired into every
+client app, and covers 37 components. Import from `@clevrook/web` (Vite/Next) or
+`@clevrook/native` (Expo). Never hand-roll a button/input/modal, and never
+hardcode a color, font size, or radius — those come from tokens.
+[DESIGN_SYSTEM.md](DESIGN_SYSTEM.md).
+
+**`pnpm install` in `apps/web` fails with 401 Unauthorized.**
+The kit is on GitHub Packages, not public npm, and **`export GITHUB_TOKEN=…` does
+not work with pnpm** — it ignores (and never env-expands) registry credentials
+that come from a committed project `.npmrc`, so a placeholder there is silently
+dropped. Put the credential in your user-level config instead:
+
+```bash
+pnpm config set "//npm.pkg.github.com/:_authToken" ghp_your_token
+```
+
+The token needs `read:packages` (SSO orgs: authorize it for `clevrook`).
+`pnpm run doctor` tells you when it's missing. The backend workspace needs no
+token.
+
+**How do I change this product's colors and fonts?**
+Only in that app's `src/theme/brand.ts` — spread `defaultPrimitives` and override
+what changes; semantic and component tokens rebuild automatically. Never edit
+`node_modules/@clevrook/*`. Note that on mobile `brand.ts` must also map
+`typography.fontFamily` onto the faces registered by `useFonts` (React Native
+can't use CSS font stacks).
+
+**Why is the design kit still `@clevrook/*` after init renamed my scope?**
+Because it's a real published package, not one of your libs. `init.mjs` skips
+the five kit specifiers when rescoping. `@clevrook/web` = design kit;
+`@myco/common` = your backend lib.
+
+**The kit doesn't have the component I need.**
+Raise it with the design-kit team — that's a kit gap, not permission to write
+bespoke CSS. If you must ship first, build it from `useTheme()` tokens so it
+themes correctly, and flag it as temporary.
 
 ## Everyday development
 
@@ -69,14 +109,14 @@ Secrets → `.env` only. Non-secret, environment-specific values → the app's
 `process.env` in feature code. See [CONFIGURATION.md](CONFIGURATION.md).
 
 **How do I run things?**
-`npm run doctor` (preflight) · `npm run db:up` (Postgres+Redis) ·
-`npm run dev:<app>` · `npm run verify` (format+lint+typecheck+build+unit) ·
-`npm run e2e:setup && npm run e2e`. Port 5432 busy? `POSTGRES_PORT=5433` —
+`pnpm run doctor` (preflight) · `pnpm run db:up` (Postgres+Redis) ·
+`pnpm run dev:<app>` · `pnpm run verify` (format+lint+typecheck+build+unit) ·
+`pnpm run e2e:setup && pnpm run e2e`. Port 5432 busy? `POSTGRES_PORT=5433` —
 compose, e2e, and doctor all honor it.
 
 **How do database changes work?**
-Migrations only — never `synchronize`. `npm run migration:generate` → review →
-`npm run migration:run`. Postgres enum gotcha and conventions:
+Migrations only — never `synchronize`. `pnpm run migration:generate` → review →
+`pnpm run migration:run`. Postgres enum gotcha and conventions:
 [DATABASE.md](DATABASE.md), `docs/agents/recipes.md`.
 
 **How do I send an email / push / in-app notification? Live updates?**
@@ -87,8 +127,8 @@ hand-roll nodemailer/ws in a feature.
 **How do dependency updates work?**
 Dependabot: minor/patch grouped and auto-merged when CI is green; every major
 lands in one isolated `major-updates` PR you review. Add deps exact-pinned to
-the package that uses them, then `npm install` at the root. Expo apps: bump
-`expo-*` with `npx expo install`.
+the package that uses them, then `pnpm install` at the root. Expo apps: bump
+`expo-*` with `pnpm exec expo install`.
 
 **Why do libs have no build target ("source-only")?**
 Apps compile the libs they import (tsc + tsc-alias into their own dist) — one
@@ -112,6 +152,6 @@ automatically. [SCALING.md](SCALING.md).
 `gh variable set CI_RUNNER --body self-hosted` (all workflows read it);
 `gh variable delete CI_RUNNER` to go back to GitHub-hosted.
 
-**Where do security scans live?** `npm run scan:security` against a running
-API; CI runs npm audit, gitleaks, Trivy (+ daily image scan with auto-managed
+**Where do security scans live?** `pnpm run scan:security` against a running
+API; CI runs pnpm audit, gitleaks, Trivy (+ daily image scan with auto-managed
 issues). [SECURITY.md](SECURITY.md).

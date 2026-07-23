@@ -7,7 +7,7 @@
     "dev": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "[ -d node_modules ] || npm ci --no-audit --no-fund; npx vite --host",
+        "command": "[ -d node_modules ] || pnpm install --frozen-lockfile; pnpm exec vite --host",
         "cwd": "apps/web"
       }
     },
@@ -15,14 +15,14 @@
       "executor": "nx:run-commands",
       "outputs": ["{workspaceRoot}/dist/apps/web"],
       "options": {
-        "command": "[ -d node_modules ] || npm ci --no-audit --no-fund; npm run build",
+        "command": "[ -d node_modules ] || pnpm install --frozen-lockfile; pnpm run build",
         "cwd": "apps/web"
       }
     },
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "[ -d node_modules ] || npm ci --no-audit --no-fund; npm run lint",
+        "command": "[ -d node_modules ] || pnpm install --frozen-lockfile; pnpm run lint",
         "cwd": "apps/web"
       }
     }

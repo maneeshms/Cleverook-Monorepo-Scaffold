@@ -28,8 +28,8 @@ see [`nestjs.md`](nestjs.md); for step-by-step task recipes, [`recipes.md`](reci
   (`libs/config`, `main.ts`, `app.module.ts`, `data-source.ts`) —
   read config through `ConfigService` / typed namespaces. ESLint enforces this.
 - Prefer pure functions and constructor DI. No hidden singletons.
-- Prettier owns formatting — don't hand-format; run `npm run format`.
-  `format:check` is gated in `npm run verify` and CI; generated files that drift
+- Prettier owns formatting — don't hand-format; run `pnpm run format`.
+  `format:check` is gated in `pnpm run verify` and CI; generated files that drift
   (e.g. `next-env.d.ts`) are excluded via `.prettierignore` — extend that file
   rather than committing formatter churn on generated output.
 

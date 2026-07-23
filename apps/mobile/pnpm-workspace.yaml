@@ -1,0 +1,18 @@
+# Standalone project root marker.
+#
+# Without this file pnpm walks UP, finds the repo-root pnpm-workspace.yaml, and
+# treats this app as part of the backend workspace — which would put its deps in
+# the root lockfile and break the Docker build (it copies only this directory).
+# An empty package list makes this directory its own workspace root.
+packages: []
+
+# Postinstall scripts are BLOCKED by default. Because this app is its own
+# workspace root, the repo-root allowBuilds list does NOT apply here — every
+# client app decides for itself.
+#
+# When a dependency bump introduces a new script, pnpm fails the install and
+# names it. That prompt is the point: decide, don't blanket-allow.
+allowBuilds:
+  # Native module resolver behind eslint-config-expo's import plugin. Without its
+  # build step `pnpm run lint` (expo lint) cannot resolve imports.
+  unrs-resolver: true

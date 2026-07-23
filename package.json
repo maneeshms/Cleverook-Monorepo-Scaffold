@@ -1,17 +1,14 @@
 {
   "name": "clevscaffold",
   "version": "0.1.0",
-  "description": "ClevScaffold — Cleverook enterprise project scaffold. Nx monorepo (NestJS backends + React frontends).",
+  "description": "ClevScaffold \u2014 Cleverook enterprise project scaffold. Nx monorepo (NestJS backends + React frontends).",
   "author": "Cleverook",
   "private": true,
   "license": "UNLICENSED",
   "engines": {
     "node": ">=22"
   },
-  "workspaces": [
-    "libs/*",
-    "apps/api"
-  ],
+  "packageManager": "pnpm@11.7.0",
   "scripts": {
     "nx": "nx",
     "init": "node scripts/init.mjs",
@@ -35,7 +32,7 @@
     "migration:run": "typeorm-ts-node-commonjs migration:run -d libs/database/src/data-source.ts",
     "migration:revert": "typeorm-ts-node-commonjs migration:revert -d libs/database/src/data-source.ts",
     "prepare": "husky || true",
-    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run build && npm run test",
+    "verify": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run build && pnpm run test",
     "doctor": "node scripts/doctor.mjs",
     "seed:api": "node scripts/seed-api.mjs"
   },
@@ -58,7 +55,6 @@
     "@nx/jest": "23.1.0",
     "@nx/js": "23.1.0",
     "@nx/webpack": "23.1.0",
-    "@types/bcryptjs": "3.0.0",
     "@types/express": "5.0.6",
     "@types/jest": "30.0.0",
     "@types/node": "26.1.1",

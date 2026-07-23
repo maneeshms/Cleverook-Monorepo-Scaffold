@@ -22,18 +22,19 @@ jobs:
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4 # reads packageManager from package.json
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc # single source of truth for the Node version
-          cache: npm
-      - run: npm ci
-      - run: npm run format:check
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run build
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run format:check
+      - run: pnpm run lint
+      - run: pnpm run typecheck
+      - run: pnpm run build
       # jest.preset.js enforces coverageThreshold 90% (branches/functions/lines/statements);
       # this step fails the build if any project drops below the floor.
-      - run: npm run test
+      - run: pnpm run test
 
   # ── e2e against a real, disposable Postgres container ────────────────────────
   # Started with `docker run` (not a `services:` container) so the job also works
@@ -65,19 +66,20 @@ jobs:
             sleep 2
           done
           echo 'Postgres did not become ready in time' && exit 1
+      - uses: pnpm/action-setup@v4 # reads packageManager from package.json
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
-          cache: npm
+          cache: pnpm
       # Generate throwaway JWT secrets per run — never hardcode secrets in the workflow.
       - name: Generate ephemeral CI secrets
         run: |
           echo "JWT_ACCESS_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
           echo "JWT_REFRESH_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
       # Creates + migrates the disposable test database.
-      - run: npm run e2e:setup
-      - run: npm run e2e
+      - run: pnpm run e2e:setup
+      - run: pnpm run e2e
       # Self-hosted runners persist between jobs — never leave the container behind.
       - name: Stop disposable Postgres
         if: always()
@@ -91,6 +93,7 @@ jobs:
       contents: read
       actions: read # required by upload-sarif to read workflow run metadata
       security-events: write # upload Trivy SARIF to code scanning (when enabled)
+      packages: read # pull the @clevrook design kit from GitHub Packages
     strategy:
       fail-fast: false
       matrix:
@@ -112,6 +115,15 @@ jobs:
           tags: ${{ env.IMAGE }}
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+          # The frontend images install the @clevrook design kit from GitHub
+          # Packages. Mounted as a BuildKit secret — never an ARG, which would be
+          # recorded in the image history. The api image ignores it.
+          #
+          # The automatic GITHUB_TOKEN works when the packages grant this repo
+          # access (Package settings → Manage Actions access). Otherwise set a
+          # DESIGN_KIT_TOKEN repo secret (a PAT with read:packages, SSO-authorized).
+          secrets: |
+            github_token=${{ secrets.DESIGN_KIT_TOKEN || secrets.GITHUB_TOKEN }}
       # Fail the build on CRITICAL image vulnerabilities; report HIGH informationally.
       - name: Trivy image scan (${{ matrix.app }})
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0

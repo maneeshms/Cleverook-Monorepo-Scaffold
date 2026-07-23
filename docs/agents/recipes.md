@@ -7,9 +7,9 @@ instead of skipping it silently. **If no recipe fits your task, that is a
 stop-and-ask (AGENTS.md), not a licence to improvise** — describe the task, the
 gap, and your proposed steps, and wait for a human call.
 
-Shared final gate for every recipe: `npm run verify` (format:check + lint +
+Shared final gate for every recipe: `pnpm run verify` (format:check + lint +
 typecheck + build + unit, coverage ≥90%) and, for anything behavioural,
-`npm run e2e`.
+`pnpm run e2e`.
 
 ---
 
@@ -30,9 +30,9 @@ typecheck + build + unit, coverage ≥90%) and, for anything behavioural,
 9. Module stores personal data? Register it for GDPR export/erasure — follow
    "Register a module's personal data" below.
 
-**Done when:** `npm run verify` green · `npm run e2e` green · every endpoint has
+**Done when:** `pnpm run verify` green · `pnpm run e2e` green · every endpoint has
 Swagger + a test · ownership enforced in the service · migration applied cleanly
-on a fresh DB (`npm run e2e:setup` proves this) · personal data registered
+on a fresh DB (`pnpm run e2e:setup` proves this) · personal data registered
 (export + erasure) if the module stores any.
 
 ## Add an endpoint to an existing module
@@ -60,7 +60,7 @@ not 403.
 4. Implement `down()` for real (drop what `up()` made, reverse order).
 5. Expand/contract for zero-downtime: additive first; destructive parts ship in a
    later migration after code stops using them.
-6. Apply: `npm run migration:run`, then `npm run e2e:setup && npm run e2e` (e2e
+6. Apply: `pnpm run migration:run`, then `pnpm run e2e:setup && pnpm run e2e` (e2e
    runs the full migration chain from scratch — this catches ordering bugs).
 
 **Done when:** fresh-DB migrate passes (e2e:setup) · `down()` reverses `up()` ·
@@ -85,13 +85,13 @@ documented in `.env.example` or JSON · no direct `process.env` reads added.
 
 1. Add to the `package.json` of the package that imports it (`apps/<x>/` or
    `libs/<x>/`) — **never the root** (root is tooling only). Exact version, no
-   `^`/`~` (`.npmrc save-exact` handles `npm install <pkg>`).
-2. `npm install` at the root to update the single lockfile. Frontends: install
+   `^`/`~` (`.npmrc save-exact` handles `pnpm add <pkg>`).
+2. `pnpm install` at the root to update the single lockfile. Frontends: install
    inside `apps/web*` (own lockfile).
 3. Licence/size sanity: prefer zero-dep libs; no abandoned packages.
 
 **Done when:** exact pin in the right package.json · lockfile committed in the
-same change · `npm run verify` green (docker-manifest stays correct automatically).
+same change · `pnpm run verify` green (docker-manifest stays correct automatically).
 
 ## Send something (email / in-app / live socket) from a feature
 
@@ -174,7 +174,7 @@ host's `AuthService` subclass, base changes in the lib. A stricter loop applies:
    detection → family revoke, lockout thresholds, the constant-work dummy hash,
    `algorithms: ['HS256']` pinning.
 3. Every change extends `security-owasp.e2e-spec.ts` and keeps
-   `npm run scan:security` at its passing baseline against a local serve.
+   `pnpm run scan:security` at its passing baseline against a local serve.
 
 **Done when:** OWASP e2e green · scanner baseline intact · audit events
 (`logger.audit`) still emitted for register/login/logout/lockout/reuse.
@@ -192,7 +192,7 @@ re-registers everything mechanical; you only apply the wiring guide.
    named file **exactly** — imports with the other imports, config namespaces
    into `load: [...]`, modules into `imports: [...]`. Mirror the reference
    app's placement when unsure.
-3. `npm run migration:run && npm run verify`.
+3. `pnpm run migration:run && pnpm run verify`.
 4. Delete the wiring file; commit.
 
 **Done when:** verify green · wiring file applied and removed ·
@@ -206,6 +206,6 @@ re-registers everything mechanical; you only apply the wiring guide.
 2. The tool registers everything (workspaces, `dev:<name>`, CI matrices,
    dependabot, tsconfig/eslint excludes) and prints any manual follow-up if an
    anchor was not found — do those, don't skip them.
-3. `npx nx build <name> && npx nx lint <name>` (api types: also `nx test <name>`).
+3. `pnpm exec nx build <name> && pnpm exec nx lint <name>` (api types: also `nx test <name>`).
 
-**Done when:** build+lint green · `npm run dev:<name>` boots (api: `/health` 200) · CI matrices include the app.
+**Done when:** build+lint green · `pnpm run dev:<name>` boots (api: `/health` 200) · CI matrices include the app.

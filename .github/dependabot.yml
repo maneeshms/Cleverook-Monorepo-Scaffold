@@ -3,7 +3,7 @@ version: 2
 # and have Dependabot bump them safely.
 #
 # Noise control: related packages are grouped into one PR, and — importantly —
-# for the npm ecosystems (root + each frontend) EVERY major bump is funnelled
+# for the npm ecosystems (root + each client app) EVERY major bump is funnelled
 # into a single, isolated "major-updates" PR. Routine minor/patch updates stay
 # safe to merge; the risky majors are batched into one PR you review (or hold)
 # deliberately. GitHub Actions and Docker base-image bumps are low-risk tag
@@ -18,8 +18,10 @@ version: 2
 # scripts/init.mjs so a generated project never references an app it doesn't
 # have (e.g. a no-frontend project drops the web/web-next blocks).
 # clevscaffold:scaffold:end
+# `package-ecosystem: npm` covers pnpm too — Dependabot reads pnpm-lock.yaml
+# under the same ecosystem name. There is no separate `pnpm` ecosystem.
 updates:
-  # Root workspace (NestJS backends + libs)
+  # Root pnpm workspace (NestJS backends + libs)
   - package-ecosystem: npm
     directory: '/'
     schedule:
@@ -42,7 +44,7 @@ updates:
     ignore:
       # TypeScript 7 (the native port) is the hard blocker: typescript-eslint@8
       # peers require `typescript >=4.8.4 <6.1.0`, and Nx/NestJS don't support TS 7
-      # yet — a major bump can't even `npm install`. ESLint 10 is peer-allowed by
+      # yet — a major bump cannot even install. ESLint 10 is peer-allowed by
       # typescript-eslint but pinned here as a deliberate stability choice (bump it
       # in a coordinated pass, not automatically). Remove the `typescript` pin once
       # typescript-eslint supports TS 7.
@@ -54,7 +56,7 @@ updates:
         update-types: ['version-update:semver-major']
 
   # clevscaffold:vite:start
-  # Vite frontend (own lockfile)
+  # Vite client app (own pnpm-lock.yaml)
   - package-ecosystem: npm
     directory: '/apps/web'
     schedule:
@@ -78,7 +80,7 @@ updates:
   # clevscaffold:vite:end
 
   # clevscaffold:next:start
-  # Next.js frontend (own lockfile)
+  # Next.js client app (own pnpm-lock.yaml)
   - package-ecosystem: npm
     directory: '/apps/web-next'
     schedule:
@@ -102,10 +104,10 @@ updates:
   # clevscaffold:next:end
 
   # clevscaffold:expo:start
-  # Expo React Native app (own lockfile). eslint-config-expo owns the
+  # Expo React Native app (own pnpm-lock.yaml). eslint-config-expo owns the
   # typescript/eslint toolchain and pins it to the current Expo SDK, so their
   # majors are ignored here (same as the root block) — a bump breaks mobile lint
-  # and can't merge. Move them via `npx expo install` when the SDK advances.
+  # and can't merge. Move them via `pnpm exec expo install` when the SDK advances.
   # Other majors still land in the isolated major-updates PR for review.
   - package-ecosystem: npm
     directory: '/apps/mobile'

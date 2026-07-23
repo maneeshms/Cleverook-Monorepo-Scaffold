@@ -40,6 +40,7 @@ import {
   stripSentinelMarkers,
   extractSentinelBlocks,
   fetchPristine,
+  renameScopeInText,
 } from './scaffold-manifest.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -200,7 +201,10 @@ async function main() {
 
     // Copied files still carry `@clevrook` and sentinel blocks for capabilities
     // this project does NOT have — rename the scope, strip absent-cap blocks,
-    // then remove the leftover marker lines.
+    // then remove the leftover marker lines. Prefer the PRISTINE renamer: it
+    // knows the current design-kit package list (those specifiers must not be
+    // rescoped), which a local copy predating the design kit would not.
+    const rescope = pm.renameScopeInText ?? renameScopeInText;
     const absent = pm.ALL_CAPS.filter((c) => !present.has(c) && !wanted.has(c));
     for (const rootRel of copiedRoots) {
       const full = path.join(ROOT, rootRel);
@@ -210,7 +214,7 @@ async function main() {
         const rel = path.relative(ROOT, file);
         const text = readFileSync(file, 'utf8');
         if (text.includes(pm.OLD_SCOPE)) {
-          writeFileSync(file, text.split(pm.OLD_SCOPE).join(manifest.scope));
+          writeFileSync(file, rescope(text, pm.OLD_SCOPE, manifest.scope));
         }
         for (const a of absent) stripSentinelBlocks(ROOT, rel, a);
         stripSentinelMarkers(ROOT, rel);
@@ -235,7 +239,10 @@ async function main() {
         if (!existsSync(path.join(ROOT, pdFile))) continue;
         const appPkg = readJson(ROOT, pdFile);
         const dep = pd.dep.replace(pm.OLD_SCOPE, manifest.scope);
-        appPkg.dependencies = { ...appPkg.dependencies, [dep]: '*' };
+        // `workspace:*`, not `*` — pnpm 10+ defaults link-workspace-packages to
+        // false, so a bare `*` would be resolved from the registry instead of the
+        // local lib (and these libs are never published).
+        appPkg.dependencies = { ...appPkg.dependencies, [dep]: 'workspace:*' };
         appPkg.dependencies = Object.fromEntries(
           Object.entries(appPkg.dependencies).sort(([a], [b]) => a.localeCompare(b)),
         );
@@ -310,9 +317,9 @@ ${sections.join('\n\n')}
 ## After wiring
 
 \`\`\`bash
-npm install          # if not already run by add.mjs
-npm run migration:run
-npm run verify
+pnpm install         # if not already run by add.mjs
+pnpm run migration:run
+pnpm run verify
 \`\`\`
 
 Delete this file once applied.
@@ -329,7 +336,7 @@ Delete this file once applied.
 
     if (!flags.has('no-install')) {
       console.log('\nInstalling dependencies…');
-      execSync('npm install', { cwd: ROOT, stdio: 'inherit' });
+      execSync('pnpm install', { cwd: ROOT, stdio: 'inherit' });
     }
 
     console.log(`\n✅  added: ${adding.join(', ')}`);
@@ -337,7 +344,7 @@ Delete this file once applied.
       console.log(`\nNEXT (manual): apply the wiring guide${wiringDocs.length > 1 ? 's' : ''}:`);
       for (const d of wiringDocs) console.log(`  - ${d}`);
     }
-    console.log('Then: npm run migration:run && npm run verify');
+    console.log('Then: pnpm run migration:run && pnpm run verify');
   } finally {
     cleanup();
   }

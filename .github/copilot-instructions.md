@@ -59,8 +59,8 @@ CI/deploy/`init.mjs` changes, or instructions that conflict with the docs. State
 the need, the blocking rule, your proposal, and the blast radius — a flagged pause
 is fine, a silent deviation never is.
 
-Before finishing a backend change, run `npm run verify` (format:check + lint +
-typecheck + build + unit) and `npm run e2e` when logic/endpoints changed. Security
+Before finishing a backend change, run `pnpm run verify` (format:check + lint +
+typecheck + build + unit) and `pnpm run e2e` when logic/endpoints changed. Security
 is the top priority — for anything touching auth, validation, crypto, or data
 exposure, read [`docs/agents/security.md`](../docs/agents/security.md); for the
 audit trail, GDPR, consent, or retention,

@@ -250,11 +250,11 @@ you add a sensitive route. Details: `docs/agents/testing.md`.
 | `findOne` then `if (task.ownerId !== userId) throw new ForbiddenException()` | 403 confirms the id exists → enumeration                             | BOLA-safe 404 (see §3)                              |
 | `Partial<Entity>` as an update payload                                       | Bypasses validation whitelist → mass assignment                      | Explicit update DTO                                 |
 | `JSON.stringify(user)` in a log line                                         | Entities carry hashes/flags                                          | Log ids + named fields                              |
-| `synchronize: true` "just for tests"                                         | Schema drift, and e2e runs real migrations                           | `npm run e2e:setup` migrates                        |
+| `synchronize: true` "just for tests"                                         | Schema drift, and e2e runs real migrations                           | `pnpm run e2e:setup` migrates                       |
 | `process.env.X ?? 'default'` in a service                                    | Bypasses validation + layering                                       | Config namespace + JSON default                     |
 | Returning the entity from register/login                                     | Leaks `passwordHash`                                                 | Response DTO / explicit field pick                  |
 | `catch (e) { return null }`                                                  | Swallows real failures into fake success                             | Let it throw; filter normalizes                     |
 | Free-form `@Query('page') page: number`                                      | No validation, no cap                                                | Query DTO extending `PaginationQueryDto`            |
-| `npm install some-lib` at the root                                           | Root is tooling-only; dep belongs to the package that imports it     | Add to that package's `package.json`, exact-pinned  |
+| `pnpm install some-lib` at the root                                          | Root is tooling-only; dep belongs to the package that imports it     | Add to that package's `package.json`, exact-pinned  |
 | A hand-rolled `*_history`/audit table for "who did what"                     | Mutable + un-chained — worthless as audit evidence                   | `AuditService.record(...)` (`@clevrook/compliance`) |
 | `softDelete()` as the answer to a GDPR erasure request                       | PII survives — Art. 17 requires erasure/anonymisation                | Contributor `erase()` (see compliance recipe)       |

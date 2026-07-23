@@ -3,13 +3,21 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
+    "@clevrook/native": "0.1.0",
+    "@clevrook/theme": "0.1.0",
+    "@clevrook/tokens": "0.1.0",
+    "@expo-google-fonts/plus-jakarta-sans": "0.4.2",
+    "@expo-google-fonts/rubik": "0.4.2",
     "expo": "~57.0.6",
     "expo-device": "~57.0.1",
+    "expo-font": "~57.0.1",
     "expo-notifications": "~57.0.5",
     "expo-secure-store": "~57.0.1",
     "expo-status-bar": "~57.0.1",
+    "lucide-react-native": "0.513.0",
     "react": "19.2.7",
-    "react-native": "0.86.0"
+    "react-native": "0.86.0",
+    "react-native-svg": "15.15.4"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",

@@ -7,7 +7,7 @@ Postgres, or managed hosts (Supabase, Neon, RDS) — direct or pooled.
 
 | Host            | `DATABASE_URL`                                                                    | SSL                      | Notes                             |
 | --------------- | --------------------------------------------------------------------------------- | ------------------------ | --------------------------------- |
-| Local Docker    | `postgresql://postgres:postgres@localhost:5432/clevscaffold`                      | `disable`                | `npm run db:up`                   |
+| Local Docker    | `postgresql://postgres:postgres@localhost:5432/clevscaffold`                      | `disable`                | `pnpm run db:up`                  |
 | Self-hosted     | `postgresql://user:pw@host:5432/db`                                               | `require` or `no-verify` | `no-verify` for self-signed certs |
 | Supabase direct | `postgresql://postgres:pw@db.<ref>.supabase.co:5432/postgres`                     | `require`                | migrations + normal use           |
 | Supabase pooled | `postgresql://postgres.<ref>:pw@aws-0-<region>.pooler.supabase.com:6543/postgres` | `require`                | transaction pooler (pgbouncer)    |
@@ -23,8 +23,8 @@ SSL/pool settings from config. Schema is **migrations-only** — `synchronize` i
 never enabled.
 
 ```bash
-npm run migration:run     # apply pending migrations
-npm run seed:api          # idempotent admin seed (SEED_ADMIN_EMAIL/_PASSWORD to override)
+pnpm run migration:run     # apply pending migrations
+pnpm run seed:api          # idempotent admin seed (SEED_ADMIN_EMAIL/_PASSWORD to override)
 # author a migration by hand under libs/database/src/migrations/ (timestamp prefix)
 ```
 
@@ -40,11 +40,11 @@ EXCEPTION WHEN duplicate_object THEN null; END $$;
 TypeORM runs through node-postgres, so transaction-mode pooling works — point
 `DATABASE_URL` at the pooler for the app. **Migrations still need the direct
 (5432) host**: pgbouncer's transaction mode can't run migration DDL, so run
-`npm run migration:run` against the direct URL.
+`pnpm run migration:run` against the direct URL.
 
 ## e2e database
 
-`npm run e2e:setup` creates + migrates a disposable DB (`clevscaffold_test`).
+`pnpm run e2e:setup` creates + migrates a disposable DB (`clevscaffold_test`).
 Override the connection in CI with `E2E_DATABASE_URL`. See [TESTING.md](TESTING.md).
 
 ## Backups

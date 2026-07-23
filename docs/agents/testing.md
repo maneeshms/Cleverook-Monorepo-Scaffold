@@ -23,15 +23,15 @@ statements) and by CI — a drop below the floor fails the build. It is not opti
 - `*.module.ts` files (pure wiring) are excluded from coverage collection — they
   are exercised by e2e. Don't write hollow tests just to cover wiring.
 
-Run: `npm run test` (all) · `npx nx test api` (one project) · add `--coverage`
+Run: `pnpm run test` (all) · `pnpm exec nx test api` (one project) · add `--coverage`
 locally to see the per-file report. `nx test <project> --watch` while iterating.
 
 ## e2e tests
 
-1. `npm run db:up` — local Postgres + Redis via docker compose.
-2. `npm run e2e:setup` — creates + migrates the disposable DB
+1. `pnpm run db:up` — local Postgres + Redis via docker compose.
+2. `pnpm run e2e:setup` — creates + migrates the disposable DB
    (`clevscaffold_test`). Override with `E2E_DATABASE_URL` in CI.
-3. `npm run e2e` — runs the e2e suites (`--parallel=1`).
+3. `pnpm run e2e` — runs the e2e suites (`--parallel=1`).
 
 - e2e helpers truncate tables between suites (`apps/api/test/helpers`). Keep tests
   independent — no ordering assumptions.
@@ -45,18 +45,18 @@ locally to see the per-file report. `nx test <project> --watch` while iterating.
 
 - `apps/api/test/security-owasp.e2e-spec.ts` — OWASP A01/A02/A03/A05/A07 + BOLA +
   mass assignment + token rotation/reuse. Extend it when you add sensitive routes.
-- `npm run scan:security` — black-box runtime scanner against a **live** api
-  (`npx nx serve api` first). 49-check baseline, all passing; exits non-zero on any
+- `pnpm run scan:security` — black-box runtime scanner against a **live** api
+  (`pnpm exec nx serve api` first). 49-check baseline, all passing; exits non-zero on any
   HIGH/MEDIUM failure. Point it elsewhere with `CLEVSCAFFOLD_BASE`.
 
 ## Definition of done (backend change)
 
 ```
-npm run verify   # format:check + lint + typecheck + build + unit (coverage ≥90%)
-npm run e2e      # when logic/endpoints changed
+pnpm run verify   # format:check + lint + typecheck + build + unit (coverage ≥90%)
+pnpm run e2e      # when logic/endpoints changed
 ```
 
 New endpoint touching auth/data? Also extend the OWASP e2e suite and run
-`npm run scan:security` against a local serve. Then walk the AGENTS.md self-audit
+`pnpm run scan:security` against a local serve. Then walk the AGENTS.md self-audit
 checklist — and remember: **when a gate fails, fix the code, never the gate** (no
 threshold edits, no `.skip`, no assertion-free coverage farming).

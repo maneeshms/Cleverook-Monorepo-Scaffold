@@ -13,7 +13,7 @@
   build + unit with the ≥90% coverage gate) · `e2e` (Postgres service container →
   `e2e:setup` → `e2e`) · `docker` (builds every deployable app image, no push).
   Trivy **fails on CRITICAL** in every run; the SARIF upload is gated (see below).
-- **security.yml** — npm audit (root + each frontend, block on CRITICAL) ·
+- **security.yml** — pnpm audit (root + each frontend, block on CRITICAL) ·
   gitleaks · dependency-review (PRs).
 - **image-scan.yml** — **daily** (04:30 UTC + dispatch) Trivy scan of every
   deployable image rebuilt fresh from `main` (`pull: true` for current base
@@ -74,20 +74,20 @@ a generated project only watches the apps it actually has.
 Reproduce locally before pushing:
 
 ```
-npm run verify   # lint + typecheck + build + unit
-npm run db:up && npm run e2e:setup && npm run e2e
+pnpm run verify   # lint + typecheck + build + unit
+pnpm run db:up && pnpm run e2e:setup && pnpm run e2e
 ```
 
 ## Migrations
 
 - Author under `libs/database/src/migrations/` (timestamp prefix, enum
-  `DO $$…$$` guard). Apply: `npm run migration:run`. Never enable `synchronize`.
+  `DO $$…$$` guard). Apply: `pnpm run migration:run`. Never enable `synchronize`.
 - Migrations run **before** app start in the Docker CMD and on Railway deploy.
 
 ## Deployment (Railway)
 
 - Each deployable app has a `Dockerfile` + `railway.json`. Multi-stage builds,
-  non-root runtime, `npm audit` gate, migrate-then-start CMD.
+  non-root runtime, `pnpm audit` gate, migrate-then-start CMD.
 - Secrets set as Railway service variables (never committed). `CONFIG_DIR` points
   at the app's baked `config/` dir; non-secret env-specific values live in
   `config/production.json`.

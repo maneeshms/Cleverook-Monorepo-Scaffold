@@ -7,30 +7,25 @@
     "dev": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "[ -d node_modules ] || npm ci --no-audit --no-fund; npm run dev",
+        "command": "[ -d node_modules ] || pnpm install --frozen-lockfile; pnpm run dev",
         "cwd": "apps/web-next"
       }
     },
     "build": {
       "executor": "nx:run-commands",
-      "outputs": [
-        "{projectRoot}/.next"
-      ],
+      "outputs": ["{projectRoot}/.next"],
       "options": {
-        "command": "[ -d node_modules ] || npm ci --no-audit --no-fund; NODE_ENV=production npm run build",
+        "command": "[ -d node_modules ] || pnpm install --frozen-lockfile; NODE_ENV=production pnpm run build",
         "cwd": "apps/web-next"
       }
     },
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "[ -d node_modules ] || npm ci --no-audit --no-fund; npm run lint",
+        "command": "[ -d node_modules ] || pnpm install --frozen-lockfile; pnpm run lint",
         "cwd": "apps/web-next"
       }
     }
   },
-  "tags": [
-    "scope:web-next",
-    "type:app"
-  ]
+  "tags": ["scope:web-next", "type:app"]
 }
