@@ -59,6 +59,20 @@ jobs:
           name: audit-${{ strategy.job-index }}
           path: ${{ matrix.dir }}/audit.json
 
+  # ── Frontend security headers (static config assertion) ─────────────────────
+  # Asserts every present frontend origin (apps/web nginx, apps/web-next Next.js)
+  # declares the required security response headers (CSP, X-Frame-Options, …).
+  # Pure Node, no install — the API's runtime scanner is scripts/security_scan.py.
+  frontend-headers:
+    name: Frontend security headers
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - run: node scripts/security_scan_frontend.mjs
+
   # ── Secret scanning ─────────────────────────────────────────────────────────
   # Uses the gitleaks binary directly — the gitleaks GitHub Action requires a paid
   # license for organization repos, the binary does not. Version pinned via env.

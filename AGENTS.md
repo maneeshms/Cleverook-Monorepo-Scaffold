@@ -266,6 +266,7 @@ pnpm run e2e:setup && pnpm run e2e   # create+migrate test DB, run e2e
 pnpm run migration:run        # TypeORM migrations
 pnpm run seed:api             # admin seed (idempotent)
 pnpm run scan:security        # OWASP runtime scan against a live api
+pnpm run scan:security:frontend  # assert frontend origins declare security headers
 ```
 
 ## Configuration (layered)
@@ -282,9 +283,13 @@ revoke the whole family + CRITICAL security alert. Progressive lockout. Global
 `ValidationPipe` (`whitelist` + `forbidNonWhitelisted`). DTOs never expose
 entities. helmet, strict CORS (wildcard ⇒ credentials off), 1 MB body cap, trust
 proxy, correlation IDs. Parameterized queries only; migrations-only schema.
-`audit()` privileged actions; error responses carry no internals. **Security is
-the top priority — any auth/validation/data change starts with
-`docs/agents/security.md`, and auth changes follow the special protocol in
+`audit()` privileged actions; error responses carry no internals. **Frontends
+harden their own origin** too: every client keeps tokens out of
+`localStorage`/`AsyncStorage`, and `apps/web`/`apps/web-next` ship CSP +
+`X-Frame-Options` + `nosniff` + `Referrer-Policy` + `Permissions-Policy` + HSTS
+(eslint-guarded; `pnpm run scan:security:frontend` in CI). **Security is the top
+priority — any auth/validation/data change starts with `docs/agents/security.md`
+(frontend rules in §10), and auth changes follow the special protocol in
 `docs/agents/recipes.md`.**
 
 ## Topic docs — read the one that fits your task
@@ -319,6 +324,10 @@ Run through this list; if any line fails, you are not done:
       spacing value comes from tokens (no hex, px, or font literals); anything
       outside the kit reads `useTheme()`; branding changes confined to
       `src/theme/brand.ts`
+- [ ] UI security intact: tokens never in `localStorage`/`AsyncStorage`, no
+      `dangerouslySetInnerHTML` or cleartext `http://`, frontend origins keep
+      their security headers (`pnpm run scan:security:frontend` green) — §10 of
+      `docs/agents/security.md`
 - [ ] New personal data registered for export **and** erasure (+ retention if it
       ages) per `docs/agents/compliance.md`; sensitive mutations audited
 - [ ] Every file/symbol/route/env key you referenced was verified to exist —

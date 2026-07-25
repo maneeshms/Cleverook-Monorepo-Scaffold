@@ -29,5 +29,8 @@ ENV PORT=80
 # Point at the API service; nginx proxies /api/* there (same-origin for the SPA).
 ENV API_URL=http://localhost:3000
 COPY apps/web/nginx/default.conf.template /etc/nginx/templates/default.conf.template
+# Static header snippet — copied outside /templates so envsubst leaves it alone
+# (it has no ${VAR} refs); the template `include`s it from here.
+COPY apps/web/nginx/security-headers.conf /etc/nginx/snippets/security-headers.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 EXPOSE 80

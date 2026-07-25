@@ -57,6 +57,17 @@ project's stack. Deployed on Railway. Full standards:
 - Flag GitHub Actions hardcoding credentials instead of `${{ secrets.* }}`, or third-party
   actions pinned to a mutable tag when a SHA is warranted.
 
+### Frontend origin (apps/web · apps/web-next · apps/mobile — see security.md §10)
+
+- Flag tokens/secrets written to `localStorage`/`sessionStorage`, or a refresh token in
+  `AsyncStorage` (must be module memory + `expo-secure-store`).
+- Flag `dangerouslySetInnerHTML`, and hardcoded cleartext `http://` URLs (require `https`
+  or an env var; `http://localhost` is fine for dev).
+- Flag edits that remove or weaken the frontend security headers — `apps/web`
+  `nginx/security-headers.conf` / its `include`s / the Dockerfile COPY, or
+  `apps/web-next` `next.config.mjs` `headers()` / `poweredByHeader: false`. CSP must keep
+  `default-src`/`frame-ancestors`/`object-src`/`base-uri`.
+
 ## Compliance (audit trail · GDPR · consent · retention — see docs/agents/compliance.md)
 
 - Flag any update or delete path added to `AuditLog`/`audit_log` (the retention purge

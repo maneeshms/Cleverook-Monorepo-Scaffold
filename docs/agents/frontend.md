@@ -91,6 +91,17 @@ a coverage gate or unit suites here. The 90% floor applies to backend code only.
 - **On mobile, never put tokens in `AsyncStorage`** (plaintext on disk). The Expo
   sample keeps the access token in memory and the refresh token in
   `expo-secure-store` (Keychain/Keystore) — keep that split when extending it.
+- **The page origin sets its own security headers.** The API's helmet only covers
+  API responses; the frontend server ships CSP + `X-Frame-Options` +
+  `X-Content-Type-Options` + `Referrer-Policy` + `Permissions-Policy` + HSTS —
+  `apps/web` via `nginx/security-headers.conf` (include'd per location), `apps/web-next`
+  via `next.config.mjs` `headers()`. Keep them when editing those files;
+  `pnpm run scan:security:frontend` (and CI) fails if a header goes missing. If you
+  add the realtime capability, add `wss:` to the CSP `connect-src`. Full ruleset:
+  `docs/agents/security.md` §10.
+- **No `dangerouslySetInnerHTML`, no cleartext `http://` literals** (use `https://`
+  or the env var; `http://localhost` is fine for dev) — both are eslint errors in
+  every frontend app.
 - **API base URL comes from the environment** (`VITE_API_URL` / Next env /
   `EXPO_PUBLIC_API_URL`), never hardcoded. On web prefer same-origin (`/api`) via
   the reverse proxy to avoid CORS; a device has no proxy, so mobile calls the API

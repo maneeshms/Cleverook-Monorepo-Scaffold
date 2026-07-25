@@ -120,6 +120,42 @@ Mirror these patterns; don't invent new ones.
   mass-assignment + token rotation/reuse. Keep it green.
 - `pnpm run scan:security` (needs a live api) runs the black-box scanner — **49-check
   baseline, all passing**. A HIGH/MEDIUM failure exits non-zero and must block merge.
+- `pnpm run scan:security:frontend` (§10) statically asserts every present frontend
+  origin declares its security headers. Runs in CI (`security.yml` → `frontend-headers`).
+
+## 10. Frontend & mobile security (the UI origin, not just the API)
+
+The API's `helmet` only hardens **API responses**; the servers that ship your
+HTML/JS are separate origins that must harden themselves. This applies to
+`apps/web`, `apps/web-next`, `apps/mobile` — all built with the Clevrook Design
+Kit (see `docs/agents/frontend.md`).
+
+- **Token storage.** Access token lives in **module memory only** — never
+  `localStorage`/`sessionStorage` (XSS exfiltration target). On mobile the
+  rotating refresh token goes in **`expo-secure-store`** (OS keychain/keystore),
+  **never `AsyncStorage`** (plaintext on disk). The web sample keeps no refresh
+  token client-side; a production app should use a BFF/httpOnly-cookie session.
+  Enforced by `no-restricted-syntax` in each app's `eslint.config.js`.
+- **Security response headers on the page origin.** Every frontend sends CSP,
+  `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`,
+  `Permissions-Policy`, and `Strict-Transport-Security`:
+  - `apps/web` → `nginx/security-headers.conf`, `include`d into each HTML/asset
+    location of `default.conf.template` (nginx resets inherited `add_header` when
+    a location sets its own — hence the per-location include) and COPY'd by the
+    Dockerfile.
+  - `apps/web-next` → `next.config.mjs` `headers()` + `poweredByHeader: false`.
+- **CSP is a pragmatic baseline**, not the ceiling: `script-src 'self'` on the
+  Vite build (external hashed scripts), `'unsafe-inline'` on Next (inline
+  hydration bootstrap). `connect-src 'self'` covers the same-origin `/api` proxy
+  — **add `wss:` if you enable the realtime capability**. Tightening to a
+  nonce/hash-based CSP is a documented per-project follow-up.
+- **No `dangerouslySetInnerHTML`** (XSS sink) and **no cleartext `http://`
+  literals** (use `https://` or an env var; `http://localhost` allowed for dev) —
+  both eslint-enforced.
+- **Same-origin API access.** The base URL comes from env
+  (`VITE_API_URL`/Next env/`EXPO_PUBLIC_API_URL`); web serves the API same-origin
+  via the nginx proxy / Next rewrite / Vite dev proxy, so no cross-origin CORS and
+  no backend hostnames leak into JS.
 
 ## Quick reject-list (flag these in review)
 
@@ -128,4 +164,6 @@ identity from request body · raw SQL concatenation · `synchronize: true` · se
 code/JSON/log · CORS `*` with credentials · entity returned to client · stack trace
 in response · endpoint without a test · `console.log` in app code · update/delete
 path on `audit_log` · PII in audit metadata · personal data stored without a
-`PersonalDataContributor`.
+`PersonalDataContributor` · **token in `localStorage`/`sessionStorage`** ·
+**refresh token in `AsyncStorage`** · **`dangerouslySetInnerHTML`** ·
+**cleartext `http://` URL** · **frontend origin missing its security headers/CSP**.

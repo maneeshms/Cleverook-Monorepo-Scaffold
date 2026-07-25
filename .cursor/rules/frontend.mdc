@@ -13,6 +13,8 @@ Full detail: [docs/agents/frontend.md](../../docs/agents/frontend.md), [docs/DES
 - No tests here (per project direction) — the 90% floor is backend-only.
 - Never store tokens/secrets in localStorage (module memory in the sample; httpOnly-cookie BFF in prod).
 - On mobile: access token in memory, refresh token in expo-secure-store — never AsyncStorage.
+- The page origin sets its own security headers — CSP, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy, HSTS: `apps/web` via `nginx/security-headers.conf`, `apps/web-next` via `next.config.mjs` `headers()`. Don't drop them; `pnpm run scan:security:frontend` (and CI) fails if one goes missing. Add `wss:` to CSP `connect-src` if you enable realtime. Full rules: `docs/agents/security.md` §10.
+- No `dangerouslySetInnerHTML` and no cleartext `http://` literals (https or env; localhost ok for dev) — both are eslint errors.
 - API base URL from env (`VITE_API_URL` / Next env / `EXPO_PUBLIC_API_URL`); on web prefer same-origin `/api` via the proxy.
 - Don't import the **backend libs** into a frontend or mobile — they're Node/Nest code. After `init.mjs` those carry YOUR scope (`@myco/logger`) while the design kit keeps `@clevrook` (`@clevrook/web` — required here). Keep Dockerfile/railway.json wiring intact (mobile has none — it ships via EAS).
 - Exact-pinned deps + committed lockfile; exception: apps/mobile keeps Expo's `~` ranges on expo-*/react-native — bump via `pnpm exec expo install`.

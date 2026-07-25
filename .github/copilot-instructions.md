@@ -53,6 +53,14 @@ The top 15 rules:
     so it re-themes with everything else. Branding lives only in that app's
     `src/theme/brand.ts`. See [`docs/DESIGN_SYSTEM.md`](../docs/DESIGN_SYSTEM.md).
 
+**Frontend origins harden themselves.** The API's helmet only covers API
+responses — `apps/web` (nginx `security-headers.conf`) and `apps/web-next`
+(`next.config.mjs` `headers()`) must keep sending CSP, `X-Frame-Options`,
+`nosniff`, `Referrer-Policy`, `Permissions-Policy`, and HSTS
+(`pnpm run scan:security:frontend` enforces it). Tokens never touch
+`localStorage`/`AsyncStorage`; no `dangerouslySetInnerHTML`; no cleartext
+`http://` (eslint-guarded). See `docs/agents/security.md` §10.
+
 **When a gate fails, the code is wrong — not the gate.** Never lower coverage
 thresholds, skip/delete failing tests, add unexplained `eslint-disable`/`@ts-ignore`,
 loosen ValidationPipe/tsconfig/guards, or use `--force`/`--legacy-peer-deps` to get

@@ -9,10 +9,15 @@ server {
 
     location = /index.html {
         add_header Cache-Control "no-cache";
+        # Security headers must be repeated here: this location's own add_header
+        # (Cache-Control) resets nginx's header inheritance, so a server-level set
+        # would not apply to the app's HTML. See security-headers.conf.
+        include /etc/nginx/snippets/security-headers.conf;
     }
 
     # Proxy the backend same-origin — no CORS, no exposed hostnames in JS.
     # API_URL = full URL with scheme, e.g. https://api-xxx.up.railway.app
+    # (No security-headers include here — the API already sets its own.)
     location ^~ /api/ {
         set $api_backend "${API_URL}";
         proxy_pass $api_backend;
@@ -28,10 +33,12 @@ server {
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$ {
         expires 1y;
         add_header Cache-Control "public, immutable";
+        include /etc/nginx/snippets/security-headers.conf;
     }
 
-    # SPA fallback.
+    # SPA fallback (serves index.html for client routes).
     location / {
         try_files $uri $uri/ /index.html;
+        include /etc/nginx/snippets/security-headers.conf;
     }
 }
