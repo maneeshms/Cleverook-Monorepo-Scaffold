@@ -55,9 +55,9 @@
     "@nestjs/cli": "11.0.24",
     "@nestjs/schematics": "11.1.0",
     "@nestjs/testing": "11.1.28",
-    "@nx/jest": "23.1.0",
-    "@nx/js": "23.1.0",
-    "@nx/webpack": "23.1.0",
+    "@nx/jest": "23.1.1",
+    "@nx/js": "23.1.1",
+    "@nx/webpack": "23.1.1",
     "@types/bcryptjs": "3.0.0",
     "@types/express": "5.0.6",
     "@types/jest": "30.0.0",
@@ -69,7 +69,7 @@
     "husky": "9.1.7",
     "jest": "30.4.2",
     "lint-staged": "17.2.0",
-    "nx": "23.1.0",
+    "nx": "23.1.1",
     "pg": "8.22.0",
     "prettier": "3.9.6",
     "reflect-metadata": "0.2.2",
@@ -82,7 +82,7 @@
     "tsc-alias": "1.9.1",
     "tsconfig-paths": "4.2.0",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.65.0",
+    "typescript-eslint": "8.66.0",
     "webpack-node-externals": "3.0.0"
   }
 }
