@@ -11,7 +11,7 @@
     "@nestjs/platform-socket.io": "11.1.28",
     "@nestjs/websockets": "11.1.28",
     "@socket.io/redis-adapter": "8.3.0",
-    "ioredis": "5.11.1",
+    "ioredis": "6.0.0",
     "socket.io": "4.8.3"
   }
 }
