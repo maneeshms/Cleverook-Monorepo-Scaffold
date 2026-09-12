@@ -22,7 +22,7 @@ jobs:
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc # single source of truth for the Node version
           cache: npm
@@ -65,7 +65,7 @@ jobs:
             sleep 2
           done
           echo 'Postgres did not become ready in time' && exit 1
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -97,7 +97,7 @@ jobs:
         app: [api, web, web-next]
     steps:
       - uses: actions/checkout@v7
-      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
       # Local CI image tag derived from the repo name (no hardcoded project name),
       # lowercased because Docker repository names must be lowercase.
       - name: Compute image tag
@@ -147,7 +147,7 @@ jobs:
           category: trivy-${{ matrix.app }}
       # Generate an SPDX SBOM for supply-chain provenance.
       - name: Generate SBOM (${{ matrix.app }})
-        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
         with:
           image: ${{ env.IMAGE }}
           format: spdx-json
