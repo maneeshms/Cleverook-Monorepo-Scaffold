@@ -8,9 +8,9 @@
     "@clevrook/common": "*",
     "@clevrook/database": "*",
     "@clevrook/logger": "*",
-    "@nestjs/common": "11.1.28",
-    "@nestjs/typeorm": "11.0.3",
-    "bullmq": "5.81.2",
+    "@nestjs/common": "12.0.3",
+    "@nestjs/typeorm": "12.0.1",
+    "bullmq": "6.3.6",
     "resend": "6.18.1",
     "typeorm": "1.1.0"
   }
