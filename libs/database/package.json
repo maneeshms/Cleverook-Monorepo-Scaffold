@@ -5,10 +5,10 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "@nestjs/common": "11.1.28",
-    "@nestjs/config": "4.0.4",
-    "@nestjs/typeorm": "11.0.3",
-    "dotenv": "17.4.2",
+    "@nestjs/common": "12.1.0",
+    "@nestjs/config": "12.0.1",
+    "@nestjs/typeorm": "12.0.1",
+    "dotenv": "18.0.3",
     "pg": "8.22.0",
     "reflect-metadata": "0.2.2",
     "typeorm": "1.1.0"
